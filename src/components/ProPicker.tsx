@@ -370,9 +370,12 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                     type="button"
                     onClick={() => setFocus(l)}
                     onDoubleClick={() => onPick(l.id, null)}
+                    title={zh ? '单击看详情，双击直接选用' : 'Click for details, double-click to use'}
                     className={[
-                      'w-full rounded-lg border px-2.5 py-1.5 text-left transition',
-                      active ? 'border-ink-900 bg-ink-900/[0.05]' : 'border-transparent hover:border-ink-900/20',
+                      'w-full rounded-lg border px-2.5 py-1.5 text-left',
+                      ROW_TRANSITION,
+                      rowEdgeClass(chosen ? 'picked' : active ? 'focused' : 'idle', 'card'),
+                      rowTintClass(chosen ? 'picked' : active ? 'focused' : 'idle'),
                     ].join(' ')}
                   >
                     <span className="flex flex-wrap items-center gap-1.5">
@@ -418,6 +421,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
               terms={terms}
               licenseTexts={licenseTexts}
               pickedId={pickedId}
+              focusedId={focus?.id ?? null}
               scopeLabel={scopeLabel}
               onFocus={(id) => setFocus(unified.find((e) => e.id === id) ?? null)}
               onUse={(id) => onPick(id, null)}
@@ -905,6 +909,60 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
  * ------------------------------------------------------------------ */
 
 /** 对比表用到的事实快照——从 UnifiedEntry + 补充数据里一次解析出来 */
+/* ------------------------------------------------------------------ *
+ * 行状态的视觉语言（列表与对比矩阵共用）
+ *
+ * 两个视图是同一决策流程里的两种看法，**同一个操作必须给出同样的反馈**——
+ * 否则用户会以为行为不一样。此处把"四态"的色板与时长集中定义，两处复用。
+ *
+ *   idle      无底色，悬停时给淡底色
+ *   hover     ink 3% 底色 + ink/20 边
+ *   focused   正在右侧预览：ink 5% 底色 + ink 实边
+ *   picked    已选用：ok 8% 底色 + ok 实边 + 「已选」药丸
+ *
+ * 底色刻意用 `color-mix` 而不是透明度：矩阵首列是 sticky 定位，必须是**不透明**底色，
+ * 否则横向滚动时下方内容会透出来。两个视图用同一组不透明色，看起来才真的相同。
+ * ------------------------------------------------------------------ */
+export type RowState = 'idle' | 'focused' | 'picked';
+
+const ROW_TRANSITION = 'transition-colors duration-150';
+
+/*
+ * 注意：下面每个类名都写成**完整字面量**。
+ * Tailwind 是扫描源码里的字符串来生成样式的，`hover:${X}` 这种拼接出来的类名
+ * 既不会被生成、也不会报错——是典型的静默失效。因此宁可重复几遍。
+ */
+const ROW_TINT: Record<RowState, string> = {
+  idle: '',
+  focused: 'bg-[color-mix(in_srgb,var(--color-ink-900)_5%,white)]',
+  picked: 'bg-[color-mix(in_srgb,var(--color-ok)_8%,white)]',
+};
+
+/** 未选中行在悬停时的淡底色 */
+const HOVER_TINT = 'hover:bg-[color-mix(in_srgb,var(--color-ink-900)_3%,white)]';
+/** 同上，但由整行 hover 驱动，供 sticky 首列使用（首列有独立底色，不会被行底色带动） */
+const GROUP_HOVER_TINT = 'group-hover:bg-[color-mix(in_srgb,var(--color-ink-900)_3%,white)]';
+
+/** idle 时在悬停给出淡底色；非 idle 时保持不变（已在预览/已选，不该被悬停覆盖） */
+function rowTintClass(state: RowState): string {
+  return state === 'idle' ? HOVER_TINT : ROW_TINT[state];
+}
+
+/**
+ * 状态边框。列表是卡片，用整圈边框；矩阵是表格行，用**左缘**竖条
+ * ——表格行加整圈圆角边框在 border-collapse 下会错位，左缘竖条是等效且稳妥的表达。
+ */
+function rowEdgeClass(state: RowState, kind: 'card' | 'table'): string {
+  if (kind === 'card') {
+    if (state === 'picked') return 'border-ok';
+    if (state === 'focused') return 'border-ink-900';
+    return 'border-transparent hover:border-ink-900/20';
+  }
+  if (state === 'picked') return 'border-l-2 border-l-ok';
+  if (state === 'focused') return 'border-l-2 border-l-ink-900';
+  return 'border-l-2 border-l-transparent';
+}
+
 /** 把维度定义里的原始单元格值渲染成界面元素 */
 function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode {
   const value = d.cell(r);
@@ -956,6 +1014,7 @@ function CompareMatrix({
   terms,
   licenseTexts,
   pickedId,
+  focusedId,
   scopeLabel,
   onFocus,
   onUse,
@@ -967,6 +1026,8 @@ function CompareMatrix({
   terms: ChooseALicenseTerms | null;
   licenseTexts: Record<string, string>;
   pickedId: string | null;
+  /** 右侧面板当前正在预览的条目——矩阵必须把它标出来，否则点了没有任何反馈 */
+  focusedId: string | null;
   scopeLabel: { zh: string; en: string };
   /** 单击：在右侧面板展示详情 */
   onFocus: (id: string) => void;
@@ -1055,18 +1116,31 @@ function CompareMatrix({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const state: RowState = pickedId === r.id ? 'picked' : focusedId === r.id ? 'focused' : 'idle';
+              return (
               <tr
                 key={r.id}
                 onClick={() => onFocus(r.id)}
                 onDoubleClick={() => onUse(r.id)}
                 title={zh ? '单击看详情，双击直接选用' : 'Click for details, double-click to use'}
                 className={[
-                  'cursor-pointer border-b border-ink-900/[0.06] last:border-0',
-                  pickedId === r.id ? 'bg-ok/[0.06]' : 'hover:bg-ink-900/[0.04]',
+                  'group cursor-pointer border-b border-ink-900/[0.06] last:border-0',
+                  ROW_TRANSITION,
+                  rowTintClass(state),
                 ].join(' ')}
               >
-                <th scope="row" className="sticky left-0 z-10 bg-white p-2 text-left font-medium">
+                <th
+                  scope="row"
+                  className={[
+                    // sticky 首列必须有**不透明**底色，否则横向滚动时内容会透出来；
+                    // 因此这里用与整行相同的 color-mix 实色，而不是透明度
+                    'sticky left-0 z-10 p-2 text-left font-medium',
+                    ROW_TRANSITION,
+                    rowEdgeClass(state, 'table'),
+                    state === 'idle' ? `bg-white ${GROUP_HOVER_TINT}` : ROW_TINT[state],
+                  ].join(' ')}
+                >
                   {/* 行本身不可聚焦，这个按钮承担键盘可达性：Enter 等同于单击 */}
                   <button
                     type="button"
@@ -1121,7 +1195,8 @@ function CompareMatrix({
                   </span>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!rows.length ? (
               <tr>
                 <td colSpan={dims.length + 2} className="p-3 text-sm text-ink-400">

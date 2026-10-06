@@ -211,3 +211,30 @@ test('列表与对比矩阵的点击行为一致：单击看详情、双击直�
     '矩阵行内按钮都应阻止冒泡（名称、＋、用它）',
   );
 });
+
+test('列表与对比矩阵共用同一套状态样式（不许各写一份）', () => {
+  // 这里出过第二次问题：两个视图的悬停机制不同（列表改边框、矩阵改底色），
+  // 而且矩阵完全没有"正在预览"的反馈。现在四态样式集中定义、两处复用。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('const ROW_TINT'), '应有一份共用的行底色定义');
+  assert.ok(src.includes('function rowEdgeClass'), '应有一份共用的状态边框定义');
+  assert.ok(src.includes('const ROW_TRANSITION'), '应有一份共用的过渡时长');
+  // 两个视图都要走这几个共用定义
+  assert.ok(/rowTintClass\(/.test(src) && (src.match(/rowTintClass\(/g) ?? []).length >= 2, '列表与矩阵都应使用 rowTintClass');
+  assert.ok(/rowEdgeClass\(/.test(src) && (src.match(/rowEdgeClass\(/g) ?? []).length >= 2, '列表与矩阵都应使用 rowEdgeClass');
+  assert.ok((src.match(/ROW_TRANSITION/g) ?? []).length >= 3, '过渡时长应被两处复用');
+});
+
+test('不拼接触发器类名：Tailwind 只认完整字面量，拼接会静默失效', () => {
+  // Tailwind 扫描源码里的字符串来生成样式。`hover:${X}` 这类拼出来的类名
+  // 既不会生成、也不会报错——页面看起来"就是没效果"，很难查。
+  const raw = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  // 去掉注释：说明文字里会引用这个坏写法作为反例
+  const code = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const bad = code.match(/(?:hover|focus|active|group-hover|disabled|peer-checked):\s*\$\{/g);
+  assert.equal(
+    bad,
+    null,
+    `发现拼接出的触发器类名（Tailwind 不会生成）：${bad ? bad.join(', ') : ''}`,
+  );
+});
