@@ -9,6 +9,7 @@ import {
   type CompareFacts,
   type Dimension,
 } from '../lib/compare.ts';
+import { SUBJECT_LABEL, subjectsOf } from '../lib/subject.ts';
 import {
   catalogStats,
   COMPATIBILITY_VERDICT,
@@ -636,6 +637,44 @@ function CatalogDetail({
             );
           })()}
         </p>
+
+        {/* 适用于：这个许可证是用来授权什么作品的。与"条款字段"一样标注判定依据 */}
+        {(() => {
+          const verdict = subjectsOf(isSpdx ? entry.id : (entry.scancodeKey ?? entry.id), familyFromEntry(entry, extra));
+          return (
+            <div className="mt-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-ink-400">{zh ? '适用于' : 'Applies to'}</span>
+                {verdict.subjects.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full border border-ink-900/15 bg-ink-900/[0.04] px-2 py-0.5 font-medium"
+                  >
+                    {SUBJECT_LABEL[s][lang]}
+                  </span>
+                ))}
+                <span className="text-ink-400">
+                  {verdict.source === 'curated'
+                    ? zh
+                      ? '人工指定'
+                      : 'hand-assigned'
+                    : verdict.source === 'rule'
+                      ? zh
+                        ? '按标识符判定'
+                        : 'from identifier'
+                      : zh
+                        ? '默认判定，未在元数据中标注'
+                        : 'default assumption, not stated in the metadata'}
+                </span>
+              </div>
+              {verdict.note ? (
+                <p className="mt-2 rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-2.5 text-xs leading-relaxed text-ink-600">
+                  {verdict.note[lang]}
+                </p>
+              ) : null}
+            </div>
+          );
+        })()}
       </header>
 
       {/* 非 SPDX 条目必须先讲清最要紧的那件事 */}
