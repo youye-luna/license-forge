@@ -419,7 +419,8 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
               licenseTexts={licenseTexts}
               pickedId={pickedId}
               scopeLabel={scopeLabel}
-              onPick={(id) => setFocus(unified.find((e) => e.id === id) ?? null)}
+              onFocus={(id) => setFocus(unified.find((e) => e.id === id) ?? null)}
+              onUse={(id) => onPick(id, null)}
               onAddCompare={addToCompare}
             />
           )}
@@ -942,6 +943,11 @@ function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode 
  *  - **矩阵**（这里）回答"有哪些选择、它们互相差在哪"——行是许可证、列是维度，可排序；
  *  - **工作台**回答"我挑的这几个具体差在哪"——列是许可证、行是维度，能放长尾与 ScanCode 独有条目。
  * 两者共用 lib/compare.ts 里的同一份维度定义与事实解析，口径不会打架。
+ *
+ * 交互与列表**完全一致**（同一套心智，不该两样）：
+ *  - 单击整行 → 右侧面板显示该许可证的完整条款
+ *  - 双击整行 → 直接选用并跳到生成
+ *  - 行末按钮 → 「＋」加入对比工作台，「用它」等于双击
  */
 function CompareMatrix({
   lang,
@@ -951,7 +957,8 @@ function CompareMatrix({
   licenseTexts,
   pickedId,
   scopeLabel,
-  onPick,
+  onFocus,
+  onUse,
   onAddCompare,
 }: {
   lang: Lang;
@@ -961,7 +968,10 @@ function CompareMatrix({
   licenseTexts: Record<string, string>;
   pickedId: string | null;
   scopeLabel: { zh: string; en: string };
-  onPick: (id: string) => void;
+  /** 单击：在右侧面板展示详情 */
+  onFocus: (id: string) => void;
+  /** 双击或点「用它」：选用该许可证并跳到生成 */
+  onUse: (id: string) => void;
   onAddCompare: (id: string) => void;
 }) {
   const zh = lang === 'zh';
@@ -1008,8 +1018,8 @@ function CompareMatrix({
       </div>
       <p className="mt-1 text-xs text-ink-400">
         {zh
-          ? '行是许可证、列是维度，鼠标移到列标题看判定依据；点行末「用它」直接选用，「＋」加入下方工作台细看。想换范围就用上面的筛选与来源。'
-          : 'Rows are licenses, columns are dimensions — hover a column header for the basis. Use "Use" at the end of a row to select it, or "+" to add it to the board below. Change the scope with the filters and source above.'}
+          ? '行是许可证、列是维度，鼠标移到列标题看判定依据。操作方式与列表一致：单击看详情，双击直接选用；行末「＋」加入下方工作台细看。想换范围就用上面的筛选与来源。'
+          : 'Rows are licenses, columns are dimensions — hover a column header for the basis. Same interaction as the list: click for details, double-click to use; "+" adds it to the board below. Change the scope with the filters and source above.'}
       </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1048,15 +1058,26 @@ function CompareMatrix({
             {rows.map((r) => (
               <tr
                 key={r.id}
+                onClick={() => onFocus(r.id)}
+                onDoubleClick={() => onUse(r.id)}
+                title={zh ? '单击看详情，双击直接选用' : 'Click for details, double-click to use'}
                 className={[
-                  'border-b border-ink-900/[0.06] last:border-0',
-                  pickedId === r.id ? 'bg-ok/[0.06]' : 'hover:bg-ink-900/[0.02]',
+                  'cursor-pointer border-b border-ink-900/[0.06] last:border-0',
+                  pickedId === r.id ? 'bg-ok/[0.06]' : 'hover:bg-ink-900/[0.04]',
                 ].join(' ')}
               >
                 <th scope="row" className="sticky left-0 z-10 bg-white p-2 text-left font-medium">
+                  {/* 行本身不可聚焦，这个按钮承担键盘可达性：Enter 等同于单击 */}
                   <button
                     type="button"
-                    onClick={() => onPick(r.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFocus(r.id);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      onUse(r.id);
+                    }}
                     className="block max-w-[16rem] truncate text-left hover:underline"
                     title={r.name}
                   >
@@ -1076,7 +1097,11 @@ function CompareMatrix({
                   <span className="flex items-center justify-end gap-1">
                     <button
                       type="button"
-                      onClick={() => onAddCompare(r.id)}
+                      onClick={(e) => {
+                        // 阻止冒泡：否则会连带触发整行的"看详情"
+                        e.stopPropagation();
+                        onAddCompare(r.id);
+                      }}
                       className="rounded border border-ink-900/20 px-1.5 py-0.5 text-xs hover:border-ink-900"
                       title={zh ? '加入对比工作台' : 'Add to the comparison board'}
                     >
@@ -1084,8 +1109,12 @@ function CompareMatrix({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onPick(r.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUse(r.id);
+                      }}
                       className="rounded border border-ink-900/20 px-2 py-0.5 text-xs hover:border-ink-900 hover:bg-ink-900 hover:text-white"
+                      title={zh ? '选用并去生成' : 'Use and generate'}
                     >
                       {zh ? '用它' : 'Use'}
                     </button>

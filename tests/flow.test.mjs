@@ -167,3 +167,47 @@ test('分类导航覆盖全部人工整理的许可证，且每个类别都有�
     assert.ok(FAMILY_LABEL[f].zh.length > 0 && FAMILY_LABEL[f].en.length > 0, `${f} 缺少类别名称`);
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * 列表与对比矩阵的交互必须一致
+ * ------------------------------------------------------------------ */
+
+test('列表与对比矩阵的点击行为一致：单击看详情、双击直接选用', () => {
+  // 这里出过一次真 bug：矩阵的行只接了"看详情"的回调，
+  // 于是行末「用它」按钮也只会展开详情、不会真正选用。
+  // 两个视图是同一个决策流程里的两种看法，交互不该两样。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+
+  const body = (start, end) => {
+    const a = src.indexOf(start);
+    assert.ok(a > 0, `找不到 ${start}`);
+    const b = end ? src.indexOf(end, a) : src.length;
+    return src.slice(a, b > 0 ? b : src.length);
+  };
+
+  const list = body('function ProPicker', 'function CatalogDetail');
+  const matrix = body('function CompareMatrix', 'function CompareBoard');
+
+  // 列表：单击 setFocus，双击 onPick（= 选用并跳转）
+  assert.match(list, /onClick=\{\(\) => setFocus\(/, '列表单击应展示详情');
+  assert.match(list, /onDoubleClick=\{\(\) => onPick\(/, '列表双击应选用');
+
+  // 矩阵：同样的两个动作，一个都不能少
+  assert.match(matrix, /onClick=\{\(\) => onFocus\(/, '矩阵整行单击应展示详情');
+  assert.match(matrix, /onDoubleClick=\{\(\) => onUse\(/, '矩阵整行双击应选用');
+
+  // 矩阵的「用它」必须走选用回调，而不是只展开详情。
+  // 直接断言接线模式（不要用 indexOf 找按钮文字——注释里也会出现那两个字）。
+  assert.ok(matrix.includes('用它'), '矩阵行末应有「用它」按钮');
+  assert.match(
+    matrix,
+    /e\.stopPropagation\(\);\s*onUse\(r\.id\);/,
+    '矩阵的「用它」按钮必须先阻止冒泡、再调用选用回调（不能只展开详情）',
+  );
+
+  // 行末按钮要阻止冒泡，否则点一下会连带触发整行的"看详情"
+  assert.ok(
+    (matrix.match(/stopPropagation/g) ?? []).length >= 3,
+    '矩阵行内按钮都应阻止冒泡（名称、＋、用它）',
+  );
+});
