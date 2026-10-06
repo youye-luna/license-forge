@@ -1,0 +1,13 @@
+# 统一使用 LF。
+#
+# 这不是风格洁癖：LICENSE 与生成器输出做过逐字节一致性核对，
+# 如果 Git 在检出时把行尾换成 CRLF，这个性质就没了。
+# 同理，public/data 下的 JSON 与源码里的模板字符串也按 LF 比对。
+* text=auto eol=lf
+
+# 二进制资源不做行尾转换
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

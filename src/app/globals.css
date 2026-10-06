@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+/*
+ * 设计说明：
+ * 这个站点的用户是"正准备发布第一个开源项目的开发者"，界面应当比许可证本身更好读。
+ * 因此刻意采用高对比、低装饰的排版，把注意力留给对比矩阵与生成结果；
+ * 颜色只承担语义（必须做 / 建议做 / 风险），不做装饰。
+ */
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Noto Sans SC', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+  --color-ink-950: #0b0f14;
+  --color-ink-900: #111826;
+  --color-ink-800: #1b2433;
+  --color-ink-600: #46536b;
+  --color-ink-400: #7c8aa0;
+  --color-paper: #fbfbfd;
+  --color-mandatory: #b42318;
+  --color-advisory: #b54708;
+  --color-ok: #067647;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+/* 生成结果里的许可证正文很长，需要一个可控高度的滚动容器 */
+.text-scroll {
+  max-height: 26rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.text-scroll pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 对比矩阵与文件清单表在窄屏横向滚动，不压缩内容 */
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.table-scroll table {
+  min-width: 60rem;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .text-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+}

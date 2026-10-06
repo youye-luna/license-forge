@@ -1,0 +1,24 @@
+# 依赖与构建产物
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+.DS_Store
+*.log
+
+# 抓取脚本的磁盘缓存（体积大且可重建，`pnpm run data` 会重新拉取）
+.spdx-cache/
+.scancode-cache/
+
+# 本地环境配置：store-dir 是绝对路径，因人而异，因此不提交。
+# 需要时就地创建一个，可参考 .npmrc.example。
+.npmrc
+
+# 内部调研文档，不随开源仓库发布
+竞品调研-*.md
+
+# 本地调试脚本
+dbg-*.mjs
+verify-*.mjs

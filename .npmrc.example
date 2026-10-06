@@ -1,0 +1,22 @@
+# 本文件是 .npmrc 的模板：仓库不提交 .npmrc，因为它可能含有因人而异的绝对路径。
+# 需要时复制为 .npmrc（该文件名已被 .gitignore 排除）：
+#
+#   cp .npmrc.example .npmrc
+#
+# 什么情况下需要它：
+#
+# 1) 报错 ERR_PNPM_UNEXPECTED_STORE
+#    pnpm 会把依赖链接的来源记录在 node_modules 里，一旦 store 位置变化就拒绝操作。
+#    把 store 固定下来即可（必须是绝对路径，且之后不要再改）：
+#
+#      store-dir=/absolute/path/to/this/repo/.pnpm-store
+#
+# 2) 仓库路径含非 ASCII 目录名
+#    Next.js 的 Turbopack 在解析 pnpm 的联接布局时会失败
+#    （报错 "Could not find the Next.js package"），因此 package.json 的 build 脚本
+#    固定使用 --webpack。这一点与 .npmrc 无关，但如果要改回 Turbopack 需要先解决它。
+#
+# 3) 对等依赖冲突导致安装中断
+#    可放宽为警告：
+#
+#      strict-peer-dependencies=false
