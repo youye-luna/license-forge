@@ -169,60 +169,46 @@ test('分类导航覆盖全部人工整理的许可证，且每个类别都有�
 });
 
 /* ------------------------------------------------------------------ *
- * 列表与对比矩阵的交互必须一致
+ * 对比矩阵已移除；列表与对比工作台是仅有的两种呈现
  * ------------------------------------------------------------------ */
 
-test('列表与对比矩阵的点击行为一致：单击看详情、双击直接选用', () => {
-  // 这里出过一次真 bug：矩阵的行只接了"看详情"的回调，
-  // 于是行末「用它」按钮也只会展开详情、不会真正选用。
-  // 两个视图是同一个决策流程里的两种看法，交互不该两样。
+test('对比矩阵已删除，页面不再有它', () => {
+  // 矩阵与列表在做同一件事（列出许可证、摊开维度），留着只会让人在两套界面之间选。
+  // 这条断言守住它不被无意间加回来。
   const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-
-  const body = (start, end) => {
-    const a = src.indexOf(start);
-    assert.ok(a > 0, `找不到 ${start}`);
-    const b = end ? src.indexOf(end, a) : src.length;
-    return src.slice(a, b > 0 ? b : src.length);
-  };
-
-  const list = body('function ProPicker', 'function CatalogDetail');
-  const matrix = body('function CompareMatrix', 'function CompareBoard');
-
-  // 列表：单击 setFocus，双击 onPick（= 选用并跳转）
-  assert.match(list, /onClick=\{\(\) => setFocus\(/, '列表单击应展示详情');
-  assert.match(list, /onDoubleClick=\{\(\) => onPick\(/, '列表双击应选用');
-
-  // 矩阵：同样的两个动作，一个都不能少
-  assert.match(matrix, /onClick=\{\(\) => onFocus\(/, '矩阵整行单击应展示详情');
-  assert.match(matrix, /onDoubleClick=\{\(\) => onUse\(/, '矩阵整行双击应选用');
-
-  // 矩阵的「用它」必须走选用回调，而不是只展开详情。
-  // 直接断言接线模式（不要用 indexOf 找按钮文字——注释里也会出现那两个字）。
-  assert.ok(matrix.includes('用它'), '矩阵行末应有「用它」按钮');
-  assert.match(
-    matrix,
-    /e\.stopPropagation\(\);\s*onUse\(r\.id\);/,
-    '矩阵的「用它」按钮必须先阻止冒泡、再调用选用回调（不能只展开详情）',
-  );
-
-  // 行末按钮要阻止冒泡，否则点一下会连带触发整行的"看详情"
-  assert.ok(
-    (matrix.match(/stopPropagation/g) ?? []).length >= 3,
-    '矩阵行内按钮都应阻止冒泡（名称、＋、用它）',
-  );
+  for (const gone of ['CompareMatrix', 'matrixRows', 'scopeLabel', 'setView', "useState<'list' | 'matrix'>"]) {
+    assert.ok(!src.includes(gone), `对比矩阵的残留：${gone}`);
+  }
+  // 顶层的对比维度定义还在——「对比工作台」仍然用它
+  assert.ok(src.includes('compareDimensions'), '对比工作台的维度定义应当保留');
+  assert.ok(src.includes('function CompareBoard'), '对比工作台应当保留');
 });
 
-test('列表与对比矩阵共用同一套状态样式（不许各写一份）', () => {
-  // 这里出过第二次问题：两个视图的悬停机制不同（列表改边框、矩阵改底色），
-  // 而且矩阵完全没有"正在预览"的反馈。现在四态样式集中定义、两处复用。
+test('列表的点击行为：单击看详情、双击直接选用', () => {
+  // 这里出过一次真 bug（当时矩阵的行只接了"看详情"的回调）。
+  // 现在只剩列表，但这套语义仍要钉住。
   const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-  assert.ok(src.includes('const ROW_TINT'), '应有一份共用的行底色定义');
-  assert.ok(src.includes('function rowEdgeClass'), '应有一份共用的状态边框定义');
-  assert.ok(src.includes('const ROW_TRANSITION'), '应有一份共用的过渡时长');
-  // 两个视图都要走这几个共用定义
-  assert.ok(/rowTintClass\(/.test(src) && (src.match(/rowTintClass\(/g) ?? []).length >= 2, '列表与矩阵都应使用 rowTintClass');
-  assert.ok(/rowEdgeClass\(/.test(src) && (src.match(/rowEdgeClass\(/g) ?? []).length >= 2, '列表与矩阵都应使用 rowEdgeClass');
-  assert.ok((src.match(/ROW_TRANSITION/g) ?? []).length >= 3, '过渡时长应被两处复用');
+  const a = src.indexOf('function ProPicker');
+  const b = src.indexOf('function CatalogDetail', a);
+  assert.ok(a > 0 && b > a, '找不到 ProPicker 组件体');
+  const list = src.slice(a, b);
+
+  assert.match(list, /onClick=\{\(\) => setFocus\(/, '列表单击应展示详情');
+  assert.match(list, /onDoubleClick=\{\(\) => onPick\(/, '列表双击应选用');
+  // 键盘可达性：条目本身是 button
+  assert.match(list, /title=\{zh \? '单击看详情，双击直接选用'/, '应提示两种点击方式');
+});
+
+test('列表项的状态样式集中定义，且在行上被真正使用', () => {
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('const ROW_TINT'), '应有一份行底色定义');
+  assert.ok(src.includes('function rowEdgeClass'), '应有一份状态边框定义');
+  assert.ok(src.includes('const ROW_TRANSITION'), '应有一份过渡时长');
+  assert.ok(/rowTintClass\(/.test(src), '列表项应使用 rowTintClass');
+  assert.ok(/rowEdgeClass\(/.test(src), '列表项应使用 rowEdgeClass');
+  assert.ok(/ROW_TRANSITION/.test(src), '列表项应使用 ROW_TRANSITION');
+  // 删除矩阵后不应留下只为表格行服务的分支
+  assert.ok(!src.includes("'table'"), '不应残留只为表格行服务的样式分支');
 });
 
 test('不拼接触发器类名：Tailwind 只认完整字面量，拼接会静默失效', () => {

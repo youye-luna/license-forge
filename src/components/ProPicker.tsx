@@ -80,13 +80,6 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('featured');
   const [source, setSource] = useState<SourceFilter>('all');
-  /**
-   * 左栏的呈现方式：
-   *  - `list`  —— 列表：按需检索、看详情，适合"我已经知道要找什么"；
-   *  - `matrix` —— 矩阵：行是许可证、列是全部维度，适合"先扫一遍有哪些选择"。
-   * 两者不是替代关系，因此做成同一页上的切换，而不是两个标签页。
-   */
-  const [view, setView] = useState<'list' | 'matrix'>('list');
   const [focus, setFocus] = useState<UnifiedEntry | null>(null);
   /** 对比工作台：最多 4 项，用 key 而不是 SPDX 标识符以便容纳 ScanCode 独有条目 */
   const [compareKeys, setCompareKeys] = useState<string[]>([]);
@@ -133,33 +126,6 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
     return bySource.filter(predicate).slice(0, 400);
   }, [unified, query, filter, source]);
 
-  /**
-   * 矩阵里列哪些条目。
-   *
-   * 与列表不同，矩阵需要**一眼看全**，所以范围以"筛选"为准而不是以搜索为准：
-   *  - 默认（最常用 / 无筛选）→ 人工整理的 32 个：全部条款都经核对，每格都可信；
-   *  - 一旦选了某个筛选或数据源 → 该范围的全部条目，最多 80 行（再多就不叫"一眼看全"了）。
-   * 这样可以既保持默认视图的密度，又能在需要时把某个类别摊开看。
-   */
-  const matrixRows = useMemo(() => {
-    if (!unified) return [];
-    const bySource = unified.filter((e) =>
-      source === 'all' ? true : source === 'spdx' ? e.source === 'spdx' : e.source === 'scancode',
-    );
-    const predicate = FILTERS.find((f) => f.id === filter)?.test;
-    if (filter === 'featured') {
-      return FEATURED.map((id) => bySource.find((e) => e.id === id)).filter((e): e is UnifiedEntry => Boolean(e));
-    }
-    const scoped = predicate ? bySource.filter(predicate) : bySource;
-    return scoped.slice(0, 80);
-  }, [unified, filter, source]);
-
-  const scopeLabel = useMemo(() => {
-    const f = FILTERS.find((x) => x.id === filter);
-    const src = source === 'all' ? { zh: '全部来源', en: 'all sources' } : source === 'spdx' ? { zh: '仅 SPDX', en: 'SPDX only' } : { zh: '仅 ScanCode', en: 'ScanCode only' };
-    const base = filter === 'featured' ? { zh: '最常用', en: 'most used' } : (f ? { zh: f.zh, en: f.en } : { zh: '全部', en: 'all' });
-    return { zh: `${base.zh}（${src.zh}）`, en: `${base.en} (${src.en})` };
-  }, [filter, source]);
 
   const addToCompare = (id: string) =>
     setCompareKeys((prev) => (prev.includes(id) || prev.length >= 4 ? prev : [...prev, id]));
@@ -174,13 +140,13 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
     [compareKeys, unified],
   );
 
-  /** 对比与矩阵都需要正文才能对长尾条目做推断——按需取一次并缓存 */
+  /** 对比工作台需要正文才能对长尾条目做推断——按需取一次并缓存 */
   const [licenseTexts, setLicenseTexts] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!unified) return;
     // 需要正文的只有"没有 ChooseALicense 人工标注、且还没有正文"的条目：
     // 有标注的条目条款是查表得来的，不必为了推断去下载正文。
-    const candidates = [...compareEntries, ...matrixRows];
+    const candidates = compareEntries;
     const need = (e: UnifiedEntry) => {
       if (licenseTexts[e.id] !== undefined) return false;
       const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? '');
@@ -227,7 +193,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
     return () => {
       alive = false;
     };
-  }, [compareEntries, matrixRows, terms, unified, licenseTexts]);
+  }, [compareEntries, terms, unified, licenseTexts]);
 
   if (error) {
     return (
@@ -266,42 +232,9 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
       <div className="grid gap-6 lg:grid-cols-[26rem_1fr]">
         {/* ---------- 左：搜索与列表 ---------- */}
         <div className="space-y-3">
-          {/* 视图切换：「列表」用来找，「矩阵」用来比 */}
-          <div
-            role="tablist"
-            aria-label={zh ? '呈现方式' : 'View'}
-            className="flex gap-1 rounded-lg border border-ink-900/15 bg-white p-1"
-          >
-            {(
-              [
-                ['list', zh ? '列表' : 'List', zh ? '按需检索、看条款详情' : 'search and read one at a time'],
-                ['matrix', zh ? '对比矩阵' : 'Matrix', zh ? '一眼看全所有维度' : 'see every dimension at once'],
-              ] as const
-            ).map(([id, label, note]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={view === id}
-                onClick={() => setView(id as 'list' | 'matrix')}
-                className={[
-                  'flex-1 rounded-md px-3 py-1.5 text-center text-sm transition',
-                  view === id ? 'bg-ink-900 text-white' : 'text-ink-600 hover:bg-ink-900/[0.05]',
-                ].join(' ')}
-              >
-                <span className="block font-medium">{label}</span>
-                <span className={['block text-[10px]', view === id ? 'text-white/70' : 'text-ink-400'].join(' ')}>{note}</span>
-              </button>
-            ))}
-          </div>
-
           <input
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              // 搜索结果用矩阵展示会失去"一眼看全"的意义，因此输入时自动回到列表
-              if (e.target.value.trim()) setView('list');
-            }}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={zh ? '搜索标识符、名称或 ScanCode key，例如 MPL / 996' : 'Search identifier, name or ScanCode key, e.g. MPL / 996'}
             className="w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
           />
@@ -347,17 +280,12 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
           </div>
 
           <p className="text-xs text-ink-400">
-            {view === 'list'
-              ? zh
-                ? `匹配 ${results.length} 个${results.length >= 400 ? '（仅显示前 400 个，请细化搜索）' : ''}；点条目看条款详情`
-                : `${results.length} match${results.length === 1 ? '' : 'es'}${results.length >= 400 ? ' (showing the first 400; narrow your search)' : ''}; click an entry for its terms`
-              : zh
-                ? `矩阵列出 ${matrixRows.length} 行（当前范围：${scopeLabel.zh}）`
-                : `The matrix lists ${matrixRows.length} rows (scope: ${scopeLabel.en})`}
+            {zh
+              ? `匹配 ${results.length} 个${results.length >= 400 ? '（仅显示前 400 个，请细化搜索）' : ''}；单击看详情，双击直接选用`
+              : `${results.length} match${results.length === 1 ? '' : 'es'}${results.length >= 400 ? ' (showing the first 400; narrow your search)' : ''}; click for details, double-click to use`}
           </p>
 
-          {view === 'list' ? (
-            <ul className="max-h-[40rem] space-y-0.5 overflow-auto rounded-xl border border-ink-900/10 bg-white p-1.5">
+          <ul className="max-h-[40rem] space-y-0.5 overflow-auto rounded-xl border border-ink-900/10 bg-white p-1.5">
             {results.map((l) => {
               const active = focus?.id === l.id;
               const chosen = pickedId === l.id;
@@ -375,7 +303,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                     className={[
                       'w-full rounded-lg border px-2.5 py-1.5 text-left',
                       ROW_TRANSITION,
-                      rowEdgeClass(chosen ? 'picked' : active ? 'focused' : 'idle', 'card'),
+                      rowEdgeClass(chosen ? 'picked' : active ? 'focused' : 'idle'),
                       rowTintClass(chosen ? 'picked' : active ? 'focused' : 'idle'),
                     ].join(' ')}
                   >
@@ -413,22 +341,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             {!results.length ? (
               <li className="p-3 text-sm text-ink-400">{zh ? '没有匹配的许可证。' : 'No matching license.'}</li>
             ) : null}
-            </ul>
-          ) : (
-            <CompareMatrix
-              lang={lang}
-              entries={matrixRows}
-              enrichment={enrichment}
-              terms={terms}
-              licenseTexts={licenseTexts}
-              pickedId={pickedId}
-              focusedId={focus?.id ?? null}
-              scopeLabel={scopeLabel}
-              onFocus={(id) => setFocus(unified.find((e) => e.id === id) ?? null)}
-              onUse={(id) => onPick(id, null)}
-              onAddCompare={addToCompare}
-            />
-          )}
+          </ul>
         </div>
 
         {/* ---------- 右：条款面板 ---------- */}
@@ -451,13 +364,9 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             />
           ) : (
             <div className="rounded-xl border border-dashed border-ink-900/20 bg-white p-8 text-center text-sm text-ink-600">
-              {view === 'matrix'
-                ? zh
-                  ? '左边是矩阵视图：行是许可证、列是维度，适合先扫一遍再挑。点任意一行看该许可证的完整条款。'
-                  : 'The left side is the matrix: rows are licenses, columns are dimensions — good for scanning first. Click any row for its full terms.'
-                : zh
-                  ? '从左边按类别、来源或搜索挑一个许可证查看条款。双击条目可以直接选中并去生成；点条款面板里的「加入对比」可横向比较。'
-                  : 'Pick a license by category, source or search to see its terms. Double-click to select and generate; use "Add to comparison" in the detail panel to line licenses up side by side.'}
+              {zh
+                ? '从左边按类别、来源或搜索挑一个许可证查看条款。「适用于」会告诉你它是给源代码、文档还是内容用的。双击条目可以直接选中并去生成；点面板里的「加入对比」可把最多 4 个许可证摊开横向比较。'
+                : 'Pick a license by category, source or search to see its terms — "Applies to" tells you whether it is for source code, documentation or content. Double-click to select and generate; use "Add to comparison" to line up to four licenses side by side.'}
             </div>
           )}
         </div>
@@ -959,10 +868,10 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
  *   focused   正在右侧预览：ink 5% 底色 + ink 实边
  *   picked    已选用：ok 8% 底色 + ok 实边 + 「已选」药丸
  *
- * 底色刻意用 `color-mix` 而不是透明度：矩阵首列是 sticky 定位，必须是**不透明**底色，
- * 否则横向滚动时下方内容会透出来。两个视图用同一组不透明色，看起来才真的相同。
+ * 底色刻意用 `color-mix` 而不是 Tailwind 的透明度写法：不透明底色在任何滚动容器里
+ * 都不会透出下面的内容，语义也更明确。
  * ------------------------------------------------------------------ */
-export type RowState = 'idle' | 'focused' | 'picked';
+type RowState = 'idle' | 'focused' | 'picked';
 
 const ROW_TRANSITION = 'transition-colors duration-150';
 
@@ -979,27 +888,17 @@ const ROW_TINT: Record<RowState, string> = {
 
 /** 未选中行在悬停时的淡底色 */
 const HOVER_TINT = 'hover:bg-[color-mix(in_srgb,var(--color-ink-900)_3%,white)]';
-/** 同上，但由整行 hover 驱动，供 sticky 首列使用（首列有独立底色，不会被行底色带动） */
-const GROUP_HOVER_TINT = 'group-hover:bg-[color-mix(in_srgb,var(--color-ink-900)_3%,white)]';
 
 /** idle 时在悬停给出淡底色；非 idle 时保持不变（已在预览/已选，不该被悬停覆盖） */
 function rowTintClass(state: RowState): string {
   return state === 'idle' ? HOVER_TINT : ROW_TINT[state];
 }
 
-/**
- * 状态边框。列表是卡片，用整圈边框；矩阵是表格行，用**左缘**竖条
- * ——表格行加整圈圆角边框在 border-collapse 下会错位，左缘竖条是等效且稳妥的表达。
- */
-function rowEdgeClass(state: RowState, kind: 'card' | 'table'): string {
-  if (kind === 'card') {
-    if (state === 'picked') return 'border-ok';
-    if (state === 'focused') return 'border-ink-900';
-    return 'border-transparent hover:border-ink-900/20';
-  }
-  if (state === 'picked') return 'border-l-2 border-l-ok';
-  if (state === 'focused') return 'border-l-2 border-l-ink-900';
-  return 'border-l-2 border-l-transparent';
+/** 状态边框：列表项是卡片，用整圈边框表达四态 */
+function rowEdgeClass(state: RowState): string {
+  if (state === 'picked') return 'border-ok';
+  if (state === 'focused') return 'border-ink-900';
+  return 'border-transparent hover:border-ink-900/20';
 }
 
 /** 把维度定义里的原始单元格值渲染成界面元素 */
@@ -1031,235 +930,6 @@ function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode 
   }
   if (d.kind === 'muted-text') return <span className="mono text-[11px]">{value}</span>;
   return <span className="text-[11px]">{value}</span>;
-}
-
-/**
- * 对比矩阵：一眼看全。
- *
- * 与对比工作台的分工：
- *  - **矩阵**（这里）回答"有哪些选择、它们互相差在哪"——行是许可证、列是维度，可排序；
- *  - **工作台**回答"我挑的这几个具体差在哪"——列是许可证、行是维度，能放长尾与 ScanCode 独有条目。
- * 两者共用 lib/compare.ts 里的同一份维度定义与事实解析，口径不会打架。
- *
- * 交互与列表**完全一致**（同一套心智，不该两样）：
- *  - 单击整行 → 右侧面板显示该许可证的完整条款
- *  - 双击整行 → 直接选用并跳到生成
- *  - 行末按钮 → 「＋」加入对比工作台，「用它」等于双击
- */
-function CompareMatrix({
-  lang,
-  entries,
-  enrichment,
-  terms,
-  licenseTexts,
-  pickedId,
-  focusedId,
-  scopeLabel,
-  onFocus,
-  onUse,
-  onAddCompare,
-}: {
-  lang: Lang;
-  entries: UnifiedEntry[];
-  enrichment: Enrichment | null;
-  terms: ChooseALicenseTerms | null;
-  licenseTexts: Record<string, string>;
-  pickedId: string | null;
-  /** 右侧面板当前正在预览的条目——矩阵必须把它标出来，否则点了没有任何反馈 */
-  focusedId: string | null;
-  scopeLabel: { zh: string; en: string };
-  /** 单击：在右侧面板展示详情 */
-  onFocus: (id: string) => void;
-  /** 双击或点「用它」：选用该许可证并跳到生成 */
-  onUse: (id: string) => void;
-  onAddCompare: (id: string) => void;
-}) {
-  const zh = lang === 'zh';
-  const [sortKey, setSortKey] = useState<'id' | 'family' | 'patent' | 'closed'>('id');
-  const dims = useMemo(() => compareDimensions(lang), [lang]);
-
-  const rows = useMemo(() => {
-    const built = entries.map((e) =>
-      factsOf(e, enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')], terms, licenseTexts[e.id]),
-    );
-    const rank: Record<string, number> = { permissive: 0, 'public-domain': 1, content: 2, 'weak-copyleft': 3, 'strong-copyleft': 4, 'network-copyleft': 5 };
-    const sorted = [...built];
-    if (sortKey === 'id') sorted.sort((a, b) => a.displayId.localeCompare(b.displayId));
-    else if (sortKey === 'family') sorted.sort((a, b) => (rank[a.family] ?? 9) - (rank[b.family] ?? 9) || a.displayId.localeCompare(b.displayId));
-    else if (sortKey === 'patent')
-      sorted.sort(
-        (a, b) =>
-          (['explicit', 'silent', 'none'].indexOf(a.facts.patentGrant) - ['explicit', 'silent', 'none'].indexOf(b.facts.patentGrant)) ||
-          a.displayId.localeCompare(b.displayId),
-      );
-    else
-      sorted.sort(
-        (a, b) =>
-          Number(b.family === 'permissive' || b.family === 'public-domain') -
-            Number(a.family === 'permissive' || a.family === 'public-domain') || a.displayId.localeCompare(b.displayId),
-      );
-    return sorted;
-  }, [entries, enrichment, terms, licenseTexts, sortKey]);
-
-  const SORTS: { id: typeof sortKey; zh: string; en: string }[] = [
-    { id: 'id', zh: '按标识符', en: 'By identifier' },
-    { id: 'family', zh: '按宽松程度', en: 'By permissiveness' },
-    { id: 'patent', zh: '按专利授权', en: 'By patent grant' },
-    { id: 'closed', zh: '按能否闭源', en: 'By closed-source' },
-  ];
-
-  return (
-    <section className="rounded-xl border border-ink-900/15 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">{zh ? '对比矩阵：一眼看全' : 'Comparison matrix: see it all at once'}</h2>
-        <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-[10px] text-ink-600">
-          {scopeLabel[lang]} · {rows.length} {zh ? '行' : 'rows'}
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-ink-400">
-        {zh
-          ? '行是许可证、列是维度，鼠标移到列标题看判定依据。操作方式与列表一致：单击看详情，双击直接选用；行末「＋」加入下方工作台细看。想换范围就用上面的筛选与来源。'
-          : 'Rows are licenses, columns are dimensions — hover a column header for the basis. Same interaction as the list: click for details, double-click to use; "+" adds it to the board below. Change the scope with the filters and source above.'}
-      </p>
-
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-ink-400">{zh ? '排序' : 'Sort'}</span>
-        {SORTS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => setSortKey(s.id)}
-            className={[
-              'rounded-full border px-2.5 py-1 text-xs transition',
-              sortKey === s.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
-            ].join(' ')}
-          >
-            {zh ? s.zh : s.en}
-          </button>
-        ))}
-      </div>
-
-      <div className="table-scroll mt-3">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-ink-900/10 bg-ink-900/[0.03] text-left">
-              <th className="sticky left-0 z-10 bg-[color-mix(in_srgb,var(--color-ink-900)_4%,white)] p-2 font-semibold">
-                {zh ? '许可证' : 'License'}
-              </th>
-              {dims.map((d) => (
-                <th key={d.label} className="whitespace-nowrap p-2 text-xs font-semibold" title={d.hint}>
-                  <span className="border-b border-dotted border-ink-400">{d.label}</span>
-                </th>
-              ))}
-              <th className="p-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const state: RowState = pickedId === r.id ? 'picked' : focusedId === r.id ? 'focused' : 'idle';
-              return (
-              <tr
-                key={r.id}
-                onClick={() => onFocus(r.id)}
-                onDoubleClick={() => onUse(r.id)}
-                title={zh ? '单击看详情，双击直接选用' : 'Click for details, double-click to use'}
-                className={[
-                  'group cursor-pointer border-b border-ink-900/[0.06] last:border-0',
-                  ROW_TRANSITION,
-                  rowTintClass(state),
-                ].join(' ')}
-              >
-                <th
-                  scope="row"
-                  className={[
-                    // sticky 首列必须有**不透明**底色，否则横向滚动时内容会透出来；
-                    // 因此这里用与整行相同的 color-mix 实色，而不是透明度
-                    'sticky left-0 z-10 p-2 text-left font-medium',
-                    ROW_TRANSITION,
-                    rowEdgeClass(state, 'table'),
-                    state === 'idle' ? `bg-white ${GROUP_HOVER_TINT}` : ROW_TINT[state],
-                  ].join(' ')}
-                >
-                  {/* 行本身不可聚焦，这个按钮承担键盘可达性：Enter 等同于单击 */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFocus(r.id);
-                    }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      onUse(r.id);
-                    }}
-                    className="block max-w-[16rem] truncate text-left hover:underline"
-                    title={r.name}
-                  >
-                    <code className="mono text-xs">{r.displayId}</code>
-                    {pickedId === r.id ? (
-                      <span className="ml-1.5 rounded-full bg-ok/10 px-1.5 text-[10px] text-ok">{zh ? '已选' : 'picked'}</span>
-                    ) : null}
-                  </button>
-                  <span className="mt-0.5 block max-w-[16rem] truncate text-[11px] font-normal text-ink-600">{r.name}</span>
-                </th>
-                {dims.map((d) => (
-                  <td key={d.label} className="whitespace-nowrap p-2 text-xs" title={d.hint}>
-                    {renderCell(d, r, lang)}
-                  </td>
-                ))}
-                <td className="p-2 text-right">
-                  <span className="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        // 阻止冒泡：否则会连带触发整行的"看详情"
-                        e.stopPropagation();
-                        onAddCompare(r.id);
-                      }}
-                      className="rounded border border-ink-900/20 px-1.5 py-0.5 text-xs hover:border-ink-900"
-                      title={zh ? '加入对比工作台' : 'Add to the comparison board'}
-                    >
-                      ＋
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUse(r.id);
-                      }}
-                      className="rounded border border-ink-900/20 px-2 py-0.5 text-xs hover:border-ink-900 hover:bg-ink-900 hover:text-white"
-                      title={zh ? '选用并去生成' : 'Use and generate'}
-                    >
-                      {zh ? '用它' : 'Use'}
-                    </button>
-                  </span>
-                </td>
-              </tr>
-              );
-            })}
-            {!rows.length ? (
-              <tr>
-                <td colSpan={dims.length + 2} className="p-3 text-sm text-ink-400">
-                  {zh ? '当前筛选下没有条目。' : 'No entries under the current filter.'}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
-
-      <details className="mt-3 rounded-lg border border-ink-900/10 p-3 text-xs">
-        <summary className="cursor-pointer font-medium">{zh ? '列的含义与依据' : 'What the columns mean'}</summary>
-        <dl className="mt-2 space-y-2">
-          {dims.map((d) => (
-            <div key={d.label} className="grid gap-1 sm:grid-cols-[10rem_1fr]">
-              <dt className="font-medium">{d.label}</dt>
-              <dd className="text-ink-600">{d.hint ?? '—'}</dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-    </section>
-  );
 }
 
 function CompareBoard({
