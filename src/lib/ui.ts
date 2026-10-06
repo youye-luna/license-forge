@@ -43,6 +43,32 @@ export const TAB_LABEL = Object.fromEntries(TABS.map((t) => [t.id, t])) as Recor
   { id: TabId; zh: string; en: string }
 >;
 
+/**
+ * 项目自身的开源信息。
+ *
+ * 集中在这里是为了"单一来源"：关于页、页脚、以及以后要加的元信息都读它，
+ * 换仓库或换署名时只改这一处，不会出现某处还写着旧地址的情况。
+ */
+export const PROJECT = {
+  repo: 'https://github.com/youye-luna/license-forge',
+  repoLabel: 'youye-luna/license-forge',
+  releases: 'https://github.com/youye-luna/license-forge/releases',
+  /**
+   * 最新发行版的显示版本号。**必须与 package.json 的 version 同步**——
+   * 这两处漂移过一次（发布 v0.1.1 时页面还写着 v0.1.0），因此加了测试守着：
+   * `发行版版本号必须与 package.json 同步`。
+   */
+  releasesLabel: 'v0.1.1',
+  issues: 'https://github.com/youye-luna/license-forge/issues',
+  license: 'MIT',
+  licenseUrl: 'https://github.com/youye-luna/license-forge/blob/main/LICENSE',
+  author: 'youye-luna',
+  authorUrl: 'https://github.com/youye-luna',
+  authorNick: '幽夜Luna',
+  /** 本站的 LICENSE 就是用本工具自己生成的，版权行原样照抄，可逐字节核对 */
+  ownCopyright: 'Copyright (C) 2026 youye-luna',
+} as const;
+
 /** 生态 → 包管理器清单文件 */
 export const ECOSYSTEM_MANIFESTS: Record<string, { label: { zh: string; en: string }; manifests: string[] }> = {
   node: { label: { zh: 'Node / JS / TS', en: 'Node / JS / TS' }, manifests: ['package.json'] },

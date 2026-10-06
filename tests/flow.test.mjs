@@ -1,12 +1,73 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { defaultGenState } from '../src/lib/genstate.ts';
-import { TABS, TAB_LABEL } from '../src/lib/ui.ts';
+import { TABS, TAB_LABEL, PROJECT } from '../src/lib/ui.ts';
 import * as ui from '../src/lib/ui.ts';
 import { LICENSES } from '../src/lib/licenses.ts';
 import { FAMILY_LABEL } from '../src/lib/licenses.ts';
 import { FAMILY_ORDER } from '../src/lib/wizard.ts';
+import { fillLicenseText } from '../src/lib/fill.ts';
+
+/* ------------------------------------------------------------------ *
+ * 关于页的开源信息：仓库 / 许可证 / 作者
+ * ------------------------------------------------------------------ */
+
+test('开源信息齐全，且指向正确的仓库与账号', () => {
+  assert.equal(PROJECT.repo, 'https://github.com/youye-luna/license-forge');
+  assert.equal(PROJECT.repoLabel, 'youye-luna/license-forge');
+  assert.equal(PROJECT.author, 'youye-luna');
+  assert.equal(PROJECT.authorUrl, 'https://github.com/youye-luna');
+  assert.equal(PROJECT.license, 'MIT');
+  assert.ok(PROJECT.licenseUrl.endsWith('/blob/main/LICENSE'), '许可证应链接到仓库里的 LICENSE');
+  assert.ok(PROJECT.releases.startsWith(PROJECT.repo + '/releases'));
+});
+
+test('页面标注的许可证与 package.json 一致（不允许两处不一致）', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(PROJECT.license, pkg.license, '关于页的许可证必须与 package.json 相同');
+  assert.equal(pkg.author, PROJECT.author, 'package.json 的作者必须与关于页相同');
+});
+
+test('发行版版本号必须与 package.json 同步', () => {
+  // 这两处会漂移：发布新版本时容易只改 package.json，页面还写着旧版本号。
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(
+    PROJECT.releasesLabel,
+    'v' + pkg.version,
+    `关于页写的发行版是 ${PROJECT.releasesLabel}，但 package.json 是 ${pkg.version}——发版时两处要一起改`,
+  );
+});
+
+test('关于页源码确实引用 PROJECT 常量，而不是各写一份硬编码', () => {
+  const src = readFileSync(new URL('../src/components/Generator.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('PROJECT.repo'), '仓库地址应来自 PROJECT 常量');
+  assert.ok(src.includes('PROJECT.author'), '作者应来自 PROJECT 常量');
+  assert.ok(src.includes('PROJECT.license'), '许可证应来自 PROJECT 常量');
+  // 硬编码的 github 地址只允许出现在 ui.ts 的常量里，页面组件里不应直接写
+  assert.ok(
+    !/https:\/\/github\.com\/youye-luna/.test(src),
+    '页面组件里不应硬编码仓库地址，否则改仓库时会漏改',
+  );
+});
+
+test('关于页宣称"本站 LICENSE 由本工具生成"——这句话必须是真的', () => {
+  // 这是页面上的一处可验证声明。逐字节比对官方 MIT 文本经本工具填充后的输出，
+  // 一旦有人手改了 LICENSE 或改了填充逻辑，这条会立刻失败。
+  const LICENSE = readFileSync(new URL('../LICENSE', import.meta.url), 'utf8');
+  const TEXTS = JSON.parse(readFileSync(new URL('../public/data/license-texts.json', import.meta.url), 'utf8'));
+
+  const generated = fillLicenseText('MIT', TEXTS.licenses.MIT.licenseText, {
+    holders: [{ name: PROJECT.author, from: '2026' }],
+    projectName: 'license-forge',
+    symbolStyle: 'word',
+    joiner: 'newline',
+  }).text;
+
+  assert.equal(LICENSE, generated, 'LICENSE 必须与工具为 (MIT, ' + PROJECT.author + ') 生成的输出逐字节一致');
+  assert.ok(LICENSE.includes(PROJECT.ownCopyright), '页面抄录的版权行必须与 LICENSE 里的相同');
+});
 
 /* ------------------------------------------------------------------ *
  * 单线流程：问卷 → 选择与对比 → 生成产物 → 关于
