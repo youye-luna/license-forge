@@ -40,7 +40,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/generate.test.mjs tests/enrichment.test.mjs tests/scancode.test.mjs tests/terms.test.mjs tests/compare.test.mjs tests/subject.test.mjs tests/flow.test.mjs"
+    "test": "node --test tests/generate.test.mjs tests/enrichment.test.mjs tests/scancode.test.mjs tests/terms.test.mjs tests/compare.test.mjs tests/subject.test.mjs tests/sort.test.mjs tests/flow.test.mjs"
   },
   "dependencies": {
     "jszip": "3.10.2",

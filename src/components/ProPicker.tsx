@@ -10,6 +10,7 @@ import {
   type Dimension,
 } from '../lib/compare.ts';
 import { SUBJECT_LABEL, subjectsOf } from '../lib/subject.ts';
+import { needsLicenseText, sortLicenses, SORTS, type SortKey } from '../lib/ordering.ts';
 import {
   catalogStats,
   COMPATIBILITY_VERDICT,
@@ -80,7 +81,10 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('featured');
   const [source, setSource] = useState<SourceFilter>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('id');
   const [focus, setFocus] = useState<UnifiedEntry | null>(null);
+  /** 按需加载的许可证正文（对比工作台里的条目会用到；列表排序不下载正文） */
+  const [licenseTexts, setLicenseTexts] = useState<Record<string, string>>({});
   /** 对比工作台：最多 4 项，用 key 而不是 SPDX 标识符以便容纳 ScanCode 独有条目 */
   const [compareKeys, setCompareKeys] = useState<string[]>([]);
 
@@ -140,8 +144,13 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
     [compareKeys, unified],
   );
 
+  /** 排序后的列表。排序依据由 lib/ordering.ts 决定，并被测试覆盖 */
+  const sortedResults = useMemo(
+    () => sortLicenses(results, sortKey, { enrichment, terms, licenseTexts }),
+    [results, sortKey, enrichment, terms, licenseTexts],
+  );
+
   /** 对比工作台需要正文才能对长尾条目做推断——按需取一次并缓存 */
-  const [licenseTexts, setLicenseTexts] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!unified) return;
     // 需要正文的只有"没有 ChooseALicense 人工标注、且还没有正文"的条目：
@@ -279,14 +288,46 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             ))}
           </div>
 
+          {/* 排序：与筛选并列，都是"把 2476 个条目收敛到能看"的手段 */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-ink-400">{zh ? '排序' : 'Sort'}</span>
+            {SORTS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSortKey(s.id)}
+                title={
+                  s.needsText
+                    ? zh
+                      ? '只对已人工核对或人工标注的许可有区分度'
+                      : 'Only distinguishes licenses whose terms are known'
+                    : undefined
+                }
+                className={[
+                  'rounded-full border px-2.5 py-1 text-xs transition',
+                  sortKey === s.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
+                ].join(' ')}
+              >
+                {zh ? s.zh : s.en}
+              </button>
+            ))}
+          </div>
+          {needsLicenseText(sortKey) ? (
+            <p className="rounded-lg border border-advisory/30 bg-advisory/5 p-2 text-xs text-advisory">
+              {zh
+                ? '「专利授权」需要正文才能判定。列表为了速度不下载全文，所以只有已人工核对或人工标注的许可能排准，其余按"未提及"排在后面——点开某个许可证看详情时才会按正文推断。'
+                : '"Patent grant" needs the license text. The list does not download full texts just to sort, so only licenses with known terms order correctly; the rest fall back to "silent". Open a license to see its text-based inference.'}
+            </p>
+          ) : null}
+
           <p className="text-xs text-ink-400">
             {zh
-              ? `匹配 ${results.length} 个${results.length >= 400 ? '（仅显示前 400 个，请细化搜索）' : ''}；单击看详情，双击直接选用`
-              : `${results.length} match${results.length === 1 ? '' : 'es'}${results.length >= 400 ? ' (showing the first 400; narrow your search)' : ''}; click for details, double-click to use`}
+              ? `匹配 ${sortedResults.length} 个${sortedResults.length >= 400 ? '（仅显示前 400 个，请细化搜索）' : ''}；单击看详情，双击直接选用`
+              : `${sortedResults.length} match${sortedResults.length === 1 ? '' : 'es'}${sortedResults.length >= 400 ? ' (showing the first 400; narrow your search)' : ''}; click for details, double-click to use`}
           </p>
 
           <ul className="max-h-[40rem] space-y-0.5 overflow-auto rounded-xl border border-ink-900/10 bg-white p-1.5">
-            {results.map((l) => {
+            {sortedResults.map((l) => {
               const active = focus?.id === l.id;
               const chosen = pickedId === l.id;
               const key = l.source === 'spdx' ? l.id : (l.scancodeKey ?? '');
