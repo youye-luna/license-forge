@@ -12,6 +12,9 @@ next-env.d.ts
 .spdx-cache/
 .scancode-cache/
 
+# 发行版打包产物（本地生成，通过 GitHub Release 分发，不进仓库）
+dist/
+
 # 本地环境配置：store-dir 是绝对路径，因人而异，因此不提交。
 # 需要时就地创建一个，可参考 .npmrc.example。
 .npmrc
