@@ -619,13 +619,13 @@ export function complianceChecklist(spec: LicenseSpec, options: GeneratorOptions
         : 'This license grants no explicit patent rights. If patents are relevant, consider Apache-2.0 or a contributor agreement.',
     );
   }
-  if (spec.facts.trademarkClause) {
-    items.push(
-      zh
-        ? '许可证不含商标授权——如需保护项目名称，另立商标政策。'
-        : 'No trademark grant is included — add a trademark policy if the name matters.',
-    );
-  }
+  // 商标一律不授权——不论许可有没有写明这一句（详见 ProPicker 里的同一条说明）。
+  // 所以这里对所有许可证都提示，而不是只在"写明了"的时候才提。
+  items.push(
+    zh
+      ? `许可证不授予商标权${spec.facts.trademarkClause ? '' : '（虽然它没有写明这一句，但同样不授权）'}——项目名称与 logo 不在授权范围内，需要的话另立商标政策。`
+      : `The license grants no trademark rights${spec.facts.trademarkClause ? '' : ' — it does not say so explicitly, but none are granted either way'}: project names and logos are outside the grant. Add a trademark policy if that matters.`,
+  );
   items.push(
     zh
       ? '贡献者提交代码时的授权方式要事先明确：DCO（Signed-off-by）或 CLA 二选一。'

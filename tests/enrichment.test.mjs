@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   compatibilityOf,
@@ -72,6 +73,48 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
   for (const id of ['AGPL-1.0', 'Adobe-2006']) {
     assert.equal(includeCopyrightOf(id), 'silent', `${id} 的正文没有相关要求，应标为没写`);
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * 商标：默认就是"不授权"，不是"没提到"
+ * ------------------------------------------------------------------ */
+
+test('商标一律不授权：没写明的也照样不授权，不能写成"没提到"', () => {
+  // ChooseALicense 对 trademark-use 的说明明确写着：
+  //   "This license explicitly states that it does NOT grant trademark rights,
+  //    even though licenses without such a statement probably do not grant any
+  //    implicit trademark rights."
+  // 所以 MIT / BSD / GPL 这些没写商标条款的，实质上与 Apache-2.0 一样不授权。
+  // 文案若写成"没提到"，会让人以为 MIT 的商标情况更宽松——那是误导。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const i = src.indexOf("label: zh ? '商标'");
+  assert.ok(i > 0, '详情面板应当有商标一条');
+  const block = src.slice(i, i + 900);
+
+  // 两种情况的文案都必须以"不授予商标权"开头
+  assert.ok(block.includes('不授予商标权（许可里写明了）'), '写明了的要说清是写明');
+  assert.ok(block.includes('不授予商标权（许可里没写，但同样不授权）'), '没写的也要说清同样不授权');
+  // 不允许出现"没提到"这种会误导的措辞
+  assert.ok(!block.includes('没提到'), '商标一条不应再出现"没提到"');
+
+  // 英文同理
+  assert.ok(block.includes('no trademark rights, stated explicitly'));
+  assert.ok(block.includes('not stated, but still not granted'));
+});
+
+test('商标一律不授权：生成后的自查清单对所有许可证都提示，不只对写明了的', () => {
+  // 早先只在 trademarkClause 为真时才提示，于是 MIT / BSD / GPL 的用户
+  // 看不到这条，容易以为项目名称可以随便用。
+  const src = readFileSync(new URL('../src/lib/generate.ts', import.meta.url), 'utf8');
+  const i = src.indexOf('许可证不授予商标权');
+  assert.ok(i > 0, '自查清单里应当有商标说明');
+  // 这里不能再被 if (trademarkClause) 包住
+  const before = src.slice(Math.max(0, i - 400), i);
+  assert.ok(
+    !/if \(spec\.facts\.trademarkClause\)\s*\{\s*$/m.test(before.trim().split('\n').slice(-1)[0] ?? ''),
+    '商标提示不应只在写明了的时候才出现',
+  );
+  assert.ok(src.includes('虽然它没有写明这一句，但同样不授权'), '没写明的情况也要在提示里说明');
 });
 
 function options(overrides = {}) {

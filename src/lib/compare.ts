@@ -288,7 +288,9 @@ export function compareDimensions(lang: Lang): Dimension[] {
     {
       key: 'trademark',
       label: zh ? '商标' : 'Trademarks',
-      hint: zh ? '提到商标，通常意味着明确不授权给你用它的名字' : 'A clause here usually means the license grants you no rights to the name',
+      hint: zh
+        ? '有标记者＝许可里**写明**了不授予商标权。但这个维度实际没有差别：没写明的那些（含 MIT、BSD、GPL）同样不授权，ChooseALicense 的词表本身就这么说明。'
+        : 'Marked = the license **states** it grants no trademark rights. In practice this dimension makes no difference: licenses that stay silent (MIT, BSD, GPL) grant none either — ChooseALicense’s own vocabulary says so.',
       kind: 'yesno',
       cell: (r) => r.facts.trademarkClause,
     },

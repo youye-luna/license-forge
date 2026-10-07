@@ -1290,8 +1290,20 @@ function InferredTerms({
       tone: facts.stateChanges ? 'yes' : undefined,
     },
     {
+      // 商标一律是"不授权"。区别只在于许可有没有**明写**这一句。
+      //
+      // ChooseALicense 对 `trademark-use` 的说明很直白："This license explicitly
+      // states that it does NOT grant trademark rights, **even though licenses
+      // without such a statement probably do not grant any implicit trademark
+      // rights**."——没写的那 32 个（含 MIT、BSD、GPL）实质上也一样不授权。
+      //
+      // 所以默认文案就是"不授权"，只有明写了才额外标出"许可里写明了"。
+      // 早先写成"没提到"，会让人以为 MIT 的商标情况比 Apache-2.0 宽松，
+      // 那是把用户往错的方向引。
       label: zh ? '商标' : 'Trademarks',
-      value: facts.trademarkClause ? (zh ? '提到了（不授权给你）' : 'mentioned — and not granted') : zh ? '没提到' : 'not mentioned',
+      value: facts.trademarkClause
+        ? zh ? '不授予商标权（许可里写明了）' : 'no trademark rights, stated explicitly'
+        : zh ? '不授予商标权（许可里没写，但同样不授权）' : 'no trademark rights — not stated, but still not granted',
     },
   ];
 
