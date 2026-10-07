@@ -116,40 +116,31 @@ const SUBJECT_FILTERS: (Subject | 'all')[] = [
 ];
 
 /**
- * 筛选胶囊上的短标签。全称太长，9 个排不下（会在 26rem 的左栏里折成五行）；
- * 全称放在 `title` 里，鼠标停一下就能看到。
- */
-const SUBJECT_SHORT: Record<Subject, { zh: string; en: string }> = {
-  code: { zh: '代码', en: 'Code' },
-  docs: { zh: '文档', en: 'Docs' },
-  media: { zh: '图文视频', en: 'Media' },
-  data: { zh: '数据', en: 'Data' },
-  font: { zh: '字体', en: 'Fonts' },
-  hardware: { zh: '硬件', en: 'Hardware' },
-  spec: { zh: '规范', en: 'Specs' },
-  model: { zh: 'AI 模型', en: 'AI models' },
-  any: { zh: '各类作品', en: 'Any work' },
-};
-
-/**
- * 左栏所有筛选控件共用的胶囊样式。
+ * 左侧所有筛选控件共用的下拉样式。
  *
- * 集中成一处是因为它被四组控件用到（来源 / 用来授权 / 筛选 / 排序），
- * 各写一份必然会走形——之前"用来授权"是个下拉框，其余三组是胶囊，
- * 摆在一起就像是两个人做的界面。
+ * 集中成一处是因为它被四组用到（来源 / 用来授权 / 筛选 / 排序），
+ * 各写一份必然会走形。
+ *
+ * 视觉上让"这一项**不是**默认值"时变成实心深色——用户扫一眼就知道
+ * 自己改过哪几项，不必逐个去读选项文字。
  */
-function chipClass(active: boolean): string {
+function selectClass(active: boolean): string {
   return [
-    'rounded-full border px-2.5 py-1 text-xs transition',
-    active ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
+    'min-w-0 flex-1 rounded-lg border px-2 py-1.5 text-xs outline-none transition',
+    'focus:border-ink-900',
+    active ? 'border-ink-900 bg-ink-900 font-medium text-white' : 'border-ink-900/15 bg-white hover:border-ink-900/40',
   ].join(' ');
 }
 
-/** 一组筛选：标签 + 胶囊，四组的标签样式与行间距都由这里统一 */
+/**
+ * 一组筛选：左侧固定宽度的标签 + 右侧下拉。
+ *
+ * 标签用固定宽度而不是跟着文字走，这样四组的下拉框左边缘会对齐成一条线。
+ */
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="shrink-0 text-xs text-ink-400">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className="w-14 shrink-0 text-right text-xs text-ink-400">{label}</span>
       {children}
     </div>
   );
@@ -348,62 +339,65 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             className="w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
           />
 
-          {/* 四组筛选控件：标签位置、胶囊样式、行间距全部统一 */}
+          {/* 四组筛选：统一为「标签 + 下拉」，标签定宽所以左边缘对齐 */}
           <FilterRow label={zh ? '来源' : 'Source'}>
-            {(
-              [
-                ['all', zh ? '全部' : 'All', total],
-                ['spdx', zh ? '官方名录里有的' : 'On the official list', stats.licenses],
-                ['scancode', zh ? '其它来源' : 'Other sources', scStats?.total ?? 0],
-              ] as const
-            ).map(([id, label, count]) => (
-              <button key={id} type="button" onClick={() => setSource(id as SourceFilter)} className={chipClass(source === id)}>
-                {label} <span className="opacity-60">{count}</span>
-              </button>
-            ))}
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value as SourceFilter)}
+              className={selectClass(source !== 'all')}
+              aria-label={zh ? '按来源筛选' : 'Filter by source'}
+            >
+              <option value="all">{zh ? `全部来源（${total}）` : `All sources (${total})`}</option>
+              <option value="spdx">{zh ? `官方名录里有的（${stats.licenses}）` : `On the official list (${stats.licenses})`}</option>
+              <option value="scancode">{zh ? `其它来源（${scStats?.total ?? 0}）` : `Other sources (${scStats?.total ?? 0})`}</option>
+            </select>
           </FilterRow>
 
           {/* 「用来授权」：按作品类型筛，与"属于哪个集合"是不同维度 */}
           <FilterRow label={zh ? '用来授权' : 'Used for'}>
-            {SUBJECT_FILTERS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSubject(s)}
-                title={s === 'all' ? (zh ? '不限作品类型' : 'Any kind of work') : SUBJECT_LABEL[s][lang]}
-                className={chipClass(subject === s)}
-              >
-                {s === 'all' ? (zh ? '不限' : 'Any') : SUBJECT_SHORT[s][lang]}
-              </button>
-            ))}
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value as Subject | 'all')}
+              className={selectClass(subject !== 'all')}
+              aria-label={zh ? '按作品类型筛选' : 'Filter by subject matter'}
+            >
+              <option value="all">{zh ? '不限作品类型' : 'Any kind of work'}</option>
+              {SUBJECT_FILTERS.filter((s) => s !== 'all').map((s) => (
+                <option key={s} value={s}>
+                  {SUBJECT_LABEL[s][lang]}
+                </option>
+              ))}
+            </select>
           </FilterRow>
 
-          <FilterRow label={zh ? '筛选' : 'Filter'}>
-            {FILTERS.map((f) => (
-              <button key={f.id} type="button" onClick={() => setFilter(f.id)} className={chipClass(filter === f.id)}>
-                {zh ? f.zh : f.en}
-              </button>
-            ))}
+          <FilterRow label={zh ? '范围' : 'Scope'}>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as Filter)}
+              className={selectClass(filter !== 'featured')}
+              aria-label={zh ? '按集合筛选' : 'Filter by set'}
+            >
+              {FILTERS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {zh ? f.zh : f.en}
+                </option>
+              ))}
+            </select>
           </FilterRow>
 
           <FilterRow label={zh ? '排序' : 'Sort'}>
-            {SORTS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSortKey(s.id)}
-                title={
-                  s.needsText
-                    ? zh
-                      ? '只对已人工核对或人工标注的许可有区分度'
-                      : 'Only distinguishes licenses whose terms are known'
-                    : undefined
-                }
-                className={chipClass(sortKey === s.id)}
-              >
-                {zh ? s.zh : s.en}
-              </button>
-            ))}
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              className={selectClass(sortKey !== 'id')}
+              aria-label={zh ? '排序方式' : 'Sort order'}
+            >
+              {SORTS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {(zh ? s.zh : s.en) + (s.needsText ? (zh ? '（需正文）' : ' (needs text)') : '')}
+                </option>
+              ))}
+            </select>
           </FilterRow>
           {needsLicenseText(sortKey) ? (
             <p className="rounded-lg border border-advisory/30 bg-advisory/5 p-2 text-xs text-advisory">

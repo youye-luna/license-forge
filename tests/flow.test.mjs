@@ -60,23 +60,38 @@ test('关于页源码确实引用 PROJECT 常量，而不是各写一份硬编�
  * 左栏筛选 UI 的一致性
  * ------------------------------------------------------------------ */
 
-test('左栏四组筛选共用同一套胶囊样式与标签行', () => {
-  // 之前"用来授权"是个下拉框，其余三组是胶囊，摆在一起像是两个人做的界面。
+test('左栏四组筛选统一用下拉菜单', () => {
+  // 之前"用来授权"是下拉、其余三组是胶囊，摆在一起像是两个人做的界面。
+  // 现在统一成下拉：四组的标签定宽，下拉左边缘对齐成一条线。
   const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
   const groups = (src.match(/<FilterRow /g) ?? []).length;
-  const chips = (src.match(/chipClass\(/g) ?? []).length;
+  const selects = (src.match(/<select/g) ?? []).length;
   assert.ok(groups >= 4, `四组筛选都应当用 FilterRow，实际 ${groups} 组`);
-  assert.ok(chips >= 4, `四组筛选都应当用 chipClass，实际 ${chips} 处`);
-  // 胶囊样式不应在组件里再各写一份（有一个定义 + 若干调用是允许的）
+  assert.equal(selects, groups, `每组都应是一个下拉，实际 ${selects} 个下拉 / ${groups} 组`);
+
+  // 下拉样式只应定义一处，四组复用
   assert.equal(
-    (src.match(/'rounded-full border px-2\.5 py-1 text-xs transition'/g) ?? []).length,
+    (src.match(/function selectClass\(/g) ?? []).length,
     1,
-    '胶囊样式只应定义一处（chipClass），不应在四组控件里各写一份',
+    '下拉样式只应定义一处（selectClass）',
   );
-  // 「用来授权」必须与其余筛选同样是胶囊
-  assert.ok(!src.includes('<select'), '「用来授权」不应当是下拉框');
-  // 短标签必须有，否则 9 个全称会在 26rem 的左栏里折成五行
-  assert.ok(src.includes('SUBJECT_SHORT'), '作品类型筛选应当用短标签 + title 全称');
+  assert.ok((src.match(/selectClass\(/g) ?? []).length >= 5, '四组都应使用 selectClass');
+
+  // 胶囊写法不应再用于筛选（附加例外那一组仍是胶囊——它有 86 个候选，
+  // 需要先搜索再点选，下拉并不合适，所以只检查筛选区域内没有胶囊）
+  assert.ok(!src.includes('chipClass'), '筛选的胶囊样式应当已删除');
+  assert.ok(!src.includes('SUBJECT_SHORT'), '下拉里用全称，短标签表应当已删除');
+  const filterRegion = src.slice(src.indexOf('<FilterRow '), src.indexOf('{needsLicenseText(sortKey)'));
+  assert.ok(
+    !filterRegion.includes('rounded-full'),
+    '筛选区域里不应再有胶囊按钮',
+  );
+
+  // 标签定宽，四组才能对齐
+  assert.match(src, /className="w-14 shrink-0 text-right text-xs text-ink-400"/, '标签应当定宽右对齐');
+
+  // 每个下拉都要有 aria-label（屏幕阅读器只读选项文字，不知道这组是干什么的）
+  assert.ok((src.match(/aria-label=\{zh \?/g) ?? []).length >= 4, '四个下拉都应当有 aria-label');
 });
 
 test('详情面板有「保留版权声明与许可证」这一条，且四种情况都有文案', () => {
