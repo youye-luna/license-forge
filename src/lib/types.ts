@@ -33,7 +33,7 @@ export type HeaderStyle =
 export interface LicenseFacts {
   /** 是否包含明确的专利授权 */
   patentGrant: 'explicit' | 'none' | 'silent';
-  /** 是否含商标条款（有则明确不授予商标权） */
+  /** 是否含商标条款（有则明确不授予商标权）；注意商标一律不授权，这只表示许可有没有写明 */
   trademarkClause: boolean;
   /** 修改文件时是否必须在文件中标注改动 */
   stateChanges: boolean;
@@ -43,6 +43,16 @@ export interface LicenseFacts {
   sameLicensePerFile: boolean;
   /** 是否通过网络提供服务即触发开源义务 */
   networkTrigger: boolean;
+  /**
+   * 分发时要不要附上版权声明与许可证全文。
+   *
+   * 这一项与 endorsement 曾经**漏在这个接口里**：deriveFacts 已经算出来了，
+   * 但这里没声明，于是赋值时被类型挡住、界面上永远显示默认值。
+   * 加字段时记得三处一起改：types.ts（这里）、spdx.ts 的 DerivedFacts、界面。
+   */
+  includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
+  /** 能不能拿作者或贡献者的名义为你的产品做宣传（BSD-3-Clause 那类条款） */
+  endorsement: 'prohibited' | 'silent';
   /** 是否属于 OSI 认证许可 */
   osiApproved: boolean;
   /** 许可是否可撤销 */

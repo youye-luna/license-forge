@@ -1286,12 +1286,15 @@ function InferredTerms({
     },
     {
       // 与「商标」不是同一条：商标讲的是能不能用它的商品名，
-      // 背书讲的是能不能说"我们用了 X / X 推荐我们"。Apache-2.0 有商标条款
-      // 但不禁背书，BSD-3-Clause 才是典型的不许拿作者名义做宣传。
-      label: zh ? '用作者名义背书' : 'Endorsement by the authors',
+      // 这一条讲的是能不能说"我们用 X / X 推荐我们"。两者容易混，
+      // 但 Apache-2.0 有商标条款却不禁这一条，BSD-3-Clause 才是典型。
+      //
+      // 标签用「促销」而不是「背书」：条款原文是 "endorse or promote"，
+      // 中文里"背书"偏书面，"拿作者名义促销"更直白——用户一眼能懂。
+      label: zh ? '用作者名义促销' : 'Promoting with the authors’ names',
       value:
         facts.endorsement === 'prohibited'
-          ? zh ? '不许：不能拿作者或贡献者的名义为你的产品做宣传' : 'not allowed: you may not use their names to promote your product'
+          ? zh ? '不许：不能拿作者或贡献者的名义宣传你的产品' : 'not allowed: you may not use their names to promote your product'
           : zh ? '正文没写（不等于可以：用别人名义宣传通常要另行取得同意）' : 'not stated — which does not mean it is allowed; using their name usually needs separate consent',
       tone: facts.endorsement === 'silent' ? 'warn' : 'no',
     },

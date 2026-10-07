@@ -11,6 +11,7 @@ import {
 } from '../src/lib/spdx.ts';
 import { resolveSpec } from '../src/lib/spec.ts';
 import { generate } from '../src/lib/generate.ts';
+import { LICENSES } from '../src/lib/licenses.ts';
 
 /** 多源补充数据（由 scripts/fetch-enrichment.mjs 生成） */
 const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
@@ -75,9 +76,72 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
   }
 });
 
-/* ------------------------------------------------------------------ *
- * 用作者名义背书
- * ------------------------------------------------------------------ */
+test('facts 的字段不许在传递链上丢失', () => {
+  // 踩过的坑：deriveFacts 算出了 endorsement 与 includeCopyright，但
+  // LicenseSpec.facts 的类型 LicenseFacts 是**手写枚举**的，没声明这两个字段，
+  // 于是赋值时被静默挡住——详情面板永远显示默认值，而直接调 deriveFacts 却是对的。
+  //
+  // 注意要拿**长尾条目**（没有人工整理值）来比：人工整理的 32 个优先用逐条核对
+  // 的值，与 deriveFacts 的正则推断本来就可能不同（那是设计使然，不是丢字段）。
+  const longTail = SNAPSHOT.licenses.find(
+    (l) => !l.deprecated && !LICENSES.some((c) => c.id === l.id) && l.textLength > 200,
+  );
+  assert.ok(longTail, '应当存在长尾许可证');
+  const spec = resolveSpec(longTail.id, SNAPSHOT, TEXTS, undefined, ENRICHMENT.licenses, TERMS);
+  const direct = deriveFacts(
+    longTail.id,
+    TEXTS.licenses[longTail.id].licenseText,
+    longTail.osiApproved,
+    ENRICHMENT.licenses[longTail.id]?.family,
+    TERMS,
+  );
+  assert.equal(spec.curated, null, '这条路径应当是长尾推断');
+
+  // deriveFacts 的每项结论都必须出现在 spec.facts 上，一个都不能丢
+  const carried = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorsement'];
+  for (const k of carried) {
+    assert.equal(spec.facts[k], direct[k], `spec.facts 丢了 ${k}（deriveFacts 的值是 ${direct[k]}）`);
+  }
+});
+
+test('字段传递：人工整理的条目优先用逐条核对的值，而不是正则推断', () => {
+  // 这两条路径的值本来就可能不同，那是设计使然：
+  // BSD-3-Clause 的商标条款人工核对为 true（正文确实写了不授权商标），
+  // 而 deriveFacts 的正文正则未必命中。界面上显示的应当是人工资讯。
+  const spec = resolveSpec('BSD-3-Clause', SNAPSHOT, TEXTS, undefined, ENRICHMENT.licenses, TERMS);
+  assert.ok(spec.curated, 'BSD-3-Clause 属于人工整理集合');
+  assert.equal(spec.facts.trademarkClause, true, '人工核对的值应当被采用');
+  assert.equal(spec.facts.endorsement, 'prohibited', '人工核对：BSD-3-Clause 禁止背书');
+  assert.equal(spec.facts.includeCopyright, 'required', '人工核对：要求保留版权声明');
+});
+
+
+
+test('人工整理的 32 个许可证不含 undefined 字段', () => {
+  // P() 的默认值要覆盖 LicenseFacts 的**每一个**字段，否则人工整理与
+  // 长尾两条路径的结论会不一致。
+  for (const l of LICENSES) {
+    for (const [k, v] of Object.entries(l.facts)) {
+      assert.notEqual(v, undefined, `${l.id} 的 facts.${k} 是 undefined`);
+    }
+    assert.ok(l.facts.endorsement, `${l.id} 缺 endorsement`);
+    assert.ok(l.facts.includeCopyright, `${l.id} 缺 includeCopyright`);
+  }
+  // 六个例外要有正确值
+  const byId = Object.fromEntries(LICENSES.map((l) => [l.id, l.facts]));
+  for (const id of ['0BSD', 'CC0-1.0', 'MIT-0', 'Unlicense', 'WTFPL']) {
+    assert.equal(byId[id].includeCopyright, 'not-required', `${id} 不要求保留版权声明`);
+  }
+  for (const id of ['Zlib', 'BSL-1.0']) {
+    assert.equal(byId[id].includeCopyright, 'source-only', `${id} 只要求源码形式保留`);
+  }
+  for (const id of ['BSD-3-Clause', 'BSD-3-Clause-Clear']) {
+    assert.equal(byId[id].endorsement, 'prohibited', `${id} 禁止用作者名义促销`);
+  }
+  assert.equal(byId['BSD-2-Clause'].endorsement, 'silent', 'BSD-2-Clause 没有背书条款');
+});
+
+
 
 /** 用真实正文推一个许可证的背书判定 */
 function endorsementOf(id) {

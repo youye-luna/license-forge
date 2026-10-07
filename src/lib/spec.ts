@@ -197,12 +197,11 @@ export function fromCatalog(
     requiresNotice: false,
     fileName,
     facts: {
-      patentGrant: facts.patentGrant,
-      trademarkClause: facts.trademarkClause,
-      stateChanges: facts.stateChanges,
-      sameLicenseWholeWork: facts.sameLicenseWholeWork,
-      sameLicensePerFile: facts.sameLicensePerFile,
-      networkTrigger: facts.networkTrigger,
+      // 整体透传 deriveFacts 的结论，**不要在这里逐个手挑字段**。
+      // 曾经是手挑的，结果新增 endorsement 时漏掉一列，详情面板永远显示
+      // "正文没写"——而 resolveSpec 之外的路径却是对的，很难察觉。
+      // 只有下面两项是这里独有的（deriveFacts 不管这两个）。
+      ...facts,
       osiApproved: item.osiApproved,
       irrevocable: !/revocable|may be revoked/i.test(raw),
     },
@@ -273,12 +272,8 @@ export function fromScancodeEntry(
     requiresNotice: false,
     fileName: 'LICENSE',
     facts: {
-      patentGrant: facts.patentGrant,
-      trademarkClause: facts.trademarkClause,
-      stateChanges: facts.stateChanges,
-      sameLicenseWholeWork: facts.sameLicenseWholeWork,
-      sameLicensePerFile: facts.sameLicensePerFile,
-      networkTrigger: facts.networkTrigger,
+      // 同 fromCatalog：整体透传，避免新增维度时又漏掉一列
+      ...facts,
       osiApproved: false,
       irrevocable: !/revocable|may be revoked/i.test(rawText),
     },
