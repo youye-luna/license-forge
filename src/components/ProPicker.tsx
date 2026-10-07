@@ -1277,12 +1277,12 @@ function InferredTerms({
       tone: facts.networkTrigger ? 'yes' : 'no',
     },
     {
-      label: zh ? '改过的代码要不要也开源' : 'Do modifications have to stay open',
+      label: zh ? '新项目是否开源' : 'Must your new project be open source',
       value: facts.sameLicenseWholeWork
-        ? zh ? '整个项目都要' : 'the whole project'
+        ? zh ? '要：整个项目都得用同一许可开源' : 'yes — the whole project must ship under the same license'
         : facts.sameLicensePerFile
-          ? zh ? '只有改过的那几个文件' : 'only the modified files'
-          : zh ? '没有这个要求' : 'no such requirement',
+          ? zh ? '只有改过的那几个文件要开源，新写的代码可以不开源' : 'only the files you modified; newly written code need not be'
+          : zh ? '不用：新项目可以闭源' : 'no — your project can stay closed source',
     },
     {
       label: zh ? '改了文件要不要写明' : 'Must you note that you changed files',
