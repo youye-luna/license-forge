@@ -189,8 +189,8 @@ function manifestSnippets(spec: LicenseSpec, options: GeneratorOptions): Generat
       path: 'manifest/package.json.snippet',
       content: JSON.stringify({ license: expr }, null, 2) + '\n',
       why: {
-        zh: 'npm / package.json 的 license 字段可以写 SPDX 表达式，包括 `WITH` 例外。写成 "GPL-3.0" 这类旧写法会让 npm 与 SBOM 工具无法识别。',
-        en: 'The npm license field accepts an SPDX expression including a `WITH` exception. Legacy forms like "GPL-3.0" break npm and SBOM tooling.',
+        zh: 'npm / package.json 的 license 字段可以写完整的许可表达式，包括 `WITH` 例外。写成 "GPL-3.0" 这类旧写法会让 npm 和依赖清单扫描工具认不出来。',
+        en: 'The npm license field accepts a full license expression including a `WITH` exception. Legacy forms like "GPL-3.0" break npm and dependency-scanning tools.',
       },
       mandatory: false,
     });
@@ -465,8 +465,8 @@ export function generate(input: GenerateInput): GenerationResult {
   if (spec.nonSpdx) {
     notices.push({
       level: 'warn',
-      zh: `\`${spec.licenseRef ?? spec.id}\` **不是 SPDX 标识符**，而是 ScanCode LicenseDB 的记录。它的正文可以用（很多真实项目就在用这类条款），但注意两点：① \`LicenseRef-scancode-*\` 这种写法**不能填进 package.json / Cargo.toml 的 license 字段**，那些工具只认 SPDX 标识符；② 它不参与 OSI 认证，也不在 SPDX 的字段体系里，因此本站不会替它声明 NOTICE 义务或官方文件头。`,
-      en: `\`${spec.licenseRef ?? spec.id}\` is **not an SPDX identifier** but a ScanCode LicenseDB record. Its text is usable — plenty of real projects ship exactly these terms — but note two things: (1) a \`LicenseRef-scancode-*\` form **cannot go into the license field of package.json or Cargo.toml**, which only accept SPDX identifiers; (2) it carries no OSI approval and sits outside the SPDX field model, so this site will not claim a NOTICE obligation or an official header for it.`,
+      zh: `\`${spec.licenseRef ?? spec.id}\` **不是官方名录里的名字**，而是 ScanCode 数据库的一条记录。它的正文可以用（很多真实项目就在用这类条款），但注意两点：① 这种 \`LicenseRef-scancode-*\` 写法**不能填进 package.json / Cargo.toml 的 license 字段**——那些工具只认官方名录里的名字；② 它没有经过 OSI 认证，也不在官方名录的字段体系里，所以本站不替它声称任何归类结论。`,
+      en: `\`${spec.licenseRef ?? spec.id}\` is **not a name from the official list** but a ScanCode database record. Its text is usable — plenty of real projects ship exactly these terms — but note two things: (1) a \`LicenseRef-scancode-*\` form **cannot go into the license field of package.json or Cargo.toml**, which only accept names from the official list; (2) it carries no OSI approval and sits outside the official field model, so this site will not claim any category verdict for it.`,
     });
   }
   // 非开源分类与"已被取代"提示紧随其后：这两条会直接改变用户该不该用这个许可证的决定。
@@ -496,43 +496,43 @@ export function generate(input: GenerateInput): GenerationResult {
   }
   if (spec.sourceDisclosure) {
     notices.push({
-      level: spec.sourceDisclosure === 'No' ? 'info' : 'info',
-      zh: `OSADL 义务清单给出的源码披露义务判定是「${spec.sourceDisclosure}」。这决定你要不要把衍生作品的源码一并提供——建议在发布前逐条核对。`,
-      en: `The OSADL obligations checklist rates the source-disclosure obligation as "${spec.sourceDisclosure}". That decides whether you must ship the corresponding source of derivative works — check it before releasing.`,
+      level: 'info',
+      zh: `要不要把源码一起给别人：**${spec.sourceDisclosure === 'No' ? '不需要' : '需要'}**（判定来自 OSADL 义务清单）。这是发布前最该确认的一条。`,
+      en: `Do you have to ship the source too: **${spec.sourceDisclosure === 'No' ? 'no' : 'yes'}** (verdict from the OSADL obligations checklist). This is the one to confirm before you release.`,
     });
   }
   if (spec.copyleft && spec.copyleft !== 'No') {
     notices.push({
       level: 'info',
-      zh: `OSADL 的 copyleft 判定是「${spec.copyleft}」，即该许可证带有传染性条件；把它与其它许可证的代码合并前请先核对组合判定。`,
-      en: `The OSADL copyleft rating is "${spec.copyleft}", meaning the license carries reciprocal conditions. Check the combination verdict before merging it with code under other licenses.`,
+      zh: `这份许可要求"你开源我也开源"：你改了它、再发布时，也得用同样的许可开放（OSADL 的 copyleft 判定：${spec.copyleft}）。要和别的许可证的代码混在一起之前，先确认两边能一起用。`,
+      en: `This license is reciprocal — "you open-source, so do I": if you modify it and release, you must release under the same license (OSADL copyleft verdict: ${spec.copyleft}). Before mixing it with code under other licenses, check that the two can be combined.`,
     });
   }
   if (!spec.curated) {
     notices.push({
       level: 'info',
-      zh: '这一许可证属于长尾条目：条款字段（专利、商标、改动标注等）由**正文文本推断**得出，没有人工梳理的双语解读。要做正式合规判断时请以许可证原文与 SPDX 页面为准。',
-      en: 'This is a long-tail license: its term fields (patents, trademarks, change marking, and so on) are **inferred from the license text**, and there is no hand-written commentary. For a formal compliance decision, go by the license text and the SPDX page.',
+      zh: '这是个少见的长尾许可证：上面那些条款说明是机器读正文**推断**出来的——说白了就是猜的，没有人逐条核对过，也没有中文解读。要下正式判断，请看许可证原文。',
+      en: 'A long-tail license: the clause notes above were **inferred** by machine from the text — in plain terms, guessed. Nobody checked them by hand and there is no commentary. For a real decision, read the license itself.',
     });
   }
-  // 条款字段的来源要如实交代：人工标注、人工整理、还是正文推断，三者的可信度不同。
+  // 这些结论的来源要如实交代：有人标注过、我们人工核对过、还是机器猜的——三者可信度不同。
   if (spec.factsInferred) {
     notices.push({
       level: 'info',
       zh:
         spec.termsSource === 'choosealicense'
-          ? '条款字段（专利、商标、改动标注、网络触发）取自 ChooseALicense 用固定词表做的**人工标注**。'
-          : '条款字段（专利、商标、改动标注、网络触发）由**正文关键词推断**得出——这一许可证不在 ChooseALicense 的 47 个标注范围内，所以标注为不确定而不是给出看起来确定的结论。',
+          ? '上面那些条款说明来自 ChooseALicense 的人工逐条标注，可以放心参考。'
+          : '上面那些条款说明是机器读正文**推断**出来的——说白了就是猜的。这个许可证不在 ChooseALicense 的 47 个标注范围内，所以我们标成"不确定"，而不是给你一个看起来确定的答案。',
       en:
         spec.termsSource === 'choosealicense'
-          ? 'The term fields (patents, trademarks, change marking, network trigger) come from ChooseALicense’s **hand-labelled** vocabulary.'
-          : 'The term fields (patents, trademarks, change marking, network trigger) are **inferred from keywords in the text** — this license is outside ChooseALicense’s 47 labelled entries, so they are marked uncertain rather than presented as settled.',
+          ? 'The clause notes above come from ChooseALicense’s hand-labelled entries and can be relied on.'
+          : 'The clause notes above were **inferred** by machine from the text — in plain terms, guessed. This license is outside ChooseALicense’s 47 labelled entries, so we mark them uncertain rather than hand you a confident-looking answer.',
     });
   } else if (spec.termsSource === 'choosealicense') {
     notices.push({
       level: 'info',
-      zh: '条款字段为人工整理，并且与 ChooseALicense 的人工标注互相印证。',
-      en: 'The term fields are hand-curated here and corroborated by ChooseALicense’s hand-labelled vocabulary.',
+      zh: '上面那些条款说明是我们人工核对的，并且与 ChooseALicense 的人工标注互相印证。',
+      en: 'The clause notes above were checked by hand here, and they agree with ChooseALicense’s hand-labelled entries.',
     });
   }
   if (spec.family === 'content' || spec.id.startsWith('CC-')) {

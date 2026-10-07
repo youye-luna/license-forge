@@ -163,10 +163,14 @@ test('非 SPDX 条目可以生成正文，且必须提示"不能写进清单字�
   // 正文必须逐字保留
   const license = result.files.find((f) => f.path === 'LICENSE');
   assert.equal(license.content, raw.trimEnd() + '\n');
-  // 必须给出"不是 SPDX 标识符"的警告
+  // 必须给出"名字不在官方名录里"的警告——而且要说人话，不能只丢一个 LicenseRef 给用户
   assert.ok(
-    result.notices.some((n) => n.level === 'warn' && n.zh.includes('不是 SPDX 标识符')),
-    '非 SPDX 条目必须告知其写法不能进清单字段',
+    result.notices.some((n) => n.level === 'warn' && n.zh.includes('不是官方名录里的名字')),
+    '非 SPDX 条目必须告知其写法不能进配置文件的 license 字段',
+  );
+  assert.ok(
+    result.notices.some((n) => n.level === 'warn' && n.zh.includes('package.json')),
+    '警告里要点明具体是哪个字段不接受它',
   );
   assert.equal(result.leftoverPlaceholders.length, 0);
 });

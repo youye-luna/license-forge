@@ -47,17 +47,51 @@ interface Props {
 
 type SourceFilter = 'all' | 'spdx' | 'scancode';
 
+/* ------------------------------------------------------------------ *
+ * 白话对照表
+ *
+ * 详情面板是给"正在发第一个开源项目的人"看的，不是给法务看的。
+ * 术语本身保留（搜索、对照资料时要用到），但每个术语旁边补一句
+ * **"这意味着我该怎么做"**——否则看到"弱著佐权"四个字仍然不知道要不要开源。
+ * ------------------------------------------------------------------ */
+
+/** 许可类型：术语 + 一句"这意味着什么" */
+const FAMILY_PLAIN: Record<string, { zh: string; en: string }> = {
+  permissive: { zh: '随便用，改了也不必开源', en: 'use it freely; forks need not stay open' },
+  'public-domain': { zh: '作者基本放弃了权利，几乎没有条件', en: 'the author waived their rights; almost no conditions' },
+  content: { zh: '给文字、图片、数据用的，不是给代码用的', en: 'for text, images and data — not for code' },
+  'weak-copyleft': { zh: '改过的那几个文件要跟着开源，整个项目可以不开源', en: 'modified files must stay open; the wider project need not' },
+  'strong-copyleft': { zh: '用了它，整个项目发布时都要用同一个许可开源', en: 'the whole project must ship under the same license' },
+  'network-copyleft': { zh: '做成网站给别人用，也要把源码公开', en: 'running it as a service also requires publishing source' },
+  proprietary: { zh: '这不是开源许可，对使用和分发有限制', en: 'not open source; it restricts use and distribution' },
+  unknown: { zh: '类型不明确，请直接看原文', en: 'unclear — read the text' },
+};
+
+/** OSADL 的 Yes / No / Yes (restricted) 说成人话 */
+function plainVerdict(v: string, zh: boolean): string {
+  if (/^yes\s*\(restricted\)/i.test(v)) return zh ? '要（有条件）' : 'yes, with conditions';
+  if (/^yes$/i.test(v)) return zh ? '要' : 'yes';
+  if (/^no$/i.test(v)) return zh ? '不要' : 'no';
+  return v;
+}
+
+/** 字数：上万就说"约几万字"，否则直接给数字 */
+function plainLength(n: number, zh: boolean): string {
+  if (!zh) return `${n.toLocaleString()} characters`;
+  return n >= 10000 ? `约 ${(n / 10000).toFixed(1)} 万字` : `${n.toLocaleString()} 字`;
+}
+
 type Filter = 'featured' | 'osi' | 'copyleft' | 'public-domain' | 'content' | 'hardware' | 'china' | 'deprecated' | 'all';
 
 const FILTERS: { id: Filter; zh: string; en: string; test?: (l: UnifiedEntry) => boolean }[] = [
   { id: 'featured', zh: '最常用', en: 'Most used' },
-  { id: 'osi', zh: 'OSI 认证', en: 'OSI approved', test: (l) => l.osiApproved && !l.deprecated },
-  { id: 'copyleft', zh: '著佐权 GPL 家族', en: 'Copyleft (GPL family)', test: (l) => /^(A|L)?GPL-/.test(l.id) },
-  { id: 'public-domain', zh: '公共领域', en: 'Public domain', test: (l) => /^(CC0|Unlicense|WTFPL|0BSD|CC-PDDC)/.test(l.id) },
-  { id: 'content', zh: '内容与数据', en: 'Content and data', test: (l) => /^CC-/.test(l.id) },
-  { id: 'hardware', zh: '开源硬件', en: 'Open hardware', test: (l) => /OHL|^TAPR|Solderpad/.test(l.id) },
-  { id: 'china', zh: '中国主导', en: 'China-led', test: (l) => /^Mulan/.test(l.id) },
-  { id: 'deprecated', zh: '已废弃', en: 'Deprecated', test: (l) => l.deprecated },
+  { id: 'osi', zh: 'OSI 认证过', en: 'OSI approved', test: (l) => l.osiApproved && !l.deprecated },
+  { id: 'copyleft', zh: 'GPL 系列（要求开源）', en: 'GPL family (must stay open)', test: (l) => /^(A|L)?GPL-/.test(l.id) },
+  { id: 'public-domain', zh: '公共领域（几乎无限制）', en: 'Public domain', test: (l) => /^(CC0|Unlicense|WTFPL|0BSD|CC-PDDC)/.test(l.id) },
+  { id: 'content', zh: '给文档和图片用的', en: 'For docs and images', test: (l) => /^CC-/.test(l.id) },
+  { id: 'hardware', zh: '给硬件设计用的', en: 'For hardware designs', test: (l) => /OHL|^TAPR|Solderpad/.test(l.id) },
+  { id: 'china', zh: '中国主导的', en: 'China-led', test: (l) => /^Mulan/.test(l.id) },
+  { id: 'deprecated', zh: '旧名字（已废弃）', en: 'Deprecated names', test: (l) => l.deprecated },
   { id: 'all', zh: '全部', en: 'All' },
 ];
 
@@ -226,14 +260,14 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
       <div className="rounded-lg border border-ink-900/10 bg-white p-3 text-sm text-ink-600">
         <p>
           {zh
-            ? `收录两家数据源合计 ${total} 个可选许可证：SPDX License List ${stats.version} 的 ${stats.licenses} 个（${stats.active} 个现行、${stats.osiApproved} 个 OSI 认证），加上 ScanCode LicenseDB 独有的 ${scStats?.total ?? 0} 个。`
-            : `${total} selectable licenses from two sources: ${stats.licenses} from SPDX License List ${stats.version} (${stats.active} current, ${stats.osiApproved} OSI-approved) plus ${scStats?.total ?? 0} that exist only in ScanCode LicenseDB.`}
+            ? `这里共有 ${total} 个许可证。其中 ${stats.licenses} 个来自官方名录（SPDX ${stats.version}，${stats.active} 个仍在用，${stats.osiApproved} 个通过 OSI 认证），另外 ${scStats?.total ?? 0} 个是官方名录里没有、但在真实代码里会遇到的。`
+            : `${total} licenses in total: ${stats.licenses} from the official list (SPDX ${stats.version}; ${stats.active} still current, ${stats.osiApproved} OSI-approved), plus ${scStats?.total ?? 0} that are not on the official list but do show up in real code.`}
         </p>
         {scStats ? (
           <p className="mt-1.5 text-xs">
             {zh
-              ? `ScanCode 独有的那部分正是 SPDX 查不到的：它涵盖商业许可、非商业许可、source-available 与各类厂商条款，其中 ${scStats.nonOpen} 个被归类为非开源。这类条目定位为**参考与审计**——它们的写法是 LicenseRef-scancode-*，不能填进 package.json 的 license 字段。`
-              : `The ScanCode-only part covers what SPDX lacks: commercial, non-commercial, source-available and vendor terms — ${scStats.nonOpen} of them classified as non-open. Those entries are for **reference and audit**: their form is LicenseRef-scancode-*, which cannot go into a package.json license field.`}
+              ? `后一类正是官方名录查不到的：商业许可、非商业许可、只开放源码不给修改权的条款、以及各家厂商自定的条款，其中 ${scStats.nonOpen} 个被归为非开源。这类条目**只能用来查证**——"我在代码里看到的这段到底是什么"。它们的名字不在官方名录里，填进配置文件的 license 字段会被工具判为无效。`
+              : `That second group is what the official list lacks: commercial, non-commercial, source-available and vendor-specific terms — ${scStats.nonOpen} of them classified as non-open. Use them **for reference only**, to answer "what is this clause I found in the code". Their names are not on the official list, so putting one in a config license field will be rejected as invalid.`}
           </p>
         ) : null}
       </div>
@@ -244,18 +278,18 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={zh ? '搜索标识符、名称或 ScanCode key，例如 MPL / 996' : 'Search identifier, name or ScanCode key, e.g. MPL / 996'}
+            placeholder={zh ? '搜名字，例如 MPL、996' : 'Search by name, e.g. MPL, 996'}
             className="w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
           />
 
-          {/* 数据源：这是本页最重要的一个筛选，因为它决定"能不能写进清单字段" */}
+          {/* 来源：决定"这个名字能不能填进配置文件" */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-ink-400">{zh ? '来源' : 'Source'}</span>
             {(
               [
                 ['all', zh ? '全部' : 'All', total],
-                ['spdx', 'SPDX', stats.licenses],
-                ['scancode', 'ScanCode', scStats?.total ?? 0],
+                ['spdx', zh ? '官方名录里有的' : 'On the official list', stats.licenses],
+                ['scancode', zh ? '其它来源' : 'Other sources', scStats?.total ?? 0],
               ] as const
             ).map(([id, label, count]) => (
               <button
@@ -406,7 +440,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
           ) : (
             <div className="rounded-xl border border-dashed border-ink-900/20 bg-white p-8 text-center text-sm text-ink-600">
               {zh
-                ? '从左边按类别、来源或搜索挑一个许可证查看条款。「适用于」会告诉你它是给源代码、文档还是内容用的。双击条目可以直接选中并去生成；点面板里的「加入对比」可把最多 4 个许可证摊开横向比较。'
+                ? '从左边按类别、来源或搜索挑一个许可证查看条款。「用来授权」会告诉你它是给源代码、文档还是内容用的。双击条目可以直接选中并去生成；点面板里的「加入对比」可把最多 4 个许可证摊开横向比较。'
                 : 'Pick a license by category, source or search to see its terms — "Applies to" tells you whether it is for source code, documentation or content. Double-click to select and generate; use "Add to comparison" to line up to four licenses side by side.'}
             </div>
           )}
@@ -529,7 +563,7 @@ function CatalogDetail({
               isSpdx ? 'border-ink-900/15 text-ink-600' : 'border-advisory/40 bg-advisory/5 text-advisory',
             ].join(' ')}
           >
-            {isSpdx ? 'SPDX' : 'ScanCode（非 SPDX）'}
+            {isSpdx ? (zh ? '官方名录' : 'official list') : zh ? '不在官方名录' : 'not on the official list'}
           </span>
           {entry.osiApproved ? (
             <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-xs text-ink-600">OSI</span>
@@ -543,22 +577,19 @@ function CatalogDetail({
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-400">
           {prefixGroups.length && isSpdx ? (
             <span>
-              {zh ? '族：' : 'Family: '}
+              {zh ? '同系列：' : 'Series: '}
               {prefixGroups.join('、')}
             </span>
           ) : null}
-          <span>
-            {zh ? '正文 ' : ''}
-            {entry.textLength.toLocaleString()} {zh ? '字符' : 'characters'}
-          </span>
+          <span>{plainLength(entry.textLength, zh)}</span>
           <span>
             {entry.hasOfficialHeader
               ? zh
-                ? '自带官方文件头模板'
-                : 'ships an official file header'
+                ? '官方提供了源文件开头的声明模板'
+                : 'ships an official source-header template'
               : zh
-                ? '无官方文件头模板'
-                : 'no official file header'}
+                ? '官方没有提供声明模板'
+                : 'no official source-header template'}
           </span>
         </p>
 
@@ -570,7 +601,7 @@ function CatalogDetail({
               return (
                 <>
                   <span className="mr-2 rounded-full bg-ok/10 px-1.5 py-0.5 text-[10px] text-ok">
-                    {zh ? '人工整理' : 'hand-curated'}
+                    {zh ? '人工核对' : 'hand-checked'}
                   </span>
                   {curated.tagline[lang]}
                 </>
@@ -580,7 +611,7 @@ function CatalogDetail({
             return (
               <>
                 <span className="mr-2 rounded-full bg-ink-900/[0.06] px-1.5 py-0.5 text-[10px] text-ink-600">
-                  {zh ? '按元数据生成' : 'generated from metadata'}
+                  {zh ? '按已有信息生成' : 'generated from metadata'}
                 </span>
                 {generatedIntro(facts, lang)}
               </>
@@ -588,13 +619,13 @@ function CatalogDetail({
           })()}
         </p>
 
-        {/* 适用于：这个许可证是用来授权什么作品的。与"条款字段"一样标注判定依据 */}
+        {/* 用来授权什么作品——选错这一项，后面条款再对也没用 */}
         {(() => {
           const verdict = subjectsOf(isSpdx ? entry.id : (entry.scancodeKey ?? entry.id), familyFromEntry(entry, extra));
           return (
             <div className="mt-3">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-ink-400">{zh ? '适用于' : 'Applies to'}</span>
+                <span className="text-ink-400">{zh ? '用来授权' : 'Used for'}</span>
                 {verdict.subjects.map((s) => (
                   <span
                     key={s}
@@ -606,14 +637,14 @@ function CatalogDetail({
                 <span className="text-ink-400">
                   {verdict.source === 'curated'
                     ? zh
-                      ? '人工指定'
+                      ? '我们人工填的'
                       : 'hand-assigned'
                     : verdict.source === 'rule'
                       ? zh
-                        ? '按标识符判定'
-                        : 'from identifier'
+                        ? '按名字判断的'
+                        : 'from the name'
                       : zh
-                        ? '默认判定，未在元数据中标注'
+                        ? '按默认值填的，资料里没写'
                         : 'default assumption, not stated in the metadata'}
                 </span>
               </div>
@@ -631,20 +662,20 @@ function CatalogDetail({
       {!isSpdx ? (
         <section className="rounded-lg border border-advisory/40 bg-advisory/5 p-3 text-sm">
           <p className="font-medium text-advisory">
-            {zh ? '这是非 SPDX 许可证，写法不能填进清单字段' : 'Non-SPDX license: its form cannot go into a manifest field'}
+            {zh ? '这份许可不在官方名录里，别写进你的配置文件' : 'Not on the official list — do not put this in your config files'}
           </p>
           <p className="mt-1.5 text-xs text-ink-700">
             {zh
-              ? `它在 SPDX 文档里的写法是 `
-              : 'In SPDX documents it is written as '}
+              ? '它的正式记录写法是 '
+              : 'Its formal record is written as '}
             <code className="mono">{scEntry?.spdxLicenseKey ?? `LicenseRef-scancode-${entry.scancodeKey}`}</code>
             {zh
-              ? '。这个字面量可以用在 SPDX 文档与 SBOM 里，但 **package.json / Cargo.toml 的 license 字段只接受 SPDX 标识符**，写成这样会被工具判定为无效。这类条目适合用来核对"我在代码里看到的这段条款到底是什么"。'
-              : '. That literal is valid in SPDX documents and SBOMs, but **the license field of package.json / Cargo.toml accepts only SPDX identifiers** and will treat it as invalid. These entries are for working out "what exactly is this clause I found in the code".'}
+              ? '。这个名字在核对资料的场合可以用，但 package.json、Cargo.toml 这类配置文件里的 license 字段只认官方名录里的名字——填这个会被工具判为无效。这一页适合用来查"我在代码里看到的这段条款到底是什么"。'
+              : '. That name is fine when you are checking records, but the license field in package.json, Cargo.toml and similar accepts only names from the official list — this one will be rejected as invalid. Use this page to work out "what exactly is this clause I found in the code".'}
           </p>
           <p className="mt-1.5 text-xs text-ink-600">
             {zh
-              ? '来源：ScanCode LicenseDB（CC-BY-4.0），经过人工策展，但不是 SPDX 的法律审核流程。'
+              ? '来源：ScanCode LicenseDB（CC-BY-4.0）。由人工整理，但没有走 SPDX 的法律审核流程。'
               : 'Source: ScanCode LicenseDB (CC-BY-4.0), human-curated but outside the SPDX legal review process.'}
           </p>
         </section>
@@ -666,26 +697,38 @@ function CatalogDetail({
         </p>
       )}
 
-      {/* 第三方补充数据 */}
+      {/* 其它数据库的补充信息 */}
       {extra && (extra.category || extra.osiKeywords?.length || extra.copyleft) ? (
         <section className="rounded-lg border border-ink-900/10 bg-ink-900/[0.015] p-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">
-            {zh ? '第三方补充数据' : 'Third-party metadata'}
+            {zh ? '其它数据库的补充信息' : 'From other databases'}
           </h3>
           <dl className="mt-2 grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
             {extra.category ? (
-              <Row label={zh ? '分类' : 'Category'} value={extra.category} tone={isNonOpenCategory(extra.category) ? 'bad' : undefined} />
+              <Row
+                label={zh ? 'ScanCode 的分类' : 'ScanCode category'}
+                value={isNonOpenCategory(extra.category) ? (zh ? `${extra.category}（非开源）` : `${extra.category} (not open source)`) : extra.category}
+                tone={isNonOpenCategory(extra.category) ? 'bad' : undefined}
+              />
             ) : null}
-            {extra.owner ? <Row label={zh ? '归属方' : 'Owner'} value={extra.owner} /> : null}
+            {extra.owner ? <Row label={zh ? '归谁所有' : 'Owner'} value={extra.owner} /> : null}
             {extra.copyleft ? (
-              <Row label="copyleft" value={extra.copyleft} tone={extra.copyleft === 'No' ? undefined : 'warn'} />
+              <Row
+                label={zh ? '要不要开源' : 'Must you open-source'}
+                value={plainVerdict(extra.copyleft, zh)}
+                tone={extra.copyleft === 'No' ? undefined : 'warn'}
+              />
             ) : null}
             {extra.sourceDisclosure ? (
-              <Row label={zh ? '源码披露义务' : 'Source disclosure'} value={extra.sourceDisclosure} tone={extra.sourceDisclosure === 'No' ? undefined : 'warn'} />
+              <Row
+                label={zh ? '要不要一并给出源码' : 'Must you ship the source'}
+                value={plainVerdict(extra.sourceDisclosure, zh)}
+                tone={extra.sourceDisclosure === 'No' ? undefined : 'warn'}
+              />
             ) : null}
-            {extra.osiApprovedDate ? <Row label={zh ? 'OSI 批准日期' : 'OSI approval'} value={extra.osiApprovedDate} mono /> : null}
+            {extra.osiApprovedDate ? <Row label={zh ? 'OSI 认证时间' : 'OSI approval'} value={extra.osiApprovedDate} mono /> : null}
             {extra.scancodeMatchedVia ? (
-              <Row label={zh ? '经历史标识符匹配' : 'Matched via'} value={extra.scancodeMatchedVia} mono />
+              <Row label={zh ? '通过旧名字匹配到' : 'Matched via'} value={extra.scancodeMatchedVia} mono />
             ) : null}
           </dl>
           {extra.osiKeywords?.length ? (
@@ -694,8 +737,9 @@ function CatalogDetail({
                 const note = OSI_KEYWORD_NOTE[k];
                 return (
                   <li key={k} className={note && /superseded|non-reusable/.test(k) ? 'text-advisory' : 'text-ink-600'}>
-                    <code className="mono">{k}</code>
-                    {note ? ` — ${note[lang]}` : ''}
+                    {note ? note[lang] : null}
+                    {note ? ' ' : null}
+                    <code className="mono text-[10px] text-ink-400">{k}</code>
                   </li>
                 );
               })}
@@ -735,12 +779,12 @@ function CatalogDetail({
       {isSpdx ? (
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">
-            {zh ? '附加例外（SPDX 表达式的 WITH）' : 'Attach an exception (SPDX WITH)'}
+            {zh ? '额外开个口子（附加例外）' : 'Attach an exception'}
           </h3>
           <p className="mt-1.5 text-xs text-ink-600">
             {zh
-              ? '例如把 GPL-2.0-only 与 Classpath-exception-2.0 组合。例外是独立文本，必须与许可证一起分发，否则下游无法判断实际授予的权利范围。'
-              : 'For example combining GPL-2.0-only with Classpath-exception-2.0. An exception is a separate document and must ship with the license, or downstream users cannot tell what was granted.'}
+              ? '有些许可证允许再附加一条"例外"，放宽某个具体要求。比如 GPL-2.0 加上 Classpath 例外，用这个库时就不必跟着 GPL 开源。例外是一份单独的文件，要跟许可证一起放进仓库，否则别人看不懂你实际给的是什么权利。'
+              : 'Some licenses let you attach an exception that relaxes one specific requirement. GPL-2.0 with the Classpath exception, for example, means you can use the library without having to open-source under the GPL. An exception is a separate document and has to ship with the license, or others cannot tell what you actually granted.'}
           </p>
           <input
             value={exceptionQuery}
@@ -835,16 +879,18 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
   return (
     <section>
       <h3 className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
-        {zh ? '与其它许可证的组合判定' : 'Combining with other licenses'}
+        {zh ? '能不能和别的许可证一起用' : 'Can it be combined with other licenses'}
         <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-[10px] normal-case tracking-normal text-ink-600">
-          {zh ? 'OSADL 兼容矩阵' : 'OSADL matrix'}
+          {zh ? '判定来自 OSADL' : 'verdicts from OSADL'}
         </span>
       </h3>
       <p className="mt-1.5 text-xs text-ink-600">
-        {zh ? `OSADL 义务清单给出了 ${entries.length} 条判定：` : `The OSADL obligations checklist provides ${entries.length} verdicts: `}
+        {zh
+          ? `OSADL 义务清单对这个许可证给出了 ${entries.length} 条判定：`
+          : `The OSADL obligations checklist gives ${entries.length} verdicts for this license: `}
         {Object.entries(counts)
           .sort((a, b) => (order[a[0]] ?? 9) - (order[b[0]] ?? 9))
-          .map(([v, n]) => `${v} ${n}`)
+          .map(([v, n]) => `${COMPATIBILITY_VERDICT[v]?.[lang] ?? v} ${n}`)
           .join(' · ')}
       </p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -853,7 +899,7 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
           return (
             <li
               key={other}
-              title={`${id} × ${other} → ${verdict}（${note[lang]}）`}
+              title={`${id} × ${other} → ${note[lang]}`}
               className={[
                 'mono rounded border px-1.5 py-0.5 text-[11px]',
                 note.tone === 'yes'
@@ -879,8 +925,8 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
       ) : null}
       <p className="mt-2 text-[10px] text-ink-400">
         {zh
-          ? '绿色=可组合，红色=不可组合，橙色=不确定（Unknown / 取决于依赖）。数据来自 OSADL 义务清单（CC-BY-4.0），以其自身免责声明为前提，不构成法律意见。'
-          : 'Green = may combine, red = may not, amber = uncertain. Data from the OSADL obligations checklist (CC-BY-4.0) under its own disclaimer; not legal advice.'}
+          ? '绿色＝可以一起用，红色＝不能一起用，橙色＝说不准（资料里没写，或要看具体依赖）。鼠标移到缩写上看结论。数据来自 OSADL 义务清单（CC-BY-4.0），不构成法律意见。'
+          : 'Green = can be combined, red = cannot, amber = uncertain. Hover an entry for the verdict. Data from the OSADL obligations checklist (CC-BY-4.0); not legal advice.'}
       </p>
     </section>
   );
@@ -893,8 +939,8 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
  * 分成两页只会让人来回切换。现在并入选许可证页：条款面板里点「加入对比」，
  * 选中项在这里横向摊开。
  *
- * 能对比的不只是人工整理的 32 个：任何条目（含长尾与 ScanCode 独有）都能加入，
- * 只是条款字段会有"人工标注 / 正文推断"的区别，表里逐列如实标注来源。
+ * 能对比的不只是人工核对的 32 个：任何条目（含长尾与 ScanCode 独有）都能加入，
+ * 只是结论会有"人工标注 / 机器从正文推断"的区别，表里逐列如实标注来源。
  * ------------------------------------------------------------------ */
 
 /** 对比表用到的事实快照——从 UnifiedEntry + 补充数据里一次解析出来 */
@@ -954,23 +1000,29 @@ function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode 
     );
   }
   if (value === null || value === undefined || value === '') return <span className="text-ink-400">—</span>;
-  if (d.label === '专利授权' || d.label === 'Patent grant') {
-    if (value === 'explicit') return <span className="text-ok">{zh ? '明确授予' : 'grants'}</span>;
-    if (value === 'none') return <span className="text-mandatory">{zh ? '明确不授' : 'grants none'}</span>;
-    return <span className="text-ink-400">{zh ? '未提及' : 'silent'}</span>;
+
+  // 按稳定的 key 分支，不按 label——label 是文案，改措辞时不该连带改坏样式
+  switch (d.key) {
+    case 'patent':
+      if (value === 'explicit') return <span className="text-ok">{zh ? '明确授予' : 'grants'}</span>;
+      if (value === 'none') return <span className="text-mandatory">{zh ? '明确不授' : 'grants none'}</span>;
+      return <span className="text-ink-400">{zh ? '没提到' : 'not mentioned'}</span>;
+    case 'conclusion-source':
+      return value === 'choosealicense' ? (
+        <span className="text-ok">{zh ? '有人标注过' : 'hand-labelled'}</span>
+      ) : (
+        <span className="text-advisory">{zh ? '机器猜的' : 'inferred'}</span>
+      );
+    case 'source':
+      return <span className={value === 'not listed' || value === '不在名录里' ? 'text-advisory' : ''}>{value}</span>;
+    case 'copyleft':
+    case 'source-disclosure':
+      return <span className={/^(Yes|要)/.test(String(value)) ? 'text-advisory' : 'mono text-[11px]'}>{value}</span>;
+    case 'category':
+      return <span className="mono text-[11px]">{value}</span>;
+    default:
+      return <span className="text-[11px]">{value}</span>;
   }
-  if (d.label === '条款来源' || d.label === 'Terms from') {
-    return value === 'text' || value === '正文推断' || value === 'inferred' ? (
-      <span className="text-advisory">{value === 'text' ? (zh ? '正文推断' : 'inferred') : value}</span>
-    ) : (
-      <span className="text-ok">{typeof value === 'string' && (value === 'choosealicense' || value === '人工标注' || value === 'hand-labelled') ? (zh ? '人工标注' : 'hand-labelled') : value}</span>
-    );
-  }
-  if (d.label === '来源' || d.label === 'Source') {
-    return <span className={value === 'ScanCode' ? 'text-advisory' : ''}>{value}</span>;
-  }
-  if (d.kind === 'muted-text') return <span className="mono text-[11px]">{value}</span>;
-  return <span className="text-[11px]">{value}</span>;
 }
 
 function CompareBoard({
@@ -1023,7 +1075,7 @@ function CompareBoard({
       </div>
       <p className="mt-1 text-xs text-ink-400">
         {zh
-          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。「条款来源」一列会如实区分人工标注与正文推断——两者的可信度不同，不该看起来一样。'
+          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。「结论怎么来的」一列会如实区分"有人标注过"与"机器猜的"——两者的可信度不同，不该看起来一样。'
           : 'Any entry can be compared, including the long tail and ScanCode-only licenses. The "Terms from" row distinguishes hand-labelled from inferred — they do not deserve to look alike.'}
       </p>
 
@@ -1127,56 +1179,59 @@ function InferredTerms({
   const familySourceNote =
     facts.familySource === 'scancode-category'
       ? zh
-        ? '家族判定来自 ScanCode LicenseDB 的分类型'
-        : 'family from a ScanCode LicenseDB category'
+        ? 'ScanCode 数据库给它的分类'
+        : 'a category from the ScanCode database'
       : facts.familySource === 'spdx-id'
         ? zh
-          ? '家族判定来自 SPDX 标识符'
-          : 'family from the SPDX identifier'
+          ? '它的 SPDX 名字'
+          : 'its SPDX identifier'
         : zh
-          ? '家族判定来自正文文本匹配（最不可靠的一档）'
-          : 'family from text matching (the least reliable tier)';
+          ? '读正文猜的（最不可靠的一档）'
+          : 'text matching (the least reliable tier)';
 
   const rows: { label: string; value: string; tone?: 'yes' | 'no' | 'warn' }[] = [
-    { label: zh ? '家族判定' : 'Family', value: `${FAMILY_LABEL[facts.family][lang]}（${familySourceNote}）` },
     {
-      label: zh ? '专利条款' : 'Patent terms',
+      label: zh ? '许可类型' : 'License type',
+      value: `${FAMILY_LABEL[facts.family][lang]}　${FAMILY_PLAIN[facts.family]?.[lang] ?? ''}`,
+    },
+    {
+      label: zh ? '专利' : 'Patents',
       value:
         facts.patentGrant === 'explicit'
-          ? zh ? '正文含专利授权表述' : 'text grants patents'
+          ? zh ? '明确授予了专利使用权' : 'grants patent rights'
           : facts.patentGrant === 'none'
-            ? zh ? '正文明确不授权' : 'text explicitly grants none'
-            : zh ? '正文未提及' : 'not mentioned',
+            ? zh ? '明确说了不授予' : 'grants none'
+            : zh ? '没提到（不等于安全）' : 'not mentioned — which is not the same as safe',
       tone: facts.patentGrant === 'explicit' ? 'yes' : facts.patentGrant === 'none' ? 'no' : 'warn',
     },
     {
-      label: zh ? '网络服务触发' : 'Network use triggers',
-      value: facts.networkTrigger ? (zh ? '是' : 'yes') : zh ? '否' : 'no',
+      label: zh ? '做成网站给别人用' : 'Running it as a service',
+      value: facts.networkTrigger ? (zh ? '也要开源' : 'must publish source') : zh ? '不需要开源' : 'no extra duty',
       tone: facts.networkTrigger ? 'yes' : 'no',
     },
     {
-      label: zh ? '衍生作品同许可' : 'Derivatives same license',
+      label: zh ? '改过的代码要不要也开源' : 'Do modifications have to stay open',
       value: facts.sameLicenseWholeWork
-        ? zh ? '整部作品' : 'whole work'
+        ? zh ? '整个项目都要' : 'the whole project'
         : facts.sameLicensePerFile
-          ? zh ? '仅被改文件' : 'modified files only'
-          : zh ? '无要求' : 'none',
+          ? zh ? '只有改过的那几个文件' : 'only the modified files'
+          : zh ? '没有这个要求' : 'no such requirement',
     },
     {
-      label: zh ? '须标注改动' : 'Mark changes',
-      value: facts.stateChanges ? (zh ? '是' : 'yes') : zh ? '未提及' : 'not mentioned',
+      label: zh ? '改了文件要不要写明' : 'Must you note that you changed files',
+      value: facts.stateChanges ? (zh ? '要写明' : 'yes') : zh ? '没有要求' : 'not required',
       tone: facts.stateChanges ? 'yes' : undefined,
     },
     {
-      label: zh ? '商标条款' : 'Trademark clause',
-      value: facts.trademarkClause ? (zh ? '有提及' : 'mentioned') : zh ? '未提及' : 'not mentioned',
+      label: zh ? '商标' : 'Trademarks',
+      value: facts.trademarkClause ? (zh ? '提到了（不授权给你）' : 'mentioned — and not granted') : zh ? '没提到' : 'not mentioned',
     },
   ];
 
   return (
     <section>
       <h3 className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
-        {zh ? '条款字段' : 'Term fields'}
+        {zh ? '这份许可的几条关键规定' : 'What this license actually requires'}
         <span
           className={[
             'rounded-full border px-2 py-0.5 text-[10px] normal-case tracking-normal',
@@ -1187,32 +1242,56 @@ function InferredTerms({
         >
           {facts.termsSource === 'choosealicense'
             ? zh
-              ? '来自 ChooseALicense 的人工标注'
-              : 'hand-labelled by ChooseALicense'
+              ? '有人逐条标注过'
+              : 'hand-labelled'
             : zh
-              ? '由正文推断，非权威认定'
-              : 'inferred from text, not authoritative'}
+              ? '机器从正文猜的，别当定论'
+              : 'inferred from the text — not authoritative'}
         </span>
       </h3>
-      <dl className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+      <dl className="mt-2 space-y-2">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-baseline justify-between gap-3 border-b border-ink-900/[0.06] py-1 text-sm">
+          <div key={r.label} className="border-b border-ink-900/[0.06] pb-1.5 text-sm last:border-0">
             <dt className="text-ink-600">{r.label}</dt>
-            <dd className={r.tone === 'yes' ? 'text-ok' : r.tone === 'no' ? 'text-ink-400' : r.tone === 'warn' ? 'text-advisory' : ''}>
+            <dd
+              className={[
+                'mt-0.5',
+                r.tone === 'yes' ? 'text-ok' : r.tone === 'no' ? 'text-ink-400' : r.tone === 'warn' ? 'text-advisory' : '',
+              ].join(' ')}
+            >
               {r.value}
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-xs text-ink-400">
+      <p className="mt-2 text-xs text-ink-600">
         {facts.termsSource === 'choosealicense'
           ? zh
-            ? '这些字段取自 ChooseALicense 用固定词表做的**人工标注**（47 个主流许可证覆盖范围内），比正文正则可靠得多。词表本身分 permissions / conditions / limitations 三段，其中 `patent-use` 在 permissions 里表示"授予专利"，在 limitations 里表示"不授予专利"，已在合并时按段区分。'
-            : 'These fields come from ChooseALicense’s **hand-labelled** vocabulary (covering 47 mainstream licenses), which is far more reliable than regex over the text. Note its vocabulary splits into permissions / conditions / limitations, and `patent-use` means "grants patents" under permissions but "grants none" under limitations — that distinction is handled when merging.'
+            ? '以上几条是人工逐条标注的，可以放心参考。'
+            : 'These were labelled by hand and can be relied on.'
           : zh
-            ? '以上结论由许可证正文的关键词匹配得出（该许可证不在 ChooseALicense 的 47 个标注范围内）。我们选择如实标注而不是给出看起来确定的勾。正式合规判断请以原文与 SPDX / ScanCode 页面为准。'
-            : 'These conclusions come from keyword matching over the license text (this license is outside ChooseALicense’s 47 labelled entries). We label the uncertainty instead of showing a confident tick. For a formal decision, go by the text and the SPDX / ScanCode page.'}
+            ? '以上几条是机器读正文猜的，只能当参考。要下正式判断请打开许可证原文。'
+            : 'These were inferred by machine from the text — treat them as a hint only. For a real decision, read the license itself.'}
       </p>
+      <details className="mt-2 rounded-lg border border-ink-900/10 p-2.5 text-xs text-ink-600">
+        <summary className="cursor-pointer text-ink-400">{zh ? '这些结论是怎么来的' : 'Where these conclusions come from'}</summary>
+        <div className="mt-2 space-y-1.5">
+          <p>
+            {zh
+              ? `许可类型来自：${familySourceNote}。`
+              : `License type comes from: ${familySourceNote}.`}
+          </p>
+          <p>
+            {facts.termsSource === 'choosealicense'
+              ? zh
+                ? '其余几条来自 ChooseALicense 的词表人工标注（覆盖 47 个主流许可证），比机器读正文可靠得多。它的词表分成 permissions / conditions / limitations 三段，其中 `patent-use` 在 permissions 里表示"授予专利"、在 limitations 里表示"不授予专利"，合并时已按段区分。'
+                : 'The rest come from ChooseALicense’s hand-labelled vocabulary (47 mainstream licenses), which is far more reliable than machine reading. Its vocabulary splits into permissions / conditions / limitations, and `patent-use` means "grants patents" under permissions but "grants none" under limitations — that distinction is handled when merging.'
+              : zh
+                ? '其余几条由许可证正文的关键词匹配得出。这个许可证不在 ChooseALicense 的 47 个标注范围内，所以只能这样。我们宁可标注"不确定"，也不给一个看起来确定的答案。'
+                : 'The rest come from keyword matching over the license text, because this license is outside ChooseALicense’s 47 labelled entries. We label the uncertainty rather than show a confident answer we cannot back.'}
+          </p>
+        </div>
+      </details>
     </section>
   );
 }

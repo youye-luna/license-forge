@@ -213,21 +213,26 @@ test('没有矩阵数据时查询返回 null，而不是编造结论', () => {
  * 生成产物里的义务提示
  * ------------------------------------------------------------------ */
 
-test('源码披露义务会被写进生成提示', () => {
+test('源码披露义务会被写进生成提示（用大白话）', () => {
   const withObligation = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.sourceDisclosure && r.sourceDisclosure !== 'No')?.[0];
   assert.ok(withObligation, '应当存在有源码披露义务的许可证');
   const { result } = build(withObligation);
   assert.ok(
-    result.notices.some((n) => n.zh.includes('源码披露')),
-    '有披露义务时必须提示',
+    result.notices.some((n) => n.zh.includes('把源码一起给别人')),
+    '有披露义务时必须提示，而且要说人话，不能只丢一句"源码披露义务"',
   );
 });
 
-test('copyleft 判定为非 No 时会提示"带传染性条件"', () => {
+test('copyleft 判定为非 No 时会提示"你开源我也开源"', () => {
   const copyleftId = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.copyleft && r.copyleft !== 'No')?.[0];
   assert.ok(copyleftId, '应当存在 copyleft 判定');
   const { result } = build(copyleftId);
-  assert.ok(result.notices.some((n) => n.zh.includes('copyleft')));
+  assert.ok(result.notices.some((n) => n.zh.includes('你开源我也开源')));
+  // 术语可以放在括号里做对照，但不能只丢一个 copyleft 给用户
+  assert.ok(
+    result.notices.some((n) => /你开源我也开源/.test(n.zh) && /copyleft/i.test(n.zh)),
+    '白话说法与原始判定值应当同时给出',
+  );
 });
 
 test('补充数据缺失时生成仍然成功（第三方数据不是硬依赖）', () => {

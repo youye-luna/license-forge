@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { allowsClosedSource, compareDimensions, factsOf, generatedIntro } from '../src/lib/compare.ts';
 import { loadUnifiedCatalog } from '../src/lib/spdx.ts';
@@ -45,14 +46,50 @@ test('维度定义同时服务矩阵与工作台（只有一份，不会各写�
   }
 });
 
-test('关键维度都在矩阵里，且顺序稳定（宽松程度 → 义务 → 认证）', () => {
-  const labels = compareDimensions('zh').map((d) => d.label);
-  for (const need of ['来源', '家族', '条款来源', '专利授权', '允许闭源衍生', '网络服务触发', '须标注改动', '商标条款', 'NOTICE 义务', 'OSI']) {
-    assert.ok(labels.includes(need), `矩阵缺少维度：${need}`);
+test('关键维度都在，且顺序稳定（宽松程度 → 义务 → 认证）', () => {
+  // 断言稳定的 key，而不是给人看的 label——文案会改，key 不该改
+  const dims = compareDimensions('zh');
+  const keys = dims.map((d) => d.key);
+  for (const need of [
+    'source',
+    'family',
+    'conclusion-source',
+    'patent',
+    'closed-source',
+    'network',
+    'state-changes',
+    'trademark',
+    'notice',
+    'osi',
+  ]) {
+    assert.ok(keys.includes(need), `缺少维度 key：${need}`);
   }
   // 顺序直接决定扫读体验，钉住它避免被无意打乱
-  assert.equal(labels[0], '来源');
-  assert.ok(labels.indexOf('允许闭源衍生') < labels.indexOf('网络服务触发'));
+  assert.equal(keys[0], 'source');
+  assert.ok(keys.indexOf('closed-source') < keys.indexOf('network'));
+  // key 必须唯一，否则渲染分支会打架
+  assert.equal(new Set(keys).size, keys.length, 'key 出现重复');
+});
+
+test('维度 key 与 label 分离：改文案不会改坏渲染', () => {
+  // 这条守的是一个踩过的坑：早先 renderCell 按 label 判断该显示勾还是文字，
+  // 于是把"专利授权"改成"专利"就静默改坏了样式。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.match(src, /switch \(d\.key\)/, 'renderCell 应按 key 分支');
+  assert.ok(!/d\.label === '/.test(src), 'renderCell 不应再按 label 分支');
+  // 每个维度都要有 key 与中英文案
+  for (const lang of ['zh', 'en']) {
+    for (const d of compareDimensions(lang)) {
+      assert.ok(d.key, `${lang} 下有一个维度缺 key`);
+      assert.ok(d.label && d.label.length > 0, `${d.key} 在 ${lang} 下缺 label`);
+    }
+  }
+  // 中英两份的 key 顺序必须一致，否则表格列会错位
+  assert.deepEqual(
+    compareDimensions('zh').map((d) => d.key),
+    compareDimensions('en').map((d) => d.key),
+    '中英维度的 key 顺序必须一致',
+  );
 });
 
 /* ------------------------------------------------------------------ *

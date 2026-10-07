@@ -198,6 +198,11 @@ export function generatedIntro(r: CompareFacts, lang: Lang): string {
 }
 
 export interface Dimension {
+  /**
+   * 稳定标识。**渲染逻辑必须按它分支，不能按 label**——
+   * label 是给人看的文案，改文案时不该连带改坏样式。
+   */
+  key: DimensionKey;
   label: string;
   hint?: string;
   /** 渲染成 React 节点；纯数据模块不引入 React，因此交给调用方包装 */
@@ -205,6 +210,22 @@ export interface Dimension {
   /** 单元格的渲染形态，决定界面上用勾叉还是文字 */
   kind: 'yesno' | 'text' | 'muted-text' | 'warn-text' | 'ok-text' | 'danger-text';
 }
+
+export type DimensionKey =
+  | 'source'
+  | 'family'
+  | 'conclusion-source'
+  | 'patent'
+  | 'closed-source'
+  | 'network'
+  | 'state-changes'
+  | 'trademark'
+  | 'notice'
+  | 'official-header'
+  | 'osi'
+  | 'copyleft'
+  | 'source-disclosure'
+  | 'category';
 
 /**
  * 对比维度定义。矩阵（行=许可证）与工作台（列=许可证）共用它，
@@ -214,81 +235,94 @@ export function compareDimensions(lang: Lang): Dimension[] {
   const zh = lang === 'zh';
   return [
     {
+      key: 'source',
       label: zh ? '来源' : 'Source',
       hint: zh
-        ? 'ScanCode 独有条目的写法是 LicenseRef，不能填进 package.json 的 license 字段'
-        : 'ScanCode-only entries use LicenseRef and cannot go into a package.json license field',
+        ? '不在官方名录里的许可证，名字不能填进 package.json 的 license 字段'
+        : 'Licenses outside the official list have names that cannot go into a package.json license field',
       kind: 'text',
-      cell: (r) => (r.source === 'spdx' ? 'SPDX' : 'ScanCode'),
+      cell: (r) => (r.source === 'spdx' ? (zh ? '官方名录' : 'official list') : zh ? '不在名录里' : 'not listed'),
     },
     {
-      label: zh ? '家族' : 'Family',
-      hint: zh ? '判定依据见右侧条款面板：优先第三方分类，其次 SPDX 标识符' : 'See the detail panel: a third-party category first, then the SPDX identifier',
+      key: 'family',
+      label: zh ? '许可类型' : 'License type',
+      hint: zh ? '见右侧详情：优先用第三方数据库的分类，其次看名字' : 'See the detail panel: a third-party category first, then the name',
       kind: 'text',
       cell: (r) => FAMILY_LABEL[r.family as keyof typeof FAMILY_LABEL]?.[lang] ?? r.family,
     },
     {
-      label: zh ? '条款来源' : 'Terms from',
-      hint: zh ? '人工核对/标注远比正文推断可靠' : 'hand-checked or hand-labelled is far more reliable than inferred',
+      key: 'conclusion-source',
+      label: zh ? '结论怎么来的' : 'How it was decided',
+      hint: zh ? '人工核对或人工标注的远比机器猜的可靠' : 'Hand-checked or hand-labelled is far more reliable than machine inference',
       kind: 'text',
-      cell: (r) => (r.termsSource === 'text' ? (zh ? '正文推断' : 'inferred') : zh ? '人工标注' : 'hand-labelled'),
+      cell: (r) => (r.termsSource === 'text' ? (zh ? '机器猜的' : 'inferred') : zh ? '有人标注过' : 'hand-labelled'),
     },
     {
-      label: zh ? '专利授权' : 'Patent grant',
-      hint: zh ? 'MIT 这类"未提及"不等于安全：是否隐含授权在学界仍有争议' : '"Silent" is not safety: whether a grant is implied is genuinely disputed',
+      key: 'patent',
+      label: zh ? '专利' : 'Patents',
+      hint: zh ? '"没提到"不等于安全：算不算隐含授权，法律上一直有争议' : '"Not mentioned" is not safety: whether a grant is implied is genuinely disputed',
       kind: 'text',
       cell: (r) => r.facts.patentGrant,
     },
     {
-      label: zh ? '允许闭源衍生' : 'Closed-source forks',
-      hint: zh ? '宽松型与公共领域允许；强著佐权不允许' : 'Permissive and public-domain licences allow it; strong copyleft does not',
+      key: 'closed-source',
+      label: zh ? '能不能闭源改' : 'Closed-source forks',
+      hint: zh ? '宽松型和公共领域可以；要求开源的许可不行' : 'Permissive and public-domain licences allow it; copyleft does not',
       kind: 'yesno',
       cell: (r) => allowsClosedSource(r),
     },
     {
-      label: zh ? '网络服务触发' : 'Network use triggers',
-      hint: zh ? '把代码跑成在线服务是否也要开源；只有 AGPL 家族与 EUPL 覆盖这一点' : 'Whether running the code as a service also requires sharing source; only the AGPL family and the EUPL cover this',
+      key: 'network',
+      label: zh ? '做成网站也要开源吗' : 'Publishing as a service',
+      hint: zh ? '把代码跑成在线服务，是否也要把源码公开。只有 AGPL 系列和 EUPL 管这件事' : 'Whether running the code as a service also requires publishing source; only the AGPL family and the EUPL cover this',
       kind: 'yesno',
       cell: (r) => r.facts.networkTrigger,
     },
     {
-      label: zh ? '须标注改动' : 'Mark changes',
-      hint: zh ? '修改原文件后必须在文件中说明"已修改"' : 'Modified files must state that they were changed',
+      key: 'state-changes',
+      label: zh ? '改了要写明吗' : 'Note your changes',
+      hint: zh ? '改了别人的文件，要在文件里注明"已修改"' : 'Modified files must state that they were changed',
       kind: 'yesno',
       cell: (r) => r.facts.stateChanges,
     },
     {
-      label: zh ? '商标条款' : 'Trademark clause',
-      hint: zh ? '含该条款意味着许可明确不授予商标权' : 'A clause here means the license explicitly grants no trademark rights',
+      key: 'trademark',
+      label: zh ? '商标' : 'Trademarks',
+      hint: zh ? '提到商标，通常意味着明确不授权给你用它的名字' : 'A clause here usually means the license grants you no rights to the name',
       kind: 'yesno',
       cell: (r) => r.facts.trademarkClause,
     },
     {
-      label: zh ? 'NOTICE 义务' : 'NOTICE required',
-      hint: zh ? 'Apache-2.0 §4(d) 要求在分发时随附归属声明，这不是可选项' : 'Apache-2.0 §4(d) requires attribution notices with distributions. Not optional.',
+      key: 'notice',
+      label: zh ? '要放 NOTICE 吗' : 'NOTICE required',
+      hint: zh ? 'Apache-2.0 §4(d) 要求分发时附上归属声明，这条不能省' : 'Apache-2.0 §4(d) requires attribution notices with distributions. Not optional.',
       kind: 'yesno',
       cell: (r) => r.facts.requiresNotice,
     },
     {
-      label: zh ? '官方文件头' : 'Official header',
-      hint: zh ? '该许可证在 SPDX 数据里是否自带文件头模板；没有的话我们不会自造措辞' : 'Whether SPDX ships a file-header template; where it does not, we will not invent wording',
+      key: 'official-header',
+      label: zh ? '有官方声明模板吗' : 'Official header template',
+      hint: zh ? '官方资料里有没有给源文件开头的声明模板；没有的话我们不会自己编' : 'Whether the official data ships a source-header template; where it does not, we will not invent wording',
       kind: 'yesno',
       cell: (r) => r.hasOfficialHeader,
     },
-    { label: 'OSI', hint: zh ? 'OSI 认证状态（以 SPDX 为准，OSI API 覆盖不全）' : 'OSI approval, per SPDX (the OSI API is incomplete)', kind: 'yesno', cell: (r) => r.facts.osiApproved },
+    { key: 'osi', label: 'OSI', hint: zh ? '是否通过 OSI 认证（以官方名录为准）' : 'OSI approval, per the official list', kind: 'yesno', cell: (r) => r.facts.osiApproved },
     {
-      label: 'copyleft',
-      hint: zh ? 'OSADL 义务清单的判定：No / Yes / Yes (restricted)' : 'OSADL obligations checklist: No / Yes / Yes (restricted)',
+      key: 'copyleft',
+      label: zh ? '要不要开源' : 'Must stay open',
+      hint: zh ? 'OSADL 义务清单的判定：不要 / 要 / 要（有条件）' : 'OSADL obligations checklist: No / Yes / Yes (restricted)',
       kind: 'muted-text',
       cell: (r) => r.copyleft ?? null,
     },
     {
-      label: zh ? '源码披露' : 'Source disclosure',
+      key: 'source-disclosure',
+      label: zh ? '要给出源码吗' : 'Must ship source',
       hint: zh ? 'OSADL 判定你要不要把衍生作品的源码一并提供' : 'OSADL verdict on whether you must ship the corresponding source',
       kind: 'muted-text',
       cell: (r) => r.sourceDisclosure ?? null,
     },
     {
+      key: 'category',
       label: zh ? '分类' : 'Category',
       hint: zh ? 'ScanCode LicenseDB 的粗分类；其官方文档说明该分类不具备法律精确性' : 'ScanCode LicenseDB category; its own docs note it is not legally precise',
       kind: 'text',

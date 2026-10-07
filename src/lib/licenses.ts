@@ -607,7 +607,7 @@ export const LICENSES: LicenseEntry[] = [
     needsVersionChoice: false,
     tagline: { zh: '中国主导的宽松许可，含专利授权，中英双语官方文本。', en: 'A Chinese-led permissive license with a patent grant and official bilingual text.' },
     gains: { zh: '由开放原子开源基金会主导、有官方中文版本，对国内团队与法务的沟通成本最低；含明确专利授权与专利报复条款；Gitee 等国内平台原生支持。', en: 'Backed by the OpenAtom Foundation with an official Chinese text, an explicit patent grant and native support on domestic platforms such as Gitee.' },
-    tradeoffs: { zh: '国际认知度仍低，海外贡献者与企业法务可能要求额外审查；生态工具链（自动识别、SBOM 工具）覆盖不如 MIT/Apache 完整。', en: 'Still little known internationally; overseas contributors and legal teams may require extra review, and tooling coverage lags MIT/Apache.' },
+    tradeoffs: { zh: '国际认知度仍低，海外贡献者与企业法务可能要求额外审查；自动识别与依赖清单扫描的覆盖不如 MIT/Apache 完整。', en: 'Still little known internationally; overseas contributors and legal teams may require extra review, and automatic detection and dependency scanning cover it less well than MIT or Apache.' },
     misuses: {
       zh: '中文资料里常见的说法是"木兰与 GPLv3 和 Apache 2.0 完美兼容"——**其兼容性结论应以许可证原文与官方 FAQ 为准**，不要依赖二手对比表。另一个现实问题是：几乎所有中文生成工具都没有收录木兰。',
       en: 'Chinese comparisons often claim MulanPSL is "perfectly compatible" with GPLv3 and Apache-2.0. Verify against the license text and official FAQ rather than second-hand tables. Note also that almost no Chinese generator actually offers it.',

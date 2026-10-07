@@ -95,7 +95,7 @@ export default function Generator() {
                 {full.version}，{lang === 'zh' ? '其中' : 'of which '}
                 {full.active} {lang === 'zh' ? '现行' : 'current'} · {full.osiApproved} OSI · {full.deprecated}{' '}
                 {lang === 'zh' ? '废弃' : 'deprecated'}） · {full.exceptions} {lang === 'zh' ? '个例外' : 'exceptions'} ·{' '}
-                {full.withOfficialHeader} {lang === 'zh' ? '个自带官方文件头' : 'with official headers'}
+                {full.withOfficialHeader} {lang === 'zh' ? '个自带官方声明模板' : 'with official templates'}
               </>
             ) : (
               <>{lang === 'zh' ? '正在加载 SPDX 许可证目录…' : 'Loading the SPDX catalog…'}</>
@@ -317,8 +317,8 @@ function Docs({ lang }: { lang: Lang }) {
         </h2>
         <p className="mt-2 text-sm text-ink-600">
           {zh
-            ? `下面这些条目的条款字段与双语解读经过人工核对。完整收录量为 ${full?.licenses ?? '740'} 个 SPDX 许可证，其余条目在「选择与对比」里按类别浏览。`
-            : `The entries below have hand-checked term fields and commentary. The full coverage is ${full?.licenses ?? '740'} SPDX licenses; browse the rest by category under "Pick and compare".`}
+            ? `下面这些许可证的条款说明是我们逐条核对过的，也配了中文解读。官方名录一共 ${full?.licenses ?? '740'} 个，其余的在「选择与对比」里按类别浏览。`
+            : `The licenses below have hand-checked clause notes and Chinese commentary. The official list has ${full?.licenses ?? '740'} in total; browse the rest by category under "Pick and compare".`}
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(Object.keys(FAMILY_LABEL) as (keyof typeof FAMILY_LABEL)[]).map((f) => {
@@ -344,8 +344,8 @@ function Docs({ lang }: { lang: Lang }) {
         <h2 className="text-xl font-semibold">{zh ? '数据从哪来（多家数据源混合）' : 'Where the data comes from (several sources combined)'}</h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
-            ? '许可证正文来自 SPDX 官方 License List；条款分类由 ScanCode LicenseDB 补齐；兼容性判定来自 OSADL 义务清单；条款字段的人工标注来自 ChooseALicense；OSI 审批标签来自 OSI 官方 API；中文审定稿链接来自开放原子《源译识》。全部在**构建期**抓取一次，作为静态文件随站点分发——不依赖运行时网络，用户信息完全不出浏览器，任何人可以重跑抓取脚本核对快照。'
-            : 'License texts come from the official SPDX License List; term categories from ScanCode LicenseDB; compatibility verdicts from the OSADL obligations checklist; hand-labelled term fields from ChooseALicense; OSI approval tags from the official OSI API; and Chinese translation links from the OpenAtom Foundation project. Everything is fetched once at **build time** and shipped as static files — no runtime network dependency, nothing leaving the browser, and a snapshot anyone can re-verify.'}
+            ? '许可证正文来自 SPDX 官方名录；许可类型的分类由 ScanCode 数据库补齐；"能不能和别的许可一起用"来自 OSADL 义务清单；条款的人工标注来自 ChooseALicense；OSI 认证标签来自 OSI 官方 API；中文审定稿链接来自开放原子《源译识》。这些都在**构建时**抓一次、作为静态文件随站点分发——运行时不联网，你填的信息也不出浏览器，任何人都可以重跑抓取脚本核对。'
+            : 'License texts come from the official SPDX list; license-type categories from the ScanCode database; "can it be combined" verdicts from the OSADL obligations checklist; hand-labelled clauses from ChooseALicense; OSI approval tags from the official OSI API; and Chinese translation links from the OpenAtom Foundation project. All of it is fetched once at **build time** and shipped as static files — no network at runtime, nothing you type leaves the browser, and anyone can re-run the fetch scripts to verify.'}
         </p>
         <div className="table-scroll mt-4">
           <table className="w-full border-collapse text-xs">
@@ -363,7 +363,7 @@ function Docs({ lang }: { lang: Lang }) {
                     SPDX License List
                   </a>
                 </td>
-                <td>{zh ? '全量正文、93 个官方文件头模板、OSI/FSF 状态' : 'Verbatim texts, 93 official header templates, OSI/FSF status'}</td>
+                <td>{zh ? '全部正文、93 个官方声明模板、OSI/FSF 状态' : 'All texts, 93 official header templates, OSI/FSF status'}</td>
                 <td className="mono">
                   {full?.licenses ?? 740} + {full?.exceptions ?? 86} · CC0
                 </td>
@@ -385,7 +385,7 @@ function Docs({ lang }: { lang: Lang }) {
                     OSADL Obligations Checklist
                   </a>
                 </td>
-                <td>{zh ? '兼容性矩阵、copyleft 判定、源码披露义务' : 'Compatibility matrix, copyleft rating, source-disclosure obligation'}</td>
+                <td>{zh ? '"能不能和别的许可一起用"、要不要开源、要不要给源码' : 'Combination verdicts, copyleft rating, source-disclosure duty'}</td>
                 <td className="mono">
                   {enrichment ? `${enrichment.coverage.compatibilityEdges.toLocaleString()} ${zh ? '条判定' : 'verdicts'}` : '13,225'} · CC-BY-4.0
                 </td>
@@ -398,8 +398,8 @@ function Docs({ lang }: { lang: Lang }) {
                 </td>
                 <td>
                   {zh
-                    ? '条款字段的人工标注（专利、商标、改动标注、网络触发）'
-                    : 'Hand-labelled term fields (patents, trademarks, change notices, network triggers)'}
+                    ? '人工逐条标注的条款结论（专利、商标、要不要写明改动）'
+                    : 'Hand-labelled clause verdicts (patents, trademarks, change notices)'}
                 </td>
                 <td className="mono">
                   47 {zh ? '个主流许可' : 'popular licenses'} · CC-BY-3.0
@@ -446,8 +446,8 @@ function Docs({ lang }: { lang: Lang }) {
               ? 'gnu.org 的 license-compatibility.html 在构建环境里始终无法抓取，内容未经核实，因此没有把它当作来源。'
               : 'gnu.org’s license-compatibility.html could not be fetched from the build environment at all, so its content is unverified and it is not used as a source.',
             zh
-              ? 'ScanCode 的 standard_notice 字段实测恒为 null，因此官方文件头仍以 SPDX 的 standardLicenseHeader 为准。'
-              : 'ScanCode’s standard_notice field is null in every record we checked, so official headers still come from SPDX’s standardLicenseHeader.',
+              ? 'ScanCode 的 standard_notice 字段我们查过的每一条都是空的，所以源文件声明模板仍以 SPDX 的 standardLicenseHeader 为准。'
+              : 'ScanCode’s standard_notice field is empty in every record we checked, so source-header templates still come from SPDX’s standardLicenseHeader.',
             zh
               ? '部分商业合规服务的兼容性结论没有可下载的公开数据集，无法离线核对，因此未纳入判定来源。'
               : 'Some commercial compliance services publish no downloadable dataset for their compatibility verdicts, so they cannot be checked offline and are not used as a source.',

@@ -85,8 +85,8 @@ const CURATED: Record<string, { subjects: Subject[]; note?: { zh: string; en: st
   'Apache-2.0': {
     subjects: ['code'],
     note: {
-      zh: 'Apache-2.0 也常被用于规范与接口文档，但它带专利授权与 NOTICE 义务，这些是为软件分发设计的。',
-      en: 'Apache-2.0 is also used for specifications and interface docs, but its patent grant and NOTICE duty are designed around software distribution.',
+      zh: 'Apache-2.0 也常被用于规范与接口文档，但它带的专利授权与"必须附归属声明"这些要求，都是为软件分发设计的。',
+      en: 'Apache-2.0 is also used for specifications and interface docs, but its patent grant and its "you must include the attribution notice" rule are designed around software distribution.',
     },
   },
   'BSL-1.0': { subjects: ['code'] },
