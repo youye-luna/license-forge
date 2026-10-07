@@ -56,8 +56,11 @@ export const PROJECT = {
   /**
    * 当前发行版号。**必须与 package.json 的 version 同步**——这两处漂移过一次，
    * 因此加了测试守着：`发行版版本号必须与 package.json 同步`。
+   *
+   * 注意：本项目仍在 0.1.0 上迭代，修 bug 与补功能都直接更新同一个发行版，
+   * 不逐次抬版本号。等需要区分"用户该不该升级"时再开始递增。
    */
-  releasesLabel: 'v0.1.1',
+  releasesLabel: 'v0.1.0',
   issues: 'https://github.com/youye-luna/license-forge/issues',
   license: 'MIT',
   licenseUrl: 'https://github.com/youye-luna/license-forge/blob/main/LICENSE',
