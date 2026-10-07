@@ -131,6 +131,24 @@ const RULES: { re: RegExp; subjects: Subject[]; note?: { zh: string; en: string 
 ];
 
 /**
+ * 判定一个条目是否属于所选的作品类型——「用来授权」筛选项用它。
+ *
+ * 与详情面板使用**同一套判定**（subjectsOf），因此筛选结果与详情页显示
+ * 的"用来授权"永远一致。早先界面里另有两个按名字前缀猜的筛选
+ * （"给文档和图片用的""给硬件设计用的"），会出现"筛出来但详情页说不是"的矛盾，
+ * 已经删掉。
+ */
+export function matchesSubject(
+  entry: { source: 'spdx' | 'scancode'; id: string; scancodeKey?: string },
+  subject: Subject | 'all',
+  family?: string,
+): boolean {
+  if (subject === 'all') return true;
+  const key = entry.source === 'spdx' ? entry.id : (entry.scancodeKey ?? '');
+  return subjectsOf(key, family).subjects.includes(subject);
+}
+
+/**
  * 判定一个许可证适用于什么作品。
  *
  * @param id     SPDX 标识符或 ScanCode key

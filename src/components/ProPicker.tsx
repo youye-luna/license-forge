@@ -9,7 +9,7 @@ import {
   type CompareFacts,
   type Dimension,
 } from '../lib/compare.ts';
-import { SUBJECT_LABEL, subjectsOf } from '../lib/subject.ts';
+import { matchesSubject, SUBJECT_LABEL, subjectsOf, type Subject } from '../lib/subject.ts';
 import { needsLicenseText, sortLicenses, SORTS, type SortKey } from '../lib/ordering.ts';
 import {
   catalogStats,
@@ -81,18 +81,38 @@ function plainLength(n: number, zh: boolean): string {
   return n >= 10000 ? `约 ${(n / 10000).toFixed(1)} 万字` : `${n.toLocaleString()} 字`;
 }
 
-type Filter = 'featured' | 'osi' | 'copyleft' | 'public-domain' | 'content' | 'hardware' | 'china' | 'deprecated' | 'all';
+type Filter = 'featured' | 'osi' | 'copyleft' | 'public-domain' | 'china' | 'deprecated' | 'all';
 
 const FILTERS: { id: Filter; zh: string; en: string; test?: (l: UnifiedEntry) => boolean }[] = [
   { id: 'featured', zh: '最常用', en: 'Most used' },
   { id: 'osi', zh: 'OSI 认证过', en: 'OSI approved', test: (l) => l.osiApproved && !l.deprecated },
   { id: 'copyleft', zh: 'GPL 系列（要求开源）', en: 'GPL family (must stay open)', test: (l) => /^(A|L)?GPL-/.test(l.id) },
   { id: 'public-domain', zh: '公共领域（几乎无限制）', en: 'Public domain', test: (l) => /^(CC0|Unlicense|WTFPL|0BSD|CC-PDDC)/.test(l.id) },
-  { id: 'content', zh: '给文档和图片用的', en: 'For docs and images', test: (l) => /^CC-/.test(l.id) },
-  { id: 'hardware', zh: '给硬件设计用的', en: 'For hardware designs', test: (l) => /OHL|^TAPR|Solderpad/.test(l.id) },
+  // 原先这里还有"给文档和图片用的""给硬件设计用的"两个筛选——它们按名字前缀猜，
+  // 已被下面更准的「用来授权」筛选取代（那一项用的是与详情面板同一套判定）。
   { id: 'china', zh: '中国主导的', en: 'China-led', test: (l) => /^Mulan/.test(l.id) },
   { id: 'deprecated', zh: '旧名字（已废弃）', en: 'Deprecated names', test: (l) => l.deprecated },
   { id: 'all', zh: '全部', en: 'All' },
+];
+
+/**
+ * 「用来授权」筛选项：按作品类型筛，选错这一项后面条款再对也没用。
+ *
+ * 与「最常用」等筛选是**不同维度**：那些是"这批许可证属于哪个集合"，
+ * 这一项是"它给什么作品用"。所以做成一个下拉，而不是再往筛选行里塞 9 个胶囊
+ * ——筛选行已经够挤了，而且用户一次只会关心一两种作品类型。
+ */
+const SUBJECT_FILTERS: (Subject | 'all')[] = [
+  'all',
+  'code',
+  'docs',
+  'media',
+  'data',
+  'font',
+  'hardware',
+  'spec',
+  'model',
+  'any',
 ];
 
 /** "最常用"是人工筛选的高频短名单，而不是按字母序的前几十个 */
@@ -117,6 +137,8 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
   const [source, setSource] = useState<SourceFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('id');
   const [focus, setFocus] = useState<UnifiedEntry | null>(null);
+  /** 「用来授权」筛选项：按作品类型筛（源代码 / 文档 / 字体 / 硬件 …） */
+  const [subject, setSubject] = useState<Subject | 'all'>('all');
   /** 按需加载的许可证正文（对比工作台里的条目会用到；列表排序不下载正文） */
   const [licenseTexts, setLicenseTexts] = useState<Record<string, string>>({});
   /** 对比工作台：最多 4 项，用 key 而不是 SPDX 标识符以便容纳 ScanCode 独有条目 */
@@ -155,14 +177,18 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
     const bySource = unified.filter((e) =>
       source === 'all' ? true : source === 'spdx' ? e.source === 'spdx' : e.source === 'scancode',
     );
-    if (query.trim()) return searchUnified(bySource, query, 400);
+    // 「用来授权」是独立维度，与"属于哪个集合"的筛选叠加生效
+    const bySubject = bySource.filter((e) =>
+      matchesSubject(e, subject, familyFromEntry(e, enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')])),
+    );
+    if (query.trim()) return searchUnified(bySubject, query, 400);
     const predicate = FILTERS.find((f) => f.id === filter)?.test;
     if (filter === 'featured') {
-      return FEATURED.map((id) => bySource.find((e) => e.id === id)).filter((e): e is UnifiedEntry => Boolean(e));
+      return FEATURED.map((id) => bySubject.find((e) => e.id === id)).filter((e): e is UnifiedEntry => Boolean(e));
     }
-    if (!predicate) return bySource.slice(0, 400);
-    return bySource.filter(predicate).slice(0, 400);
-  }, [unified, query, filter, source]);
+    if (!predicate) return bySubject.slice(0, 400);
+    return bySubject.filter(predicate).slice(0, 400);
+  }, [unified, query, filter, source, subject, enrichment]);
 
 
   const addToCompare = (id: string) =>
@@ -304,6 +330,37 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                 {label} <span className="opacity-60">{count}</span>
               </button>
             ))}
+          </div>
+
+          {/* 「用来授权」：按作品类型筛。与上面的筛选是不同维度，因此单独一行 */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <label className="flex items-center gap-1.5 text-xs text-ink-400" htmlFor="subject-filter">
+              {zh ? '用来授权' : 'Used for'}
+            </label>
+            <select
+              id="subject-filter"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value as Subject | 'all')}
+              className={[
+                'rounded-lg border px-2.5 py-1 text-xs outline-none transition',
+                subject === 'all'
+                  ? 'border-ink-900/15 bg-white'
+                  : 'border-ink-900 bg-ink-900 text-white',
+              ].join(' ')}
+            >
+              {SUBJECT_FILTERS.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'all' ? (zh ? '不限（全部作品类型）' : 'Any kind of work') : SUBJECT_LABEL[s][zh ? 'zh' : 'en']}
+                </option>
+              ))}
+            </select>
+            {subject !== 'all' ? (
+              <span className="text-xs text-ink-400">
+                {zh
+                  ? `只看给「${SUBJECT_LABEL[subject].zh}」用的许可证`
+                  : `only licenses for ${SUBJECT_LABEL[subject].en}`}
+              </span>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-1.5">

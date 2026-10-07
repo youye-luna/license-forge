@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { SUBJECT_LABEL, subjectsOf } from '../src/lib/subject.ts';
+import { SUBJECT_LABEL, matchesSubject, subjectsOf } from '../src/lib/subject.ts';
 import { LICENSES } from '../src/lib/licenses.ts';
 import { loadUnifiedCatalog, familyFromEntry } from '../src/lib/spdx.ts';
 
@@ -163,4 +163,63 @@ test('判为非纯代码的条目数量在合理范围，没有大规模误判',
   // 目前约 157 个。放宽上限是为了容错，但数量暴增通常意味着规则写宽了。
   assert.ok(nonCode.length > 50, `非代码条目只有 ${nonCode.length} 个，规则可能失效了`);
   assert.ok(nonCode.length < 400, `非代码条目达到 ${nonCode.length} 个，规则可能过宽导致误判`);
+});
+
+/* ------------------------------------------------------------------ *
+ * 「用来授权」筛选项
+ * ------------------------------------------------------------------ */
+
+const famOf = (e) => familyFromEntry(e, ENRICHMENT.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')]);
+
+test('筛选项：不限时全部通过，选定类型时只留该类型', () => {
+  for (const e of UNIFIED) {
+    assert.equal(matchesSubject(e, 'all', famOf(e)), true, `${e.id} 在不限时应当通过`);
+  }
+  const fonts = UNIFIED.filter((e) => matchesSubject(e, 'font', famOf(e)));
+  assert.ok(fonts.length > 0, '应当能筛出字体许可');
+  for (const e of fonts) {
+    assert.ok(subjectsOf(e.source === 'spdx' ? e.id : (e.scancodeKey ?? ''), famOf(e)).subjects.includes('font'));
+  }
+  // 字体筛选里不应混进 MIT 这类纯代码许可
+  assert.ok(!fonts.some((e) => e.id === 'MIT'), 'MIT 不该出现在字体筛选里');
+});
+
+test('筛选项的判定与详情面板完全一致（同一套规则，不会自相矛盾）', () => {
+  // 早先界面里另有两个按名字前缀猜的筛选（"给文档和图片用的""给硬件设计用的"），
+  // 会出现"筛出来但详情页说不是"的矛盾。现在两处共用 subjectsOf。
+  for (const e of UNIFIED) {
+    const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? '');
+    const verdict = subjectsOf(key, famOf(e)).subjects;
+    for (const s of Object.keys(SUBJECT_LABEL)) {
+      assert.equal(
+        matchesSubject(e, s, famOf(e)),
+        verdict.includes(s),
+        `${e.id} 在 ${s} 上，筛选项与详情面板的判定不一致`,
+      );
+    }
+  }
+});
+
+test('一个许可可以同时属于多种类型：CC-BY-SA-4.0 同时是媒体与数据，但不是代码', () => {
+  const cc = UNIFIED.find((e) => e.id === 'CC-BY-SA-4.0');
+  assert.ok(cc);
+  assert.equal(matchesSubject(cc, 'media', famOf(cc)), true);
+  assert.equal(matchesSubject(cc, 'data', famOf(cc)), true);
+  assert.equal(matchesSubject(cc, 'code', famOf(cc)), false);
+  assert.equal(matchesSubject(cc, 'font', famOf(cc)), false);
+});
+
+test('筛选项覆盖全部作品类型，每个都有中英文案', () => {
+  // 界面下拉里的顺序与这里保持一致
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('SUBJECT_FILTERS'), '界面应当有「用来授权」筛选项');
+  assert.ok(src.includes('matchesSubject'), '筛选项必须复用 lib/subject.ts 的判定');
+  assert.ok(src.includes("zh ? '用来授权' : 'Used for'"), '筛选项的标签应当是「用来授权」');
+  // 9 种作品类型都要能选到
+  for (const s of Object.keys(SUBJECT_LABEL)) {
+    assert.ok(src.includes(`'${s}'`), `筛选项里缺作品类型：${s}`);
+  }
+  // 旧的、按名字前缀猜的两个筛选必须已删除，避免两套机制并存
+  assert.ok(!src.includes("'给文档和图片用的'"), '按前缀猜的旧筛选应当已删除');
+  assert.ok(!src.includes("'给硬件设计用的'"), '按前缀猜的旧筛选应当已删除');
 });
