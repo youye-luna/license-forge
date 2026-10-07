@@ -115,6 +115,46 @@ const SUBJECT_FILTERS: (Subject | 'all')[] = [
   'any',
 ];
 
+/**
+ * 筛选胶囊上的短标签。全称太长，9 个排不下（会在 26rem 的左栏里折成五行）；
+ * 全称放在 `title` 里，鼠标停一下就能看到。
+ */
+const SUBJECT_SHORT: Record<Subject, { zh: string; en: string }> = {
+  code: { zh: '代码', en: 'Code' },
+  docs: { zh: '文档', en: 'Docs' },
+  media: { zh: '图文视频', en: 'Media' },
+  data: { zh: '数据', en: 'Data' },
+  font: { zh: '字体', en: 'Fonts' },
+  hardware: { zh: '硬件', en: 'Hardware' },
+  spec: { zh: '规范', en: 'Specs' },
+  model: { zh: 'AI 模型', en: 'AI models' },
+  any: { zh: '各类作品', en: 'Any work' },
+};
+
+/**
+ * 左栏所有筛选控件共用的胶囊样式。
+ *
+ * 集中成一处是因为它被四组控件用到（来源 / 用来授权 / 筛选 / 排序），
+ * 各写一份必然会走形——之前"用来授权"是个下拉框，其余三组是胶囊，
+ * 摆在一起就像是两个人做的界面。
+ */
+function chipClass(active: boolean): string {
+  return [
+    'rounded-full border px-2.5 py-1 text-xs transition',
+    active ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
+  ].join(' ');
+}
+
+/** 一组筛选：标签 + 胶囊，四组的标签样式与行间距都由这里统一 */
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="shrink-0 text-xs text-ink-400">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 /** "最常用"是人工筛选的高频短名单，而不是按字母序的前几十个 */
 const FEATURED = [
   'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'EPL-2.0',
@@ -308,9 +348,8 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             className="w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
           />
 
-          {/* 来源：决定"这个名字能不能填进配置文件" */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-ink-400">{zh ? '来源' : 'Source'}</span>
+          {/* 四组筛选控件：标签位置、胶囊样式、行间距全部统一 */}
+          <FilterRow label={zh ? '来源' : 'Source'}>
             {(
               [
                 ['all', zh ? '全部' : 'All', total],
@@ -318,70 +357,36 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                 ['scancode', zh ? '其它来源' : 'Other sources', scStats?.total ?? 0],
               ] as const
             ).map(([id, label, count]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setSource(id as SourceFilter)}
-                className={[
-                  'rounded-full border px-2.5 py-1 text-xs transition',
-                  source === id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
-                ].join(' ')}
-              >
+              <button key={id} type="button" onClick={() => setSource(id as SourceFilter)} className={chipClass(source === id)}>
                 {label} <span className="opacity-60">{count}</span>
               </button>
             ))}
-          </div>
+          </FilterRow>
 
-          {/* 「用来授权」：按作品类型筛。与上面的筛选是不同维度，因此单独一行 */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <label className="flex items-center gap-1.5 text-xs text-ink-400" htmlFor="subject-filter">
-              {zh ? '用来授权' : 'Used for'}
-            </label>
-            <select
-              id="subject-filter"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value as Subject | 'all')}
-              className={[
-                'rounded-lg border px-2.5 py-1 text-xs outline-none transition',
-                subject === 'all'
-                  ? 'border-ink-900/15 bg-white'
-                  : 'border-ink-900 bg-ink-900 text-white',
-              ].join(' ')}
-            >
-              {SUBJECT_FILTERS.map((s) => (
-                <option key={s} value={s}>
-                  {s === 'all' ? (zh ? '不限（全部作品类型）' : 'Any kind of work') : SUBJECT_LABEL[s][zh ? 'zh' : 'en']}
-                </option>
-              ))}
-            </select>
-            {subject !== 'all' ? (
-              <span className="text-xs text-ink-400">
-                {zh
-                  ? `只看给「${SUBJECT_LABEL[subject].zh}」用的许可证`
-                  : `only licenses for ${SUBJECT_LABEL[subject].en}`}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
+          {/* 「用来授权」：按作品类型筛，与"属于哪个集合"是不同维度 */}
+          <FilterRow label={zh ? '用来授权' : 'Used for'}>
+            {SUBJECT_FILTERS.map((s) => (
               <button
-                key={f.id}
+                key={s}
                 type="button"
-                onClick={() => setFilter(f.id)}
-                className={[
-                  'rounded-full border px-2.5 py-1 text-xs transition',
-                  filter === f.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
-                ].join(' ')}
+                onClick={() => setSubject(s)}
+                title={s === 'all' ? (zh ? '不限作品类型' : 'Any kind of work') : SUBJECT_LABEL[s][lang]}
+                className={chipClass(subject === s)}
               >
+                {s === 'all' ? (zh ? '不限' : 'Any') : SUBJECT_SHORT[s][lang]}
+              </button>
+            ))}
+          </FilterRow>
+
+          <FilterRow label={zh ? '筛选' : 'Filter'}>
+            {FILTERS.map((f) => (
+              <button key={f.id} type="button" onClick={() => setFilter(f.id)} className={chipClass(filter === f.id)}>
                 {zh ? f.zh : f.en}
               </button>
             ))}
-          </div>
+          </FilterRow>
 
-          {/* 排序：与筛选并列，都是"把 2476 个条目收敛到能看"的手段 */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-ink-400">{zh ? '排序' : 'Sort'}</span>
+          <FilterRow label={zh ? '排序' : 'Sort'}>
             {SORTS.map((s) => (
               <button
                 key={s.id}
@@ -394,15 +399,12 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                       : 'Only distinguishes licenses whose terms are known'
                     : undefined
                 }
-                className={[
-                  'rounded-full border px-2.5 py-1 text-xs transition',
-                  sortKey === s.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
-                ].join(' ')}
+                className={chipClass(sortKey === s.id)}
               >
                 {zh ? s.zh : s.en}
               </button>
             ))}
-          </div>
+          </FilterRow>
           {needsLicenseText(sortKey) ? (
             <p className="rounded-lg border border-advisory/30 bg-advisory/5 p-2 text-xs text-advisory">
               {zh
@@ -1250,6 +1252,20 @@ function InferredTerms({
     {
       label: zh ? '许可类型' : 'License type',
       value: `${FAMILY_LABEL[facts.family][lang]}　${FAMILY_PLAIN[facts.family]?.[lang] ?? ''}`,
+    },
+    {
+      // 最基础的一条义务：分发时要不要带上版权声明与许可证全文。
+      // 只有 0BSD / CC0 / MIT-0 / Unlicense / WTFPL 五个明确不要求。
+      label: zh ? '保留版权声明与许可证' : 'Keep the copyright notice and license',
+      value:
+        facts.includeCopyright === 'required'
+          ? zh ? '要带上：分发时要附上版权声明和许可证全文' : 'yes — include the notice and the full license when you distribute'
+          : facts.includeCopyright === 'source-only'
+            ? zh ? '只在源码里要带，二进制分发不必' : 'only in source form; binaries are exempt'
+            : facts.includeCopyright === 'not-required'
+              ? zh ? '不要求：连署名都不要求' : 'not required — not even attribution'
+              : zh ? '正文没写（不等于没义务：版权法本身通常要求保留声明）' : 'not stated in the text — which is not the same as no duty: copyright law usually requires it',
+      tone: facts.includeCopyright === 'silent' ? 'warn' : undefined,
     },
     {
       label: zh ? '专利' : 'Patents',

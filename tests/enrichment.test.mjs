@@ -15,6 +15,64 @@ import { generate } from '../src/lib/generate.ts';
 const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
 const SNAPSHOT = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
 const TEXTS = (await import('../public/data/license-texts.json', { with: { type: 'json' } })).default;
+const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
+const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } })).default;
+
+/* ------------------------------------------------------------------ *
+ * 保留版权声明与许可证（includeCopyright）
+ * ------------------------------------------------------------------ */
+
+/** 用 ChooseALicense 的人工标注推一个许可证的这一项 */
+function includeCopyrightOf(id) {
+  const entry = SNAPSHOT.licenses.find((l) => l.id === id);
+  assert.ok(entry, `${id} 应当在 SPDX 快照里`);
+  const facts = deriveFacts(
+    id,
+    TEXTS.licenses[id].licenseText,
+    entry.osiApproved,
+    ENRICHMENT.licenses[id]?.family,
+    TERMS,
+  );
+  return facts.includeCopyright;
+}
+
+test('保留版权声明：绝大多数许可要求，但五个明确不要求', () => {
+  // 要保留
+  for (const id of ['MIT', 'Apache-2.0', 'BSD-3-Clause', 'GPL-3.0-only', 'MPL-2.0', 'CC-BY-4.0']) {
+    assert.equal(includeCopyrightOf(id), 'required', `${id} 应当要求保留版权声明`);
+  }
+  // 连署名都不要求的五个
+  for (const id of ['0BSD', 'CC0-1.0', 'MIT-0', 'Unlicense', 'WTFPL']) {
+    assert.equal(includeCopyrightOf(id), 'not-required', `${id} 明确不要求保留版权声明`);
+  }
+  // 只要求在源码形式里保留
+  for (const id of ['Zlib', 'BSL-1.0']) {
+    assert.equal(includeCopyrightOf(id), 'source-only', `${id} 只要求在源码里保留`);
+  }
+});
+
+test('保留版权声明：长尾条目靠正文推断，措辞发散也要认出来', () => {
+  // Anti-996 的写法是 "must conspicuously display, without modification,
+  // this License and the notice"——retain/reproduce/include 都不命中，
+  // 早先因此被误判为"正文没写"。
+  const facts = deriveFacts(
+    '996-icu-1.0',
+    SCANCODE_TEXTS['996-icu-1.0'],
+    false,
+    ENRICHMENT.licenses['996-icu-1.0']?.family,
+    TERMS,
+  );
+  assert.equal(facts.includeCopyright, 'required', 'Anti-996 有明确的保留条款');
+  assert.equal(facts.termsSource, 'text', '它不在 ChooseALicense 范围内，只能靠正文推断');
+});
+
+test('保留版权声明：正文确实没写的，如实标为"没写"而不是猜一个', () => {
+  // AGPL-1.0（GPL-1.0 时代）与 Adobe-2006 的正文里都没有保留义务的表述。
+  // 这里要的是"承认不知道"，而不是套一个默认值。
+  for (const id of ['AGPL-1.0', 'Adobe-2006']) {
+    assert.equal(includeCopyrightOf(id), 'silent', `${id} 的正文没有相关要求，应标为没写`);
+  }
+});
 
 function options(overrides = {}) {
   return {

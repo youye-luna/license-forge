@@ -56,8 +56,41 @@ test('关于页源码确实引用 PROJECT 常量，而不是各写一份硬编�
  * 详情面板的用词：给新手看，不堆术语
  * ------------------------------------------------------------------ */
 
-test('详情面板用大白话讲条款，不堆术语', () => {
-  // 面板的读者是"正在发第一个开源项目的人"。术语本身保留（搜索与对照资料要用），
+/* ------------------------------------------------------------------ *
+ * 左栏筛选 UI 的一致性
+ * ------------------------------------------------------------------ */
+
+test('左栏四组筛选共用同一套胶囊样式与标签行', () => {
+  // 之前"用来授权"是个下拉框，其余三组是胶囊，摆在一起像是两个人做的界面。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const groups = (src.match(/<FilterRow /g) ?? []).length;
+  const chips = (src.match(/chipClass\(/g) ?? []).length;
+  assert.ok(groups >= 4, `四组筛选都应当用 FilterRow，实际 ${groups} 组`);
+  assert.ok(chips >= 4, `四组筛选都应当用 chipClass，实际 ${chips} 处`);
+  // 胶囊样式不应在组件里再各写一份（有一个定义 + 若干调用是允许的）
+  assert.equal(
+    (src.match(/'rounded-full border px-2\.5 py-1 text-xs transition'/g) ?? []).length,
+    1,
+    '胶囊样式只应定义一处（chipClass），不应在四组控件里各写一份',
+  );
+  // 「用来授权」必须与其余筛选同样是胶囊
+  assert.ok(!src.includes('<select'), '「用来授权」不应当是下拉框');
+  // 短标签必须有，否则 9 个全称会在 26rem 的左栏里折成五行
+  assert.ok(src.includes('SUBJECT_SHORT'), '作品类型筛选应当用短标签 + title 全称');
+});
+
+test('详情面板有「保留版权声明与许可证」这一条，且四种情况都有文案', () => {
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('保留版权声明与许可证'), '详情面板应当有这一条');
+  assert.ok(src.includes('facts.includeCopyright'), '文案应当由 includeCopyright 驱动');
+  for (const state of ["'required'", "'source-only'", "'not-required'", "'silent'"]) {
+    assert.ok(src.includes(state), `缺少 ${state} 对应的文案`);
+  }
+  // "正文没写"必须说明它不等于没有义务
+  assert.match(src, /不等于没义务/, '「正文没写」要讲清不等于没有义务');
+});
+
+test('详情面板用大白话讲条款，不堆术语', () => {  // 面板的读者是"正在发第一个开源项目的人"。术语本身保留（搜索与对照资料要用），
   // 但每个术语旁边必须有一句"这意味着我该怎么做"，否则看到"弱著佐权"四个字
   // 仍然不知道要不要开源。这条测试守住那些只会让新手卡住的旧说法不再回来。
   const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');

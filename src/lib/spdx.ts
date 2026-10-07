@@ -691,6 +691,14 @@ export interface DerivedFacts {
   sameLicensePerFile: boolean;
   /** 是否通过网络提供服务即触发开源义务 */
   networkTrigger: boolean;
+  /**
+   * 分发时要不要附上版权声明与许可证全文：
+   *  - `required`     要（绝大多数许可）
+   *  - `source-only`  只要求在源码形式里保留，二进制不必（BSL-1.0、Zlib）
+   *  - `not-required` 明确不要求（0BSD、CC0-1.0、MIT-0、Unlicense、WTFPL）
+   *  - `silent`       正文里没找到相关要求（长尾条目，只能读正文）
+   */
+  includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
   /** 条款字段的来源；`choosealicense` 表示人工标注，`text` 表示正则推断 */
   termsSource: 'choosealicense' | 'text';
   /** 全部非权威结论都来自文本匹配，必须标注 */
@@ -772,6 +780,30 @@ const STATE_CHANGE_MARKERS = [
   /mark.{0,30}(?:as |the )?(?:modified|changed)/i,
   /must inform.{0,120}modif/i,
   /notify.{0,60}(?:that|of).{0,40}modif/i,
+];
+
+/**
+ * 「必须附上版权声明与许可证全文」的正文特征。
+ *
+ * 刻意让"保留/附上"这个动作与"版权/声明/许可证"这个对象**同时出现在一句里**，
+ * 否则会把无关的 must 也算进来（例如"不得再分发"之类）。
+ *
+ * 动词刻意列得很宽：这类条款的措辞非常发散，实测
+ * "must conspicuously display, without modification, this License and the notice"
+ * （Anti-996）用的就是 display，而 retain / reproduce / include / keep 都不命中。
+ * 长尾许可证只能这样判，因此结果一律标注为正文推断。
+ */
+const INCLUDE_COPYRIGHT_VERBS =
+  'retain|reproduce|include|keep|display|attach|provide|accompany|furnish|give|be\\s+included|be\\s+reproduced|be\\s+kept';
+
+const INCLUDE_COPYRIGHT_MARKERS = [
+  new RegExp(`must\\s+(?:[a-z]+ly\\s+)?(?:${INCLUDE_COPYRIGHT_VERBS})[^.]{0,90}(?:copyright|notice|licen[cs]e)`, 'i'),
+  new RegExp(`shall\\s+(?:be\\s+)?(?:${INCLUDE_COPYRIGHT_VERBS})[^.]{0,90}(?:copyright|notice)`, 'i'),
+  /(?:retain|reproduce|include|keep|display)\s+the\s+above\s+copyright/i,
+  /(?:copyright|notice|licen[cs]e)[^.]{0,70}must\s+be\s+included/i,
+  /above\s+copyright\s+notice\s+and\s+this\s+permission\s+notice/i,
+  // "…shall be included in all copies…"——对象常写成 Software 而不是 notice
+  /shall\s+be\s+included\s+in\s+all\s+copies/i,
 ];
 
 /** 从 SPDX 标识符本身就能看出的家族信息（比文本匹配更可靠，优先使用） */
@@ -882,6 +914,27 @@ export function deriveFacts(
     sameLicensePerFile = perFileFamily;
   }
 
+  /*
+   * 要不要随分发附上版权声明与许可证全文。
+   *
+   * 这是最基础的义务（几乎每份许可都要求），但**五个许可明确不要求**：
+   * 0BSD、CC0-1.0、MIT-0、Unlicense、WTFPL——它们连署名都不要求。
+   * 另有 BSL-1.0 与 Zlib 只要求在源码形式里保留，二进制分发不必。
+   * 这个区分对使用者很重要，所以单独作为一条呈现，而不是笼统说"都要保留"。
+   */
+  let includeCopyright: DerivedFacts['includeCopyright'];
+  if (cal) {
+    includeCopyright = cal.derived.includeCopyright
+      ? 'required'
+      : cal.derived.includeCopyrightSourceOnly
+        ? 'source-only'
+        : 'not-required';
+  } else {
+    // 长尾条目只能读正文。只用"版权/声明 + 必须保留"同时出现的句式，
+    // 避免把"不得再分发"这类无关的 must 也算进来。
+    includeCopyright = INCLUDE_COPYRIGHT_MARKERS.some((re) => re.test(t)) ? 'required' : 'silent';
+  }
+
   return {
     family,
     familySource,
@@ -891,6 +944,7 @@ export function deriveFacts(
     sameLicenseWholeWork,
     sameLicensePerFile,
     networkTrigger,
+    includeCopyright,
     termsSource,
     inferred: true,
   };
