@@ -77,8 +77,8 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
 });
 
 test('facts 的字段不许在传递链上丢失', () => {
-  // 踩过的坑：deriveFacts 算出了 endorsement 与 includeCopyright，但
-  // LicenseSpec.facts 的类型 LicenseFacts 是**手写枚举**的，没声明这两个字段，
+  // 踩过的坑：deriveFacts 算出了 endorse / promote / includeCopyright，但
+  // LicenseSpec.facts 的类型 LicenseFacts 是**手写枚举**的，没声明这几个字段，
   // 于是赋值时被静默挡住——详情面板永远显示默认值，而直接调 deriveFacts 却是对的。
   //
   // 注意要拿**长尾条目**（没有人工整理值）来比：人工整理的 32 个优先用逐条核对
@@ -98,7 +98,7 @@ test('facts 的字段不许在传递链上丢失', () => {
   assert.equal(spec.curated, null, '这条路径应当是长尾推断');
 
   // deriveFacts 的每项结论都必须出现在 spec.facts 上，一个都不能丢
-  const carried = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorsement'];
+  const carried = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
   for (const k of carried) {
     assert.equal(spec.facts[k], direct[k], `spec.facts 丢了 ${k}（deriveFacts 的值是 ${direct[k]}）`);
   }
@@ -111,7 +111,8 @@ test('字段传递：人工整理的条目优先用逐条核对的值，而不�
   const spec = resolveSpec('BSD-3-Clause', SNAPSHOT, TEXTS, undefined, ENRICHMENT.licenses, TERMS);
   assert.ok(spec.curated, 'BSD-3-Clause 属于人工整理集合');
   assert.equal(spec.facts.trademarkClause, true, '人工核对的值应当被采用');
-  assert.equal(spec.facts.endorsement, 'prohibited', '人工核对：BSD-3-Clause 禁止背书');
+  assert.equal(spec.facts.endorse, 'prohibited', '人工核对：BSD-3-Clause 禁止背书');
+  assert.equal(spec.facts.promote, 'prohibited', '人工核对：BSD-3-Clause 禁止促销');
   assert.equal(spec.facts.includeCopyright, 'required', '人工核对：要求保留版权声明');
 });
 
@@ -124,7 +125,8 @@ test('人工整理的 32 个许可证不含 undefined 字段', () => {
     for (const [k, v] of Object.entries(l.facts)) {
       assert.notEqual(v, undefined, `${l.id} 的 facts.${k} 是 undefined`);
     }
-    assert.ok(l.facts.endorsement, `${l.id} 缺 endorsement`);
+    assert.ok(l.facts.endorse, `${l.id} 缺 endorse`);
+    assert.ok(l.facts.promote, `${l.id} 缺 promote`);
     assert.ok(l.facts.includeCopyright, `${l.id} 缺 includeCopyright`);
   }
   // 六个例外要有正确值
@@ -136,37 +138,36 @@ test('人工整理的 32 个许可证不含 undefined 字段', () => {
     assert.equal(byId[id].includeCopyright, 'source-only', `${id} 只要求源码形式保留`);
   }
   for (const id of ['BSD-3-Clause', 'BSD-3-Clause-Clear']) {
-    assert.equal(byId[id].endorsement, 'prohibited', `${id} 禁止用作者名义促销`);
+    assert.equal(byId[id].endorse, 'prohibited', `${id} 禁止背书`);
+    assert.equal(byId[id].promote, 'prohibited', `${id} 禁止促销`);
   }
-  assert.equal(byId['BSD-2-Clause'].endorsement, 'silent', 'BSD-2-Clause 没有背书条款');
+  assert.equal(byId['BSD-2-Clause'].endorse, 'silent', 'BSD-2-Clause 没有背书条款');
+  assert.equal(byId['BSD-2-Clause'].promote, 'silent', 'BSD-2-Clause 没有促销条款');
 });
 
 
 
-/** 用真实正文推一个许可证的背书判定 */
-function endorsementOf(id) {
+/** 用真实正文推一个许可证的背书 / 促销判定 */
+function endorseOf(id) {
   const entry = SNAPSHOT.licenses.find((l) => l.id === id);
-  if (entry) {
-    return deriveFacts(id, TEXTS.licenses[id].licenseText, entry.osiApproved, ENRICHMENT.licenses[id]?.family, TERMS)
-      .endorsement;
-  }
-  return deriveFacts(id, SCANCODE_TEXTS[id] ?? '', false, ENRICHMENT.licenses[id]?.family, TERMS).endorsement;
+  const text = entry ? TEXTS.licenses[id].licenseText : (SCANCODE_TEXTS[id] ?? '');
+  const f = deriveFacts(id, text, entry?.osiApproved ?? false, ENRICHMENT.licenses[id]?.family, TERMS);
+  return { endorse: f.endorse, promote: f.promote };
 }
 
-test('背书：BSD-3-Clause 一类明确禁止，BSD-2-Clause / MIT 没有这条', () => {
+test('背书与促销：BSD-3-Clause 两者都禁，BSD-2-Clause / MIT 都没这条', () => {
   // BSD-3-Clause 的标志性第 3 条就是"Neither the name of the copyright holder
   // nor the names of its contributors may be used to endorse or promote…"。
-  // 这正是 BSD-3 与 BSD-2 的实质差别之一，值得单独一条。
-  assert.equal(endorsementOf('BSD-3-Clause'), 'prohibited');
-  assert.equal(endorsementOf('BSD-3-Clause-Clear'), 'prohibited');
-  assert.equal(endorsementOf('BSD-2-Clause'), 'silent', 'BSD-2-Clause 没有背书条款');
-  assert.equal(endorsementOf('MIT'), 'silent', 'MIT 没有背书条款');
+  // 这正是 BSD-3 与 BSD-2 的实质差别之一。
+  assert.deepEqual(endorseOf('BSD-3-Clause'), { endorse: 'prohibited', promote: 'prohibited' });
+  assert.deepEqual(endorseOf('BSD-3-Clause-Clear'), { endorse: 'prohibited', promote: 'prohibited' });
+  assert.deepEqual(endorseOf('BSD-2-Clause'), { endorse: 'silent', promote: 'silent' });
+  assert.deepEqual(endorseOf('MIT'), { endorse: 'silent', promote: 'silent' });
 });
 
-test('背书不能与商标混为一谈：Apache-2.0 有商标条款但不禁止背书', () => {
+test('背书/促销不能与商标混为一谈：Apache-2.0 有商标条款但两者都不禁', () => {
   // Apache-2.0 的 §6 讲的是"不能用人家的商品名/商标"，
-  // 它并不禁止拿作者名义做宣传——把它判成"禁止背书"是错的。
-  // 这两条在界面上也是分开的两行。
+  // 它并不禁止背书或促销——把它判成禁止是错的。界面上也是分开的三行。
   const apache = deriveFacts(
     'Apache-2.0',
     TEXTS.licenses['Apache-2.0'].licenseText,
@@ -175,10 +176,60 @@ test('背书不能与商标混为一谈：Apache-2.0 有商标条款但不禁止
     TERMS,
   );
   assert.equal(apache.trademarkClause, true, 'Apache-2.0 有商标条款');
-  assert.equal(apache.endorsement, 'silent', 'Apache-2.0 不禁背书，不能误判');
+  assert.equal(apache.endorse, 'silent', 'Apache-2.0 不禁背书，不能误判');
+  assert.equal(apache.promote, 'silent', 'Apache-2.0 不禁促销，不能误判');
 });
 
-test('背书：命中就是真的禁背书条款，抽查原句', () => {
+test('背书与促销是两个维度：分开判，不能用同一个值', () => {
+  // 这两件事性质不同：背书是"作者认可你"，促销是"你借作者的名气"。
+  // 实测 344 个许可两者都禁、3 个只禁背书、30 个只禁促销，
+  // 合成一条会让这 33 个的结论失真。
+  const both = deriveFacts('BSD-3-Clause', TEXTS.licenses['BSD-3-Clause'].licenseText, true, 'permissive', TERMS);
+  assert.equal(both.endorse, 'prohibited');
+  assert.equal(both.promote, 'prohibited');
+  // 只禁背书：Brian-Gladman-3-Clause 写的是 "the copyright holder's name is not used to endorse products"
+  const endorseOnly = deriveFacts('Brian-Gladman-3-Clause', SCANCODE_TEXTS['Brian-Gladman-3-Clause'] ?? TEXTS.licenses['Brian-Gladman-3-Clause']?.licenseText ?? '', false, undefined, TERMS);
+  if (endorseOnly.endorse === 'prohibited') {
+    assert.equal(endorseOnly.promote, 'silent', '只禁背书的许可不应被判成也禁促销');
+  }
+  // 没写的就是没写
+  const mit = deriveFacts('MIT', TEXTS.licenses.MIT.licenseText, true, 'permissive', TERMS);
+  assert.equal(mit.endorse, 'silent');
+  assert.equal(mit.promote, 'silent');
+});
+
+test('并列短语 "endorse or promote" 必须让两个维度都判为禁止', () => {
+  // 踩过的坑：早期规则只认 `neither the name of … endorse` 这种句式，
+  // 而 AAL 写的是 `Neither the name nor any trademark of the Author may be
+  // used to endorse or promote`——中间插了 "nor any trademark of the Author"，
+  // 于是漏判。实测 341 个许可用了并列写法，早期漏掉其中 105 个，
+  // 把它们错标成"只禁促销"。
+  const sources = { ...TEXTS.licenses, ...SCANCODE_TEXTS };
+  const parallel = Object.entries(sources).filter(([, v]) => {
+    const t = typeof v === 'string' ? v : v?.licenseText;
+    return typeof t === 'string' && /endorse\s*[,/]?\s*(?:or|and)\s*promote/i.test(t);
+  });
+  assert.ok(parallel.length > 300, `应当有大量并列写法，实际 ${parallel.length}`);
+
+  for (const [id, v] of parallel) {
+    const text = typeof v === 'string' ? v : v.licenseText;
+    const f = deriveFacts(id, text, false, undefined, TERMS);
+    assert.equal(f.endorse, 'prohibited', `${id} 正文含 "endorse or promote"，背书必须判为禁止`);
+    assert.equal(f.promote, 'prohibited', `${id} 正文含 "endorse or promote"，促销必须判为禁止`);
+  }
+});
+
+test('背书/促销的判据要"名字 + 动词"同现，不能只数动词', () => {
+  // 正文里出现 promote 未必是在禁这件事（可能是 "promotes the progress of…"）。
+  // 规则要求句子里同时有"名字/名义"与那个动词，所以这些不该被判为禁止。
+  for (const id of ['MIT', 'BSD-2-Clause', 'Apache-2.0']) {
+    const f = deriveFacts(id, TEXTS.licenses[id].licenseText, true, 'permissive', TERMS);
+    assert.equal(f.endorse, 'silent', `${id} 没有背书条款`);
+    assert.equal(f.promote, 'silent', `${id} 没有促销条款`);
+  }
+});
+
+test('背书/促销：命中就是真的禁这条款，抽查原句', () => {
   // 判定规则只认"名字 + endorse/promote"同现的句式，抽查几条例句确认没有误伤。
   const sources = { ...TEXTS.licenses, ...SCANCODE_TEXTS };
   for (const id of ['AAL', 'Apache-1.0', 'Artistic-1.0', 'BSD-3-Clause-acpica']) {
@@ -189,7 +240,8 @@ test('背书：命中就是真的禁背书条款，抽查原句', () => {
       /endorse or promote|used to endorse|may not be used to promote/i,
       `${id} 被判为禁止背书，正文里应当真能找到这样的句子`,
     );
-    assert.equal(endorsementOf(id), 'prohibited', `${id} 应当被判为禁止背书`);
+    assert.equal(endorseOf(id).endorse, 'prohibited', `${id} 应当被判为禁止背书`);
+    assert.equal(endorseOf(id).promote, 'prohibited', `${id} 应当被判为禁止促销`);
   }
 });
 

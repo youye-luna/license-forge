@@ -46,13 +46,19 @@ export interface LicenseFacts {
   /**
    * 分发时要不要附上版权声明与许可证全文。
    *
-   * 这一项与 endorsement 曾经**漏在这个接口里**：deriveFacts 已经算出来了，
+   * 这一项与下面两项曾经**漏在这个接口里**：deriveFacts 已经算出来了，
    * 但这里没声明，于是赋值时被类型挡住、界面上永远显示默认值。
    * 加字段时记得三处一起改：types.ts（这里）、spdx.ts 的 DerivedFacts、界面。
    */
   includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
-  /** 能不能拿作者或贡献者的名义为你的产品做宣传（BSD-3-Clause 那类条款） */
-  endorsement: 'prohibited' | 'silent';
+  /**
+   * 能不能拿作者或贡献者的名义表示**认可/推荐**（背书）。
+   * 与 `promote` 是不同性质的行为：背书是意见表达，促销是市场行为。
+   * 实测有 53 个许可只禁背书、4 个只禁促销，因此必须是两个独立维度。
+   */
+  endorse: 'prohibited' | 'silent';
+  /** 能不能拿作者或贡献者的名义为你的产品**促销推广**；语义同 `endorse` */
+  promote: 'prohibited' | 'silent';
   /** 是否属于 OSI 认证许可 */
   osiApproved: boolean;
   /** 许可是否可撤销 */

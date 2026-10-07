@@ -38,10 +38,11 @@ const P = (
   sameLicensePerFile: false,
   networkTrigger: false,
   // 默认值按"绝大多数许可"来设，个别例外的在条目里覆盖。
-  // 人工整理的这 32 个逐条核对过：只有 BSD-3-Clause 系列禁背书，
+  // 人工整理的这 32 个逐条核对过：只有 BSD-3-Clause 系列禁止背书与促销，
   // 只有 0BSD / CC0 / MIT-0 / Unlicense / WTFPL 不要求保留版权声明。
   includeCopyright: 'required',
-  endorsement: 'silent',
+  endorse: 'silent',
+  promote: 'silent',
   osiApproved: true,
   irrevocable: true,
   ...overrides,
@@ -175,9 +176,9 @@ export const LICENSES: LicenseEntry[] = [
     ...permissiveDefaults,
     requiresNotice: false,
     recommendedNotices: [],
-  facts: P('silent', { trademarkClause: true, endorsement: 'prohibited' }),
+  facts: P('silent', { trademarkClause: true, endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
-    tagline: { zh: 'BSD-2 + 禁止用你的名字为衍生品背书。', en: 'BSD-2 plus a ban on using your name to endorse derivatives.' },
+    tagline: { zh: 'BSD-2 + 禁止用你的名字为衍生品背书或促销。', en: 'BSD-2 plus a ban on using your name to endorse or promote derivatives.' },
     gains: { zh: '在宽松许可里额外保护了你的声誉：别人不能暗示你的项目为其产品背书。', en: 'Extra reputation protection: nobody may imply your project endorses their product.' },
     tradeoffs: { zh: '仍不涉及专利；多一条附加条款意味着与个别许可的兼容性判断更复杂。', en: 'Still silent on patents, and the extra clause complicates compatibility with some licenses.' },
     misuses: { zh: '以为 BSD-3 授予了专利权——它没有，那需要 Apache-2.0 或 BSD-3-Clause-Clear 的明确表态。', en: 'Assuming BSD-3 grants patents. It does not; that requires Apache-2.0 or BSD-3-Clause-Clear.' },
@@ -191,7 +192,7 @@ export const LICENSES: LicenseEntry[] = [
     ...permissiveDefaults,
     requiresNotice: false,
     recommendedNotices: [],
-  facts: P('none', { trademarkClause: true, endorsement: 'prohibited' }),
+  facts: P('none', { trademarkClause: true, endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
     tagline: { zh: 'BSD-3 并**明确声明不授予任何专利许可**。', en: 'BSD-3 that explicitly grants no patent rights.' },
     gains: { zh: '把"没有专利授权"从默认的模糊状态变成白纸黑字，争议最小；Codeberg 官方指南把它列为"想保留专利诉讼权利"时的推荐选择。', en: 'Turns an ambiguous silence into an explicit statement. Codeberg’s official guide recommends it when you want to keep your patent options open.' },

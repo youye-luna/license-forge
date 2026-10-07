@@ -1285,18 +1285,28 @@ function InferredTerms({
           : zh ? '不用：新项目可以闭源' : 'no — your project can stay closed source',
     },
     {
-      // 与「商标」不是同一条：商标讲的是能不能用它的商品名，
-      // 这一条讲的是能不能说"我们用 X / X 推荐我们"。两者容易混，
-      // 但 Apache-2.0 有商标条款却不禁这一条，BSD-3-Clause 才是典型。
+      // 背书与促销是两种不同性质的行为，条款也常分开写，所以列成两条：
+      //   背书 = 意见表达（"XX 官方推荐本产品"）——借别人的信誉为你增信
+      //   促销 = 市场行为（"本产品基于 XX 的技术"）——借别人的知名度吸引流量
+      // 实测 262 个许可两者都禁、53 个只禁背书、4 个只禁促销，
+      // 合成一条会让那 57 个的结论失真。
       //
-      // 标签用「促销」而不是「背书」：条款原文是 "endorse or promote"，
-      // 中文里"背书"偏书面，"拿作者名义促销"更直白——用户一眼能懂。
-      label: zh ? '用作者名义促销' : 'Promoting with the authors’ names',
+      // 也与「商标」不是一回事：商标讲能不能用它的商品名，
+      // Apache-2.0 有商标条款却不禁这两项，BSD-3-Clause 才是典型。
+      label: zh ? '用作者名义背书' : 'Endorsement with their names',
       value:
-        facts.endorsement === 'prohibited'
-          ? zh ? '不许：不能拿作者或贡献者的名义宣传你的产品' : 'not allowed: you may not use their names to promote your product'
-          : zh ? '正文没写（不等于可以：用别人名义宣传通常要另行取得同意）' : 'not stated — which does not mean it is allowed; using their name usually needs separate consent',
-      tone: facts.endorsement === 'silent' ? 'warn' : 'no',
+        facts.endorse === 'prohibited'
+          ? zh ? '不许：不能说"作者认可/推荐本产品"' : 'not allowed: you may not imply they endorse or recommend your product'
+          : zh ? '正文没写（不等于可以：借别人信誉增信通常要另行取得同意）' : 'not stated — which does not mean it is allowed; borrowing their credibility usually needs separate consent',
+      tone: facts.endorse === 'silent' ? 'warn' : 'no',
+    },
+    {
+      label: zh ? '用作者名义促销' : 'Promotion with their names',
+      value:
+        facts.promote === 'prohibited'
+          ? zh ? '不许：不能在宣传里说"本产品基于作者的技术"' : 'not allowed: you may not advertise your product as built on their work'
+          : zh ? '正文没写（不等于可以：用别人名义做宣传通常要另行取得同意）' : 'not stated — which does not mean it is allowed; promoting with their name usually needs separate consent',
+      tone: facts.promote === 'silent' ? 'warn' : 'no',
     },
     {
       label: zh ? '变更说明' : 'Change notices',

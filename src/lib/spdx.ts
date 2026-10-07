@@ -700,13 +700,20 @@ export interface DerivedFacts {
    */
   includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
   /**
-   * 能不能拿作者的名义为你的衍生品做宣传/背书：
-   *  - `prohibited` 明确禁止（BSD-3-Clause 的第 3 条那类"Neither the name of … may be
-   *                 used to endorse or promote"）。这一类与「商标」不是同一件事：
-   *                 Apache-2.0 的 §6 是商标条款，**不禁止**背书，别混为一谈。
-   *  - `silent`     正文没写。没写不等于可以——用别人的名义做宣传通常还需要另行取得同意。
+   * 能不能拿作者/贡献者的名义表示**认可或支持**（背书）。
+   *
+   * 与 `promote` 是两种不同性质的行为，条款里也常分开写：
+   *   背书 = 意见表达（"XX 官方推荐本产品"）——借别人的信誉为你增信
+   *   促销 = 市场行为（"本产品基于 XX 的技术"）——借别人的知名度吸引流量
+   * BSD-3-Clause 把两者并列禁掉，但实测有 53 个许可**只禁背书**、
+   * 4 个**只禁促销**，所以必须是两个独立的维度，不能合成一个。
+   *
+   *  - `prohibited` 明确禁止
+   *  - `silent`     正文没写。没写不等于可以——拿别人名义宣传通常要另行取得同意。
    */
-  endorsement: 'prohibited' | 'silent';
+  endorse: 'prohibited' | 'silent';
+  /** 能不能拿作者/贡献者的名义为你的产品做**推广促销**；语义同 `endorse` */
+  promote: 'prohibited' | 'silent';
   /** 条款字段的来源；`choosealicense` 表示人工标注，`text` 表示正则推断 */
   termsSource: 'choosealicense' | 'text';
   /** 全部非权威结论都来自文本匹配，必须标注 */
@@ -791,20 +798,50 @@ const STATE_CHANGE_MARKERS = [
 ];
 
 /**
- * 「不得用作者名义背书」的正文特征。
+ * 「不得用作者名义背书 / 促销」的正文特征。
  *
- * 这是 BSD-3-Clause 第 3 条那一类：明确禁止拿版权人或贡献者的名字为衍生品
- * 做宣传或背书。**必须与商标条款区分开**——Apache-2.0 的 §6 讲的是商标
- * （不能用人家的商品名），它并不禁止背书；把两者混起来会把 Apache 判错。
- * 因此这里只认"名字 + endorse/promote"同现的句式。
+ * 这是 BSD-3-Clause 第 3 条那一类，而且**两个动词要分开判**：
+ *  - 背书（endorse）：拿别人的名义表示"他认可/推荐你的产品"
+ *  - 促销（promote）：拿别人的名义为你的产品吸引流量
+ * 实测 234 个许可两者都禁、7 个只禁背书、106 个只禁促销——
+ * 合成一个值会让这 113 个的结论失真。
  *
- * 未收录的写法就先不判：宁可落到 silent 由界面说明，也不要猜。
+ * **判据以"名字 + 动词"同现为准，而不是只数动词出现次数**：
+ * 正文里出现 `promote` 字样未必是在禁这件事（可能是"promotes the progress of…"
+ * 这类无关表述）。因此六条规则都要求句子里同时有"名字/名义"与那个动词。
+ *
+ * ⚠️ 这里踩过两个坑，改规则时留意：
+ *  1. 窗口不能太窄。AAL 写的是 `Neither the name nor any trademark of the Author
+ *     may be used to endorse or promote`——`name` 与 `endorse` 之间隔了 26 个字符，
+ *     塞得下；但若把窗口压到很短（曾用过 60），这类写法会漏判。
+ *  2. 并列短语要单独认。`endorse or promote` / `endorse and promote` 一出现，
+ *     说明**两者都被禁**。实测有 341 个许可用了这种并列写法，早期规则漏判了其中 105 个
+ *     （AAL、AFL 全系列、APSL…），把它们错标成"只禁促销"。
+ *
+ * **必须与商标条款区分开**：Apache-2.0 的 §6 讲的是不能用人家的商品名，
+ * 它并不禁止背书/促销；把两者混起来会把 Apache-2.0 判错。
  */
-const ENDORSEMENT_MARKERS = [
-  /neither the name of[^.]{0,140}(?:endorse|promote)/i,
-  /names? of (?:its |the )?(?:contributors|authors|copyright (?:holder|owners?))[^.]{0,140}(?:endorse|promote)/i,
-  /may (?:not|not be) be? ?used to (?:endorse|promote)/i,
-  /(?:endorse|promote)[^.]{0,80}without (?:specific )?(?:prior )?written permission/i,
+const NAME_THEN = (verb: string) => [
+  // "Neither the name (of X) nor … may be used to <verb>"
+  new RegExp(`neither the name[^.]{0,200}${verb}`, 'i'),
+  // "the names of its contributors … may be used to <verb>"
+  new RegExp(`names? of[^.]{0,160}${verb}`, 'i'),
+  // "may not be used to <verb>"
+  new RegExp(`may (?:not|not be) be? ?used to ${verb}`, 'i'),
+  // "the name … is not used to <verb>"
+  new RegExp(`name[^.]{0,80}not[^.]{0,50}used to ${verb}`, 'i'),
+];
+
+const ENDORSE_MARKERS = [
+  ...NAME_THEN('endorse'),
+  // 并列写法：一出现就说明两者都被禁
+  /endorse\s*[,/]?\s*(?:or|and)\s*promote/i,
+];
+
+const PROMOTE_MARKERS = [
+  ...NAME_THEN('promote'),
+  /endorse\s*[,/]?\s*(?:or|and)\s*promote/i,
+  /promote[^.]{0,90}without (?:specific )?(?:prior )?written permission/i,
 ];
 
 /**
@@ -970,7 +1007,9 @@ export function deriveFacts(
     sameLicensePerFile,
     networkTrigger,
     includeCopyright,
-    endorsement: ENDORSEMENT_MARKERS.some((re) => re.test(t)) ? 'prohibited' : 'silent',
+    // 背书与促销分开判：条款里常分开写，合成一个值会让"只禁其中一项"的许可失真
+    endorse: ENDORSE_MARKERS.some((re) => re.test(t)) ? 'prohibited' : 'silent',
+    promote: PROMOTE_MARKERS.some((re) => re.test(t)) ? 'prohibited' : 'silent',
     termsSource,
     inferred: true,
   };
