@@ -1285,8 +1285,19 @@ function InferredTerms({
           : zh ? '不用：新项目可以闭源' : 'no — your project can stay closed source',
     },
     {
-      label: zh ? '改了文件要不要写明' : 'Must you note that you changed files',
-      value: facts.stateChanges ? (zh ? '要写明' : 'yes') : zh ? '没有要求' : 'not required',
+      // 与「商标」不是同一条：商标讲的是能不能用它的商品名，
+      // 背书讲的是能不能说"我们用了 X / X 推荐我们"。Apache-2.0 有商标条款
+      // 但不禁背书，BSD-3-Clause 才是典型的不许拿作者名义做宣传。
+      label: zh ? '用作者名义背书' : 'Endorsement by the authors',
+      value:
+        facts.endorsement === 'prohibited'
+          ? zh ? '不许：不能拿作者或贡献者的名义为你的产品做宣传' : 'not allowed: you may not use their names to promote your product'
+          : zh ? '正文没写（不等于可以：用别人名义宣传通常要另行取得同意）' : 'not stated — which does not mean it is allowed; using their name usually needs separate consent',
+      tone: facts.endorsement === 'silent' ? 'warn' : 'no',
+    },
+    {
+      label: zh ? '变更说明' : 'Change notices',
+      value: facts.stateChanges ? (zh ? '要写明改了什么' : 'yes') : zh ? '没有要求' : 'not required',
       tone: facts.stateChanges ? 'yes' : undefined,
     },
     {

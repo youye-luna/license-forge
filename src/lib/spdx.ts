@@ -699,6 +699,14 @@ export interface DerivedFacts {
    *  - `silent`       正文里没找到相关要求（长尾条目，只能读正文）
    */
   includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
+  /**
+   * 能不能拿作者的名义为你的衍生品做宣传/背书：
+   *  - `prohibited` 明确禁止（BSD-3-Clause 的第 3 条那类"Neither the name of … may be
+   *                 used to endorse or promote"）。这一类与「商标」不是同一件事：
+   *                 Apache-2.0 的 §6 是商标条款，**不禁止**背书，别混为一谈。
+   *  - `silent`     正文没写。没写不等于可以——用别人的名义做宣传通常还需要另行取得同意。
+   */
+  endorsement: 'prohibited' | 'silent';
   /** 条款字段的来源；`choosealicense` 表示人工标注，`text` 表示正则推断 */
   termsSource: 'choosealicense' | 'text';
   /** 全部非权威结论都来自文本匹配，必须标注 */
@@ -780,6 +788,23 @@ const STATE_CHANGE_MARKERS = [
   /mark.{0,30}(?:as |the )?(?:modified|changed)/i,
   /must inform.{0,120}modif/i,
   /notify.{0,60}(?:that|of).{0,40}modif/i,
+];
+
+/**
+ * 「不得用作者名义背书」的正文特征。
+ *
+ * 这是 BSD-3-Clause 第 3 条那一类：明确禁止拿版权人或贡献者的名字为衍生品
+ * 做宣传或背书。**必须与商标条款区分开**——Apache-2.0 的 §6 讲的是商标
+ * （不能用人家的商品名），它并不禁止背书；把两者混起来会把 Apache 判错。
+ * 因此这里只认"名字 + endorse/promote"同现的句式。
+ *
+ * 未收录的写法就先不判：宁可落到 silent 由界面说明，也不要猜。
+ */
+const ENDORSEMENT_MARKERS = [
+  /neither the name of[^.]{0,140}(?:endorse|promote)/i,
+  /names? of (?:its |the )?(?:contributors|authors|copyright (?:holder|owners?))[^.]{0,140}(?:endorse|promote)/i,
+  /may (?:not|not be) be? ?used to (?:endorse|promote)/i,
+  /(?:endorse|promote)[^.]{0,80}without (?:specific )?(?:prior )?written permission/i,
 ];
 
 /**
@@ -945,6 +970,7 @@ export function deriveFacts(
     sameLicensePerFile,
     networkTrigger,
     includeCopyright,
+    endorsement: ENDORSEMENT_MARKERS.some((re) => re.test(t)) ? 'prohibited' : 'silent',
     termsSource,
     inferred: true,
   };

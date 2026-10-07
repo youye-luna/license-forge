@@ -76,8 +76,60 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
 });
 
 /* ------------------------------------------------------------------ *
- * 商标：默认就是"不授权"，不是"没提到"
+ * 用作者名义背书
  * ------------------------------------------------------------------ */
+
+/** 用真实正文推一个许可证的背书判定 */
+function endorsementOf(id) {
+  const entry = SNAPSHOT.licenses.find((l) => l.id === id);
+  if (entry) {
+    return deriveFacts(id, TEXTS.licenses[id].licenseText, entry.osiApproved, ENRICHMENT.licenses[id]?.family, TERMS)
+      .endorsement;
+  }
+  return deriveFacts(id, SCANCODE_TEXTS[id] ?? '', false, ENRICHMENT.licenses[id]?.family, TERMS).endorsement;
+}
+
+test('背书：BSD-3-Clause 一类明确禁止，BSD-2-Clause / MIT 没有这条', () => {
+  // BSD-3-Clause 的标志性第 3 条就是"Neither the name of the copyright holder
+  // nor the names of its contributors may be used to endorse or promote…"。
+  // 这正是 BSD-3 与 BSD-2 的实质差别之一，值得单独一条。
+  assert.equal(endorsementOf('BSD-3-Clause'), 'prohibited');
+  assert.equal(endorsementOf('BSD-3-Clause-Clear'), 'prohibited');
+  assert.equal(endorsementOf('BSD-2-Clause'), 'silent', 'BSD-2-Clause 没有背书条款');
+  assert.equal(endorsementOf('MIT'), 'silent', 'MIT 没有背书条款');
+});
+
+test('背书不能与商标混为一谈：Apache-2.0 有商标条款但不禁止背书', () => {
+  // Apache-2.0 的 §6 讲的是"不能用人家的商品名/商标"，
+  // 它并不禁止拿作者名义做宣传——把它判成"禁止背书"是错的。
+  // 这两条在界面上也是分开的两行。
+  const apache = deriveFacts(
+    'Apache-2.0',
+    TEXTS.licenses['Apache-2.0'].licenseText,
+    true,
+    ENRICHMENT.licenses['Apache-2.0']?.family,
+    TERMS,
+  );
+  assert.equal(apache.trademarkClause, true, 'Apache-2.0 有商标条款');
+  assert.equal(apache.endorsement, 'silent', 'Apache-2.0 不禁背书，不能误判');
+});
+
+test('背书：命中就是真的禁背书条款，抽查原句', () => {
+  // 判定规则只认"名字 + endorse/promote"同现的句式，抽查几条例句确认没有误伤。
+  const sources = { ...TEXTS.licenses, ...SCANCODE_TEXTS };
+  for (const id of ['AAL', 'Apache-1.0', 'Artistic-1.0', 'BSD-3-Clause-acpica']) {
+    const text = sources[id]?.licenseText ?? SCANCODE_TEXTS[id] ?? '';
+    assert.ok(text, `${id} 应当有正文`);
+    assert.match(
+      text,
+      /endorse or promote|used to endorse|may not be used to promote/i,
+      `${id} 被判为禁止背书，正文里应当真能找到这样的句子`,
+    );
+    assert.equal(endorsementOf(id), 'prohibited', `${id} 应当被判为禁止背书`);
+  }
+});
+
+
 
 test('商标一律不授权：没写明的也照样不授权，不能写成"没提到"', () => {
   // ChooseALicense 对 trademark-use 的说明明确写着：
