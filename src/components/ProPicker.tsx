@@ -81,17 +81,35 @@ function plainLength(n: number, zh: boolean): string {
   return n >= 10000 ? `约 ${(n / 10000).toFixed(1)} 万字` : `${n.toLocaleString()} 字`;
 }
 
-type Filter = 'featured' | 'osi' | 'copyleft' | 'public-domain' | 'china' | 'deprecated' | 'all';
+type Filter =
+  // 按许可类型分（宽松型 / 公共领域型 / 著作权型 …）——用户最常按这个找
+  | 'permissive'
+  | 'public-domain-family'
+  | 'weak-copyleft'
+  | 'strong-copyleft'
+  | 'network-copyleft'
+  | 'content'
+  | 'proprietary'
+  | 'featured'
+  | 'osi'
+  | 'china'
+  | 'deprecated'
+  | 'all';
 
-const FILTERS: { id: Filter; zh: string; en: string; test?: (l: UnifiedEntry) => boolean }[] = [
+const FILTERS: { id: Filter; zh: string; en: string; family?: string; test?: (l: UnifiedEntry, family: string) => boolean }[] = [
+  // ── 按许可类型分类（文案与详情面板的「许可类型」共用 FAMILY_LABEL，两处必定一致）──
   { id: 'featured', zh: '最常用', en: 'Most used' },
+  { id: 'permissive', zh: FAMILY_LABEL.permissive.zh, en: FAMILY_LABEL.permissive.en, family: 'permissive' },
+  { id: 'public-domain-family', zh: FAMILY_LABEL['public-domain'].zh, en: FAMILY_LABEL['public-domain'].en, family: 'public-domain' },
+  { id: 'weak-copyleft', zh: FAMILY_LABEL['weak-copyleft'].zh, en: FAMILY_LABEL['weak-copyleft'].en, family: 'weak-copyleft' },
+  { id: 'strong-copyleft', zh: FAMILY_LABEL['strong-copyleft'].zh, en: FAMILY_LABEL['strong-copyleft'].en, family: 'strong-copyleft' },
+  { id: 'network-copyleft', zh: FAMILY_LABEL['network-copyleft'].zh, en: FAMILY_LABEL['network-copyleft'].en, family: 'network-copyleft' },
+  { id: 'content', zh: FAMILY_LABEL.content.zh, en: FAMILY_LABEL.content.en, family: 'content' },
+  { id: 'proprietary', zh: FAMILY_LABEL.proprietary.zh, en: FAMILY_LABEL.proprietary.en, family: 'proprietary' },
+  // ── 其它分组 ──
   { id: 'osi', zh: 'OSI 认证过', en: 'OSI approved', test: (l) => l.osiApproved && !l.deprecated },
-  { id: 'copyleft', zh: 'GPL 系列（要求开源）', en: 'GPL family (must stay open)', test: (l) => /^(A|L)?GPL-/.test(l.id) },
-  { id: 'public-domain', zh: '公共领域（几乎无限制）', en: 'Public domain', test: (l) => /^(CC0|Unlicense|WTFPL|0BSD|CC-PDDC)/.test(l.id) },
-  // 原先这里还有"给文档和图片用的""给硬件设计用的"两个筛选——它们按名字前缀猜，
-  // 已被下面更准的「用来授权」筛选取代（那一项用的是与详情面板同一套判定）。
-  { id: 'china', zh: '中国主导的', en: 'China-led', test: (l) => /^Mulan/.test(l.id) },
   { id: 'deprecated', zh: '旧名字（已废弃）', en: 'Deprecated names', test: (l) => l.deprecated },
+  { id: 'china', zh: '中国主导的', en: 'China-led', test: (l) => /^Mulan/.test(l.id) },
   { id: 'all', zh: '全部', en: 'All' },
 ];
 
@@ -213,12 +231,21 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
       matchesSubject(e, subject, familyFromEntry(e, enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')])),
     );
     if (query.trim()) return searchUnified(bySubject, query, 400);
-    const predicate = FILTERS.find((f) => f.id === filter)?.test;
+    const active = FILTERS.find((f) => f.id === filter);
     if (filter === 'featured') {
       return FEATURED.map((id) => bySubject.find((e) => e.id === id)).filter((e): e is UnifiedEntry => Boolean(e));
     }
-    if (!predicate) return bySubject.slice(0, 400);
-    return bySubject.filter(predicate).slice(0, 400);
+    // 按许可类型分类：判定与详情面板同一套，所以筛出来的与点开看到的一致
+    if (active?.family) {
+      return bySubject
+        .filter(
+          (e) =>
+            familyFromEntry(e, enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')]) === active.family,
+        )
+        .slice(0, 400);
+    }
+    if (!active?.test) return bySubject.slice(0, 400);
+    return bySubject.filter((e) => active.test!(e, '')).slice(0, 400);
   }, [unified, query, filter, source, subject, enrichment]);
 
 
@@ -370,12 +397,12 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             </select>
           </FilterRow>
 
-          <FilterRow label={zh ? '范围' : 'Scope'}>
+          <FilterRow label={zh ? '分类' : 'Category'}>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as Filter)}
               className={selectClass(filter !== 'featured')}
-              aria-label={zh ? '按集合筛选' : 'Filter by set'}
+              aria-label={zh ? '按许可类型分类' : 'Filter by license category'}
             >
               {FILTERS.map((f) => (
                 <option key={f.id} value={f.id}>

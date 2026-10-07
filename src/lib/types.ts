@@ -12,7 +12,15 @@ export type Family =
   | 'strong-copyleft'
   | 'network-copyleft'
   | 'public-domain'
-  | 'content';
+  | 'content'
+  /**
+   * 非开源条款：商业许可、非商业许可、只开放源码不给修改权的条款，
+   * 以及各家厂商自定的条款。ScanCode 收录了大量这一类（943 个），
+   * 它们**只能用来查证**，不能填进配置文件的 license 字段。
+   */
+  | 'proprietary'
+  /** 正文太短或缺少可判定的措辞，无法归类（74 个） */
+  | 'unknown';
 
 /** 某个许可证需要的"填表变量"类别 */
 export type FillKind =

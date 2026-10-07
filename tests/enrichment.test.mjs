@@ -5,8 +5,10 @@ import { readFileSync } from 'node:fs';
 import {
   compatibilityOf,
   deriveFacts,
+  familyFromEntry,
   isNonOpenCategory,
   knownIncompatibilities,
+  loadUnifiedCatalog,
   NON_OPEN_CATEGORIES,
 } from '../src/lib/spdx.ts';
 import { resolveSpec } from '../src/lib/spec.ts';
@@ -19,6 +21,9 @@ const SNAPSHOT = (await import('../public/data/license-index.json', { with: { ty
 const TEXTS = (await import('../public/data/license-texts.json', { with: { type: 'json' } })).default;
 const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
 const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } })).default;
+const SCANCODE_INDEX = (await import('../public/data/scancode-index.json', { with: { type: 'json' } })).default;
+/** 全量目录：SPDX 740 + ScanCode 独有，合计 2476 */
+const UNIFIED = loadUnifiedCatalog(SNAPSHOT, SCANCODE_INDEX);
 
 /* ------------------------------------------------------------------ *
  * 保留版权声明与许可证（includeCopyright）
@@ -75,6 +80,60 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
     assert.equal(includeCopyrightOf(id), 'silent', `${id} 的正文没有相关要求，应标为没写`);
   }
 });
+
+test('许可类型：人工核对过的 32 个一律以核对结果为准', () => {
+  // familyFromEntry 读的是 enrichment 里的**上游** family，而人工核对的值
+  // 并没有写进那份数据。所以必须让核对结果在这里显式生效，否则列表筛选用上游值、
+  // 详情面板用核对值，两边对不上（AGPL 就出过这个问题：列表归"整个项目"，
+  // 详情显示"含网络使用"）。
+  const U = UNIFIED;
+  let checked = 0;
+  for (const l of LICENSES) {
+    const e = U.find((x) => x.id === l.id || x.scancodeKey === l.id);
+    if (!e) continue;
+    const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? '');
+    assert.equal(
+      familyFromEntry(e, ENRICHMENT.licenses[key]),
+      l.family,
+      `${l.id} 的判定应当与人工核对值一致`,
+    );
+    checked++;
+  }
+  assert.equal(checked, LICENSES.length, '人工整理的每一条都应当能在目录里找到');
+});
+
+test('许可类型：网络著佐权只认 AGPL，别把 GPL 与 EUPL 也算进来', () => {
+  // 上游把 AGPL 与 GPL 同归 Copyleft，enrichment 里 AGPL 的 family 也写成
+  // strong-copyleft——但 AGPL §13「Remote Network Interaction」确实多一条义务，
+  // 必须补判（否则列表与详情对不上）。
+  // 反过来两个坑：
+  //  · 正则写宽成 (A|L)?GPL 会把 GPL-3.0 也算进来，而 GPL 没有网络条款；
+  //  · EUPL 常被误认为有网络条款，实际正文里没有（已逐句核对）。
+  assert.equal(familyFromEntry({ source: 'spdx', id: 'AGPL-3.0-only' }), 'network-copyleft');
+  assert.notEqual(familyFromEntry({ source: 'spdx', id: 'GPL-3.0-only' }), 'network-copyleft');
+  assert.notEqual(familyFromEntry({ source: 'spdx', id: 'LGPL-3.0-only' }), 'network-copyleft');
+  // EUPL 在人工整理集合里，取核对值 strong-copyleft
+  assert.notEqual(familyFromEntry({ source: 'spdx', id: 'EUPL-1.2' }), 'network-copyleft');
+});
+
+test('许可类型：八个分类都要有内容，不能出现空筛选', () => {
+  // 空分类意味着用户选中后看到一片空白。内容型与网络型都曾经是 0：
+  // 上游把 CC-BY 归进 permissive、把 AGPL 归进 strong-copyleft。
+  const U = UNIFIED;
+  const tally = {};
+  for (const e of U) {
+    const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? '');
+    const f = familyFromEntry(e, ENRICHMENT.licenses[key]) ?? 'unknown';
+    tally[f] = (tally[f] ?? 0) + 1;
+  }
+  for (const f of ['permissive', 'public-domain', 'weak-copyleft', 'strong-copyleft', 'network-copyleft', 'content', 'proprietary', 'unknown']) {
+    assert.ok(tally[f] > 0, `分类 ${f} 是空的（0 个），选中后会看到空白列表`);
+  }
+  // 合计要等于全量，不能有条目落到分类之外
+  const sum = Object.values(tally).reduce((a, b) => a + b, 0);
+  assert.equal(sum, U.length, '每个条目都应当落进某个分类');
+});
+
 
 test('facts 的字段不许在传递链上丢失', () => {
   // 踩过的坑：deriveFacts 算出了 endorse / promote / includeCopyright，但

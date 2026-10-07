@@ -664,11 +664,13 @@ export const LICENSE_BY_ID: Record<string, LicenseEntry> = Object.fromEntries(
 /** 家族显示名（双语） */
 export const FAMILY_LABEL: Record<Family, { zh: string; en: string }> = {
   permissive: { zh: '宽松型', en: 'Permissive' },
-  'weak-copyleft': { zh: '弱著佐权', en: 'Weak copyleft' },
-  'strong-copyleft': { zh: '强著佐权', en: 'Strong copyleft' },
-  'network-copyleft': { zh: '网络著佐权', en: 'Network copyleft' },
-  'public-domain': { zh: '公共领域', en: 'Public domain' },
-  content: { zh: '内容/数据', en: 'Content & data' },
+  'weak-copyleft': { zh: '著作权型（文件级）', en: 'Copyright-type (file-level)' },
+  'strong-copyleft': { zh: '著作权型（整个项目）', en: 'Copyright-type (whole project)' },
+  'network-copyleft': { zh: '著作权型（含网络使用）', en: 'Copyright-type (network use)' },
+  'public-domain': { zh: '公共领域型', en: 'Public domain' },
+  content: { zh: '内容与数据型', en: 'Content & data' },
+  proprietary: { zh: '非开源型（只能查证）', en: 'Non-open (reference only)' },
+  unknown: { zh: '未能判定', en: 'Undetermined' },
 };
 
 /** 已废弃标识符 → 现行标识符（用于在 UI 上主动提醒，这是竞品普遍漏掉的一环） */

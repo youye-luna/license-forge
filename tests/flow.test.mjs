@@ -60,6 +60,76 @@ test('关于页源码确实引用 PROJECT 常量，而不是各写一份硬编�
  * 左栏筛选 UI 的一致性
  * ------------------------------------------------------------------ */
 
+test('关于页解释了详情面板里的每一条关键规定', () => {
+  // 详情面板里那 9 条是选许可证时真正要看的东西，但名字很干。
+  // 关于页逐条解释"问的是什么 / 答案有哪几种 / 该怎么用"。
+  // 这条测试守住两边的条目不会脱节——加了新维度却忘了写解释，会在这里失败。
+  const about = readFileSync(new URL('../src/components/Generator.tsx', import.meta.url), 'utf8');
+  const picker = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+
+  // 从详情面板的 rows 里取出全部标签
+  const rowsStart = picker.indexOf('const rows: { label: string');
+  const rowsEnd = picker.indexOf('  return (', rowsStart);
+  const rowsBody = picker.slice(rowsStart, rowsEnd);
+  const labels = [...rowsBody.matchAll(/label: zh \? '([^']+)'/g)].map((m) => m[1]);
+  assert.ok(labels.length >= 9, `详情面板应当有至少 9 条关键规定，实际 ${labels.length}`);
+
+  // 关于页的 k 字段必须覆盖全部标签（中英两份各一套，因此按中文那套比对）
+  const kStart = about.indexOf('关键规定解释');
+  const kBody = about.slice(kStart, about.indexOf('</section>', kStart + 2000));
+  const explained = [...kBody.matchAll(/\n\s+k: '([^']+)'/g)].map((m) => m[1]);
+  for (const label of labels) {
+    assert.ok(
+      explained.includes(label),
+      `关于页没有解释「${label}」这条关键规定`,
+    );
+  }
+  // 也要有对应的英文条目，否则英文界面会缺解释
+  const enExplained = explained.filter((k) => !labels.includes(k));
+  assert.equal(
+    enExplained.length,
+    labels.length,
+    '关于页的英文解释条目数应当与中文一致（每个字段一份）',
+  );
+
+  // 每条解释都要有"问的是 / 答案 / 怎么用"三段
+  assert.ok(kBody.includes("zh ? '问的是' : 'Asks'"), '解释要有"问的是"一段');
+  assert.ok(kBody.includes("zh ? '答案' : 'Answers'"), '解释要有"答案"一段');
+  assert.ok(kBody.includes("zh ? '怎么用' : 'What to do'"), '解释要有"怎么用"一段');
+
+  // 「答案」必须是一行一条，不能挤成一段——最长的原本有 260 多字，读不动
+  assert.ok(kBody.includes('a: ['), '答案应当写成字符串数组，逐行渲染');
+  assert.ok(!/a: '[^[]/.test(kBody), '答案不应还是单个字符串');
+  const answerBlocks = [...kBody.matchAll(/a: \[([\s\S]*?)\],/g)];
+  assert.equal(answerBlocks.length, labels.length * 2, '中英各一套，答案数组数应当是条目数的两倍');
+  for (const [, block] of answerBlocks) {
+    const lines = (block.match(/\n\s+'/g) ?? []).length;
+    assert.ok(lines >= 2, `每条答案至少要拆成 2 行，实际 ${lines} 行`);
+    assert.ok(lines <= 5, `拆得过多反而零碎，实际 ${lines} 行`);
+  }
+
+  // 并且要提醒"结论有推断成分，正式判断看原文"
+  assert.ok(kBody.includes('以许可证原文为准'), '应当提醒读者以原文为准');
+});
+
+test('「分类」下拉与详情面板的「许可类型」共用同一套文案', () => {
+  // 两边各写一份文案必然会走偏（"弱著佐权" vs "著作权型" 就出过这种不一致）。
+  // 现在下拉直接从 FAMILY_LABEL 取值，这条测试守住它不被改回硬编码。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const filtersStart = src.indexOf('const FILTERS');
+  const filtersBody = src.slice(filtersStart, src.indexOf('];', filtersStart));
+  // 八个分类都应当引用 FAMILY_LABEL，而不是写死字面量
+  const refs = (filtersBody.match(/FAMILY_LABEL\./g) ?? []).length + (filtersBody.match(/FAMILY_LABEL\[/g) ?? []).length;
+  assert.ok(refs >= 8, `八个分类都应当引用 FAMILY_LABEL，实际 ${refs} 处`);
+  // 不应再出现硬编码的家族名
+  for (const hard of ["zh: '宽松型'", "zh: '公共领域型'", "zh: '内容与数据型'"]) {
+    assert.ok(!filtersBody.includes(hard), `分类文案不应硬编码：${hard}`);
+  }
+  // 标签本身是「分类」，不是「范围」
+  assert.ok(src.includes("zh ? '分类' : 'Category'"), '标签应当叫「分类」');
+  assert.ok(!src.includes("zh ? '范围' : 'Scope'"), '不应还叫「范围」');
+});
+
 test('左栏四组筛选统一用下拉菜单', () => {
   // 之前"用来授权"是下拉、其余三组是胶囊，摆在一起像是两个人做的界面。
   // 现在统一成下拉：四组的标签定宽，下拉左边缘对齐成一条线。

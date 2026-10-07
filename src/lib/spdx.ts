@@ -1,4 +1,16 @@
 import type { Family } from './types.ts';
+// licenses.ts 只依赖 types.ts，不会与本文件形成循环
+import { LICENSES } from './licenses.ts';
+
+/**
+ * 人工逐条核对过的家族判定。这 32 个的结论**优先于任何上游分类与正则推导**——
+ * 它们是人按许可证实际条款逐条看过定下来的，上游的粗分类与推导都只是近似。
+ *
+ * 必须在这里生效而不是只放在 licenses.ts：`familyFromEntry` 读的是 enrichment
+ * 里的上游 family，人工整理的值并没有写进那份数据，所以不加这一步的话，
+ * 列表筛选用的仍是上游值，与详情面板（读人工值）对不上。
+ */
+const CURATED_FAMILY = new Map(LICENSES.map((l) => [l.id, l.family]));
 
 /**
  * SPDX 官方 License List 的读取与解析层。
@@ -632,9 +644,66 @@ export const SCANCODE_FAMILY: Record<string, string> = {
  * 优先用 enrichment（SPDX 那 740 个走这条），拿不到就退回 ScanCode 条目自带的分类——
  * 后者是必须的：enrichment 只覆盖 SPDX 列表内的许可证，ScanCode 独有的 2000 多个
  * 条目在上面找不到记录，早先因此全部被默认成 permissive（木兰公共型就被误判过）。
+ *
+ * ⚠️ 第三方分类**区分不出两件事**，必须在这里补判：
+ *  1. 网络著佐权。ScanCode 把 AGPL 与 GPL 同归 `Copyleft`，enrichment 里
+ *     AGPL-3.0 的 family 也直接写成 strong-copyleft——但 AGPL 多一条
+ *     "做成网站给别人用也要开源"的义务，那是它与 GPL 最实质的差别。
+ *     所以按正文里的网络条款重新判定（这与详情面板的「做成网站给别人用」同一依据）。
+ *  2. 内容与数据许可。CC-BY、GFDL 这类被归进 permissive / weak-copyleft，
+ *     但对用户来说"这是给文字图片用的"比"宽松程度"更有用。
  */
-export function familyFromEntry(entry: { source: 'spdx' | 'scancode'; category?: string }, extra?: EnrichmentRecord): string | undefined {
-  return extra?.family ?? (entry.category ? SCANCODE_FAMILY[entry.category] : undefined);
+export function familyFromEntry(
+  entry: { source: 'spdx' | 'scancode'; category?: string; id?: string; scancodeKey?: string },
+  extra?: EnrichmentRecord,
+): string | undefined {
+  const id = entry.id ?? entry.scancodeKey ?? '';
+  // 人工核对过的（32 个）以核对结果为准，不用上游分类也不用推导
+  const curated = CURATED_FAMILY.get(id);
+  if (curated) return curated;
+  const base = extra?.family ?? (entry.category ? SCANCODE_FAMILY[entry.category] : undefined);
+  return refineFamily(id, base);
+}
+
+/**
+ * 网络著佐权：**只有 AGPL 系列**多一条"做成网站给别人用也要开源"的义务。
+ * 而 ScanCode 把 AGPL 与 GPL 同归 `Copyleft`，enrichment 也直接写成
+ * strong-copyleft——那是它与 GPL 最实质的差别，必须按标识符补判。
+ *
+ * ⚠️ 两处都别写宽：
+ *  · 不能写成 `(A|L)?GPL`——那样会把 **GPL-3.0 也算进来**，而 GPL 没有网络条款
+ *    （详情面板的「做成网站给别人用」对这一条有明确说明）。
+ *  · **不要加 EUPL**。EUPL 常被误认为有网络条款，实际正文里没有
+ *    network/interact 相关的要求（已逐句核对过 EUPL-1.2）。
+ */
+const NETWORK_ID = /^AGPL-/i;
+
+/**
+ * 内容与数据许可：给文字、图片、数据用的。
+ *
+ * 不含这几类：
+ *  · CC-BY-SA —— 它要求衍生品同许可，属著作权型
+ *  · CC0      —— 是权利放弃，属公共领域型
+ *  · OFL      —— 字体许可，另有归属
+ */
+const CONTENT_ID = /^(CC-BY-\d|GFDL-|CC-PDDC|OGL-)/i;
+
+/**
+ * 在第三方分类的基础上做两处细分。抽出来是为了**可测**——
+ * 这两条都曾经因为"第三方分类够用"的假设而缺失，导致：
+ *  · AGPL 在列表里被归进"著作权型 · 整个项目"，而它在详情面板显示"含网络使用"，
+ *    列表与详情对不上；
+ *  · CC-BY 这类内容许可被混进"宽松型"，用户按内容找许可时找不到。
+ *
+ * 放在第三方分类**之后**覆盖，是因为这些判定比上游的粗分类更贴合本站的分类口径；
+ * 但只覆盖少数几类，其余一律沿用上游结果。
+ */
+function refineFamily(id: string, base: string | undefined): string | undefined {
+  if (NETWORK_ID.test(id)) return 'network-copyleft';
+  // 公共领域优先于内容型：CC0 是权利放弃，不该被算作"内容与数据许可"
+  if (/^(CC0-|CC-PDDC|Unlicense|WTFPL)/i.test(id)) return 'public-domain';
+  if (CONTENT_ID.test(id)) return 'content';
+  return base;
 }
 
 /** ScanCode 分类判定为"非开源"的那几类：生成时必须给出明确警告 */

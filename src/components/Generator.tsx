@@ -309,6 +309,238 @@ function Docs({ lang }: { lang: Lang }) {
         </ol>
       </section>
 
+      {/* 关键规定解释：详情面板里那 9 条的通俗说明。
+          条目与 ProPicker 的 rows 一一对应，改那边时这里要跟着改。 */}
+      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+        <h2 className="text-xl font-semibold">
+          {zh ? '许可证详情里那几条规定，到底是什么意思' : 'What the rules in the license detail actually mean'}
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-ink-600">
+          {zh
+            ? '在「选择与对比」里点开一个许可证，会看到一组"这份许可的几条关键规定"。那几条是选许可证时真正要看的东西，但名字都比较干。下面逐条解释它们问的是什么、答案有哪几种、以及你该怎么用。'
+            : 'Opening a license under "Pick and compare" shows a set of key rules. Those are the things that actually matter when choosing, but the labels are terse. Here is what each one asks, what the possible answers mean, and what to do about them.'}
+        </p>
+
+        <div className="mt-5 space-y-4">
+          {(zh
+            ? [
+                {
+                  k: '许可类型',
+                  q: '这个许可属于哪一类，别人拿去改能不能不开源。',
+                  a: [
+                    '宽松型：随便用，改了也不必开源。',
+                    '弱著佐权：改过的那几个文件要跟着开源，整个项目可以不开源。',
+                    '强著佐权：整个项目发布时都得用同一许可开源。',
+                    '网络著佐权：还多一条——做成网站给别人用也得开源。',
+                  ],
+                  how: '先看这一条定大方向。想闭源卖钱就选宽松型；想让衍生品也保持开源就选后几类。',
+                },
+                {
+                  k: '保留版权声明与许可证',
+                  q: '你分发软件时，要不要附上原作者的版权声明和许可证全文。',
+                  a: [
+                    '绝大多数许可都要求：要附上。',
+                    'Zlib、BSL-1.0：只要求在源码形式里带上，二进制分发不必。',
+                    '0BSD、CC0-1.0、MIT-0、Unlicense、WTFPL：连署名都不要求。',
+                  ],
+                  how: '要带的那种，把 LICENSE 文件放进仓库、并在源码头部写上版权行就满足了。标注"不要求"的许可可以省掉，但留着也不会有坏处。',
+                },
+                {
+                  k: '专利',
+                  q: '许可有没有明确给你专利使用权。',
+                  a: [
+                    '"明确授予"最安全（Apache-2.0、MPL-2.0 这类）。',
+                    '"明确说了不授予"意味着作者保留专利主张。',
+                    '"没提到"最常见，也最容易被误读——它不等于安全：算不算隐含授权，法律上一直有争议。',
+                  ],
+                  how: '你的项目或你所在的公司持有相关专利时，别停在"没提到"上，改用明确授予专利的许可，或者另外补一份贡献者许可协议。',
+                },
+                {
+                  k: '做成网站给别人用',
+                  q: '把代码跑成在线服务时，要不要也把源码公开。',
+                  a: [
+                    '只有 AGPL 系列与 EUPL 会触发这一条。',
+                    'GPL 不管这件事——用了 GPL 的代码做网站，只要不分发二进制，就没有开源义务。',
+                  ],
+                  how: '做 SaaS 又不想开源，就别选 AGPL；反过来，想让"别人拿你的代码做网站也得开源"，只有 AGPL 能做到。',
+                },
+                {
+                  k: '新项目是否开源',
+                  q: '你基于这个许可写的新项目，能不能闭源。',
+                  a: [
+                    '"不用"＝新项目可以闭源（MIT、Apache-2.0 这类）。',
+                    '"只有改过的那几个文件要开源"＝文件级著佐权（MPL-2.0、EPL-2.0），你自己新写的文件不受影响。',
+                    '"要：整个项目都得同许可开源"＝强著佐权（GPL 系列）。',
+                  ],
+                  how: '这一条直接决定商业模式。要注意"文件级"与"整个项目"的差别很大：MPL 允许你把改动留在少数文件里、其余闭源，GPL 不允许。',
+                },
+                {
+                  k: '用作者名义背书',
+                  q: '能不能对外说"作者认可/推荐了本产品"。',
+                  a: [
+                    '"不许"的许可（如 BSD-3-Clause）：明确禁止拿作者或贡献者的名义表示认可。',
+                    '"正文没写"：不等于可以——借别人的信誉给你的产品增信，通常要另行取得同意。',
+                  ],
+                  how: '宣传物料里想写"XX 官方推荐"之前，先看这一条；标注"不许"或"正文没写"时，都应当先去征求作者同意。',
+                },
+                {
+                  k: '用作者名义促销',
+                  q: '能不能在宣传里说"本产品基于 XX 的技术构建"。',
+                  a: [
+                    '和上一条是两件事：背书是"作者认可你"（意见表达），促销是"你借作者的名气"（市场行为）。',
+                    '条款里常分开写，实测有 30 个许可只禁促销、3 个只禁背书。',
+                  ],
+                  how: '写"基于 XX 构建"这类描述前看这一条。它与「商标」也不是一回事：商标管的是能不能用人家的商品名，Apache-2.0 有商标条款却不禁这两项。',
+                },
+                {
+                  k: '变更说明',
+                  q: '你改了别人的文件，要不要在文件里写明"已修改"。',
+                  a: [
+                    '"要写明"的许可（Apache-2.0、MPL-2.0、GPL 系列等）：要求在改动过的文件里标注改动事实。',
+                    '有的还要求注明日期。',
+                  ],
+                  how: '在改动过的文件头部加一行说明即可，例如"Modified by X on 2024-05-01"。这一条常被忽略，但它是实打实的义务。',
+                },
+                {
+                  k: '商标',
+                  q: '许可有没有把商标权也给你。',
+                  a: [
+                    '一律不授权，区别只在于许可有没有把这句话写出来。',
+                    '写了的那 15 个（Apache-2.0、MPL-2.0、CC0 等）是明文声明。',
+                    '没写的那些（MIT、BSD、GPL）实质上也一样不授权——这是 ChooseALicense 词表自己的说法。',
+                  ],
+                  how: '项目名称与 logo 始终不在授权范围内。要保护自己的名字，另立一份商标政策，别指望许可证。',
+                },
+              ]
+            : [
+                {
+                  k: 'License type',
+                  q: 'What family the license belongs to, and whether forks can stay closed.',
+                  a: [
+                    'Permissive: use it freely, forks need not stay open.',
+                    'Weak copyleft: the files you modify must stay open, the wider project need not.',
+                    'Strong copyleft: the whole project must ship under the same license.',
+                    'Network copyleft: running it as a service also triggers the duty.',
+                  ],
+                  how: 'Read this one first to set the direction. Want to sell a closed product, pick permissive; want derivatives to stay open, pick one of the copyleft families.',
+                },
+                {
+                  k: 'Keep the copyright notice and license',
+                  q: 'Whether you must ship the original copyright notice and the full license when you distribute.',
+                  a: [
+                    'Almost all licenses require it.',
+                    'Zlib and BSL-1.0: only in source form, not in binaries.',
+                    'Five require nothing at all — 0BSD, CC0-1.0, MIT-0, Unlicense, WTFPL — not even attribution.',
+                  ],
+                  how: 'Where it is required, keeping the LICENSE file in the repo and the copyright line in source headers satisfies it. Where it is not required you may drop it — though keeping it does no harm.',
+                },
+                {
+                  k: 'Patents',
+                  q: 'Whether the license explicitly gives you patent rights.',
+                  a: [
+                    '"Grants" is the safest (Apache-2.0, MPL-2.0).',
+                    '"Grants none" means the author reserves patent claims.',
+                    '"Not mentioned" is the most common and the most misread — it is not the same as safe; whether a grant is implied is genuinely disputed.',
+                  ],
+                  how: 'If you or your company hold relevant patents, do not stop at "not mentioned": pick a license with an explicit grant, or add a contributor agreement.',
+                },
+                {
+                  k: 'Running it as a service',
+                  q: 'Whether hosting the code as an online service also requires publishing source.',
+                  a: [
+                    'Only the AGPL family and the EUPL trigger this.',
+                    'The GPL does not — running GPL code as a website carries no duty as long as you do not distribute binaries.',
+                  ],
+                  how: 'Building a SaaS and unwilling to open-source? Avoid AGPL. Want others to open-source their hosted versions too? Only AGPL does that.',
+                },
+                {
+                  k: 'Must your new project be open source',
+                  q: 'Whether the new project you build on top of it can stay closed.',
+                  a: [
+                    '"No" means it can stay closed (MIT, Apache-2.0).',
+                    '"Only the files you modified" is file-level copyleft (MPL-2.0, EPL-2.0) — files you write yourself are unaffected.',
+                    '"Yes, the whole project" is strong copyleft (the GPL family).',
+                  ],
+                  how: 'This decides your business model. The gap between file-level and whole-project is large: MPL lets you keep changes in a few files and close the rest; the GPL does not.',
+                },
+                {
+                  k: 'Endorsement with their names',
+                  q: 'Whether you may say "the authors endorse or recommend this product".',
+                  a: [
+                    '"Not allowed" licenses (such as BSD-3-Clause): you may not use the authors’ or contributors’ names to signal approval.',
+                    '"Not stated" does not mean you may — borrowing someone’s credibility normally needs their consent.',
+                  ],
+                  how: 'Before writing "officially recommended by X" in your marketing, read this row. If it says not allowed, or says nothing, ask the authors first.',
+                },
+                {
+                  k: 'Promotion with their names',
+                  q: 'Whether you may advertise your product as "built on X’s technology".',
+                  a: [
+                    'A different act from the row above: endorsement is "they approve of you" (an opinion), promotion is "you borrow their fame" (a market act).',
+                    'Licenses often separate the two — 30 of them ban promotion alone, 3 ban endorsement alone.',
+                  ],
+                  how: 'Check this before writing "built on X". It is also not the same as the trademarks row: that one is about using their product names, and Apache-2.0 has a trademark clause while banning neither of these.',
+                },
+                {
+                  k: 'Change notices',
+                  q: 'Whether you must state "modified" in the files you changed.',
+                  a: [
+                    'Licenses that say yes (Apache-2.0, MPL-2.0, the GPL family and others) require you to note that you changed a file.',
+                    'Some also require a date.',
+                  ],
+                  how: 'A line at the top of each modified file is enough, e.g. "Modified by X on 2024-05-01". This duty is often missed, but it is real.',
+                },
+                {
+                  k: 'Trademarks',
+                  q: 'Whether the license also gives you trademark rights.',
+                  a: [
+                    'Never — the only difference is whether the license spells that out.',
+                    'The 15 that do (Apache-2.0, MPL-2.0, CC0 and others) state it.',
+                    'The ones that stay silent (MIT, BSD, GPL) grant none either, as ChooseALicense’s own vocabulary says.',
+                  ],
+                  how: 'Project names and logos are never inside the grant. If the name matters, write a separate trademark policy rather than relying on the license.',
+                },
+              ]
+          ).map((row) => (
+            <div key={row.k} className="rounded-lg border border-ink-900/10 p-4">
+              <strong className="block text-sm">{row.k}</strong>
+              <dl className="mt-2 space-y-1.5 text-sm text-ink-600">
+                <div className="flex gap-2">
+                  <dt className="shrink-0 text-ink-400">{zh ? '问的是' : 'Asks'}</dt>
+                  <dd>{row.q}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="shrink-0 text-ink-400">{zh ? '答案' : 'Answers'}</dt>
+                  {/* 答案拆成一行一条：原来挤成一段，最长的有 260 多字，读不动 */}
+                  <dd>
+                    <ul className="space-y-1">
+                      {row.a.map((line) => (
+                        <li key={line} className="flex gap-1.5">
+                          <span aria-hidden className="text-ink-400">
+                            ·
+                          </span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="shrink-0 text-ink-400">{zh ? '怎么用' : 'What to do'}</dt>
+                  <dd>{row.how}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-3 text-xs text-ink-600">
+          {zh
+            ? '这些结论有些是人工逐条核对的，有些是机器读正文推断的——详情面板里每条都会标注来源。下正式判断前请以许可证原文为准；本页只是告诉你该看什么。'
+            : 'Some of these conclusions were checked by hand, others inferred by machine from the text — the detail panel labels the source of each. Before a formal decision, go by the license text itself; this page only tells you what to look at.'}
+        </p>
+      </section>
+
       <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
         <h2 className="text-xl font-semibold">
           {zh
