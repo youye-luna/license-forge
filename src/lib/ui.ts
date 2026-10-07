@@ -54,13 +54,10 @@ export const PROJECT = {
   repoLabel: 'youye-luna/license-forge',
   releases: 'https://github.com/youye-luna/license-forge/releases',
   /**
-   * 首发版本号。**必须与 package.json 的 version 同步**——这两处漂移过一次，
+   * 当前发行版号。**必须与 package.json 的 version 同步**——这两处漂移过一次，
    * 因此加了测试守着：`发行版版本号必须与 package.json 同步`。
-   *
-   * 说明：本项目仍在首发版本上迭代，所以修 bug 与补功能都直接更新 v0.1.0 的产物，
-   * 不逐次抬版本号。等到需要区分"用户该不该升级"时再开始递增。
    */
-  releasesLabel: 'v0.1.0',
+  releasesLabel: 'v0.1.1',
   issues: 'https://github.com/youye-luna/license-forge/issues',
   license: 'MIT',
   licenseUrl: 'https://github.com/youye-luna/license-forge/blob/main/LICENSE',
