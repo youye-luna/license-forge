@@ -108,7 +108,11 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
                 <span className="block font-medium">{opt.label[lang]}</span>
                 {opt.note ? (
                   <span className={['mt-1 block text-xs', active ? 'text-white/75' : 'text-ink-400'].join(' ')}>
-                    {opt.note[lang]}
+                    {opt.note[lang].map((line) => (
+                      <span key={line} className="block">
+                        {line}
+                      </span>
+                    ))}
                   </span>
                 ) : null}
               </button>

@@ -2,12 +2,46 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+test('中文文本没有出处时要如实标注，不能什么都不显示', () => {
+  // 19 个人工整理的许可（ISC、BSD-2、Zlib、OFL、CERN-OHL 系列…）既没有官方中文正文，
+  // 也没有评审译稿。原先这里什么都不显示，用户会以为有中文、只是没找到入口。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(
+    src.includes('本站未收录该许可的中文文本'),
+    '没有中文出处时应当显示一条说明',
+  );
+  // 措辞只能讲"本站没有"，不能断言"世上没有"——数据源里没有 ≠ 不存在
+  assert.ok(
+    src.includes('不代表世上不存在中文译本'),
+    '应当说明这只是本站收录范围内没有',
+  );
+  assert.ok(!src.includes('该许可没有中文版本'), '不得断言该许可没有中文版本');
+});
+
+test('详情页的中文文本要同时查两个来源，否则 ScanCode 独有条目不显示', () => {  // enrichment 只为 SPDX 名录生成记录，所以：
+  //   · SPDX 条目      → enrichment.licenses[id].chinese
+  //   · ScanCode 独有条目 → enrichment.chinese[key]（顶层那张按 ScanCode 键分键的表）
+  // 木兰公共许可证**不在 SPDX 名录里**，早先只看前者，于是它的「中文文本」
+  // 区块整块不显示——用户报的"中文版本缺失"就是这个。
+  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  assert.ok(
+    src.includes("extra?.chinese ?? enrichment?.chinese?."),
+    '中文文本应当在 extra.chinese 取不到时回退查 enrichment.chinese',
+  );
+  // 渲染处必须用统一后的变量，不能再用 extra.chinese（那会把回退绕过去）
+  const start = src.indexOf('{/* 中文文本 */}');
+  assert.ok(start > 0, '应当有中文文本区块');
+  const section = src.slice(start, start + 1000);
+  assert.ok(section.includes('chineseText'), '中文文本区块应当用统一后的 chineseText');
+  assert.ok(!section.includes('extra?.chinese ?'), '区块判断不应再只看 extra.chinese');
+});
+
 import { defaultGenState } from '../src/lib/genstate.ts';
 import { TABS, TAB_LABEL, PROJECT } from '../src/lib/ui.ts';
 import * as ui from '../src/lib/ui.ts';
 import { LICENSES } from '../src/lib/licenses.ts';
 import { FAMILY_LABEL } from '../src/lib/licenses.ts';
-import { FAMILY_ORDER } from '../src/lib/wizard.ts';
+import { FAMILY_ORDER, QUESTIONS, recommend } from '../src/lib/wizard.ts';
 import { fillLicenseText } from '../src/lib/fill.ts';
 
 /* ------------------------------------------------------------------ *
@@ -329,6 +363,78 @@ test('问卷里"跳过"只改一个默认值，不换一套逻辑', () => {
     (k) => JSON.stringify(walked[k]) !== JSON.stringify(skipped[k]),
   );
   assert.deepEqual(diff, ['includeReuseLayout'], '跳过问卷不应带来其他默认值差异');
+});
+
+/* ------------------------------------------------------------------ *
+ * 问卷的署名选项
+ * ------------------------------------------------------------------ */
+
+test('署名题有三个选项：署名 / 署名且禁背书促销 / 不要署名', () => {
+  const q = QUESTIONS.find((item) => item.id === 'attribution');
+  assert.ok(q, '应当有署名这一题');
+  assert.equal(q.options.length, 3, '署名题应当是三个选项');
+  const values = q.options.map((o) => o.value);
+  assert.deepEqual(values, ['yes', 'notice-and-no-promotion', 'no']);
+  // 中间那一项要说清"保留署名"和"禁止背书促销"两件事
+  const mid = q.options.find((o) => o.value === 'notice-and-no-promotion');
+  assert.match(mid.label.zh, /保留署名/, '要说明保留署名');
+  assert.match(mid.label.zh, /背书或促销/, '要说明禁止背书促销');
+});
+
+test('署名题的中间选项，用小字解释背书与促销，且两者各占一行', () => {
+  // 用户看到"不许用我的名义背书或促销"时未必分得清这两个词，
+  // 而它们在许可条款里也常常分开写，所以各占一行讲清楚。
+  const q = QUESTIONS.find((item) => item.id === 'attribution');
+  const mid = q.options.find((o) => o.value === 'notice-and-no-promotion');
+  assert.ok(mid.note, '中间选项应当有小字说明');
+  assert.equal(mid.note.zh.length, 2, '背书与促销应当各占一行，共两行');
+  assert.equal(mid.note.en.length, 2, '英文也应当是两行');
+  // 第一行讲背书，第二行讲促销，顺序不要串
+  assert.match(mid.note.zh[0], /^背书/, '第一行应当是背书');
+  assert.match(mid.note.zh[1], /^促销/, '第二行应当是促销');
+  // 两行都要说清"这是什么行为"，而不是重复选项名
+  assert.match(mid.note.zh[0], /认可|推荐/, '背书一行要讲清是"作者认可/推荐"');
+  assert.match(mid.note.zh[1], /基于作者的技术|宣传/, '促销一行要讲清是宣传话术');
+  // 只讲"不许做什么"就够了，不要再拖一句解释性尾巴
+  for (const line of mid.note.zh) {
+    assert.ok(!line.includes('——'), `小字不应带解释性尾巴：${line}`);
+  }
+  // 其它选项不该有小字（保持界面干净）
+  for (const o of q.options) {
+    if (o.value !== 'notice-and-no-promotion') {
+      assert.ok(!o.note, `${o.value} 不该有小字`);
+    }
+  }
+});
+
+test('署名题选中间那一项，推荐结果与另外两个选项都不同', () => {  // 这一项的意义就在于"保留署名 + 不许拿我名义宣传"这个组合，
+  // 而它正是 BSD-3-Clause 相对 MIT 多出来的那一条。
+  // 若它给出的候选与"必须保留署名"完全一样，这个选项等于没作用。
+  const base = { kind: 'software', closedSource: 'yes', patent: 'na', audience: 'either', network: 'no', gplVersion: 'or-later' };
+  const ids = (v) => recommend({ ...base, attribution: v }).map((r) => r.license.id);
+  const plain = ids('yes');
+  const noPromo = ids('notice-and-no-promotion');
+  const none = ids('no');
+
+  assert.notDeepEqual(noPromo, plain, '中间选项的候选顺序应当与"必须保留署名"不同');
+  assert.notDeepEqual(noPromo, none, '中间选项的候选顺序应当与"不要署名"不同');
+  // BSD-3-Clause 是这一组合的唯一现成答案，应当排在最前
+  assert.equal(noPromo[0], 'BSD-3-Clause', '中间选项应当首推 BSD-3-Clause');
+  // 而且要说清它与 MIT 的差别在哪
+  const bsd = recommend({ ...base, attribution: 'notice-and-no-promotion' }).find((r) => r.license.id === 'BSD-3-Clause');
+  const text = bsd.reasons.map((r) => r.zh).join(' ');
+  assert.match(text, /背书或促销/, '理由里要讲明禁止背书与促销');
+});
+
+test('署名题的推荐不会变成唯一答案：仍给出取舍', () => {
+  // 只给一个候选等于替用户做了决定。选了中间那一项之后，
+  // 仍要把 "MIT 不禁宣传" 与 "Apache-2.0 有专利但不含此条款" 讲清楚。
+  const base = { kind: 'software', closedSource: 'yes', patent: 'na', audience: 'either', network: 'no', gplVersion: 'or-later' };
+  const list = recommend({ ...base, attribution: 'notice-and-no-promotion' });
+  assert.ok(list.length >= 3, '应当给出多个候选而不是一个');
+  const byId = Object.fromEntries(list.map((r) => [r.license.id, r.reasons.map((x) => x.zh).join(' ')]));
+  assert.match(byId['MIT'] ?? '', /不禁/, '要说清 MIT 不禁止用你的名义宣传');
+  assert.match(byId['Apache-2.0'] ?? '', /商标/, '要说清 Apache-2.0 只有商标条款、不含这一条');
 });
 
 /* ------------------------------------------------------------------ *

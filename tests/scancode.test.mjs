@@ -111,12 +111,19 @@ test('非 SPDX 许可证的标识符一律是 LicenseRef 形式', () => {
  * 合并目录与检索
  * ------------------------------------------------------------------ */
 
-test('合并目录包含两个来源，且条目数等于两者之和（例外除外）', () => {
+test('合并目录包含两个来源，并剔除 SPDX 已有许可证的英文单语副本', () => {
   const unified = loadUnifiedCatalog(SPDX, SCANCODE);
   const scLicenses = SCANCODE.entries.filter((e) => !e.isException);
-  assert.equal(unified.length, SPDX.licenses.length + scLicenses.length);
+  // 不是简单相加：ScanCode 给"中英双语正文"的许可证另建了 `-en` 键存纯英文版，
+  // 这些是信息量更少的重复，要剔掉（见 loadUnifiedCatalog 的说明）。
+  const dropped = scLicenses.filter((e) => {
+    const k = String(e.key).toLowerCase();
+    return k.endsWith('-en') && SPDX.licenses.some((l) => l.id.toLowerCase() === k.slice(0, -3));
+  });
+  assert.ok(dropped.length > 0, '应当确实剔掉了一些英文副本，否则这条测试没有意义');
+  assert.equal(unified.length, SPDX.licenses.length + scLicenses.length - dropped.length);
   assert.equal(unified.filter((e) => e.source === 'spdx').length, SPDX.licenses.length);
-  assert.equal(unified.filter((e) => e.source === 'scancode').length, scLicenses.length);
+  assert.equal(unified.filter((e) => e.source === 'scancode').length, scLicenses.length - dropped.length);
   // 例外不在"选一个许可证"的语境里
   assert.ok(!unified.some((e) => e.source === 'scancode' && e.isException));
 });
@@ -202,13 +209,16 @@ test('非 SPDX 条目的家族判定使用 ScanCode 分类', () => {
   assert.equal(spec.familySource, 'scancode-category');
 });
 
-test('合并目录可被整体获取，规模等于 SPDX + ScanCode 非例外条目', async () => {
+test('合并目录可被整体获取，规模接近 SPDX + ScanCode 非例外条目', async () => {
   // getUnifiedCatalog 在 Node 下会因为 fetch 不可用而降级，这里只验证降级不抛错
   const viaLoader = await getUnifiedCatalog().catch(() => null);
   if (viaLoader) assert.ok(viaLoader.length > 0);
 
   const direct = loadUnifiedCatalog(SPDX, SCANCODE);
-  const expected = SPDX.licenses.length + SCANCODE.entries.filter((e) => !e.isException).length;
-  assert.equal(direct.length, expected, `合并目录规模应为 ${expected}`);
+  const scLicenses = SCANCODE.entries.filter((e) => !e.isException).length;
+  assert.ok(
+    direct.length <= SPDX.licenses.length + scLicenses,
+    '合并目录不应当超过两者之和',
+  );
   assert.ok(direct.length > 2400, `合并目录应有 2400+ 条，实际 ${direct.length}`);
 });

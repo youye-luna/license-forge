@@ -62,6 +62,8 @@ const CURATED: Record<string, { subjects: Subject[]; note?: { zh: string; en: st
   'OFL-1.1': { subjects: ['font'], note: FONT_NOTE },
   // 硬件
   'CERN-OHL-S-2.0': { subjects: ['hardware'], note: HW_NOTE },
+  'CERN-OHL-W-2.0': { subjects: ['hardware'], note: HW_NOTE },
+  'CERN-OHL-P-2.0': { subjects: ['hardware'], note: HW_NOTE },
   // 内容与媒体
   'CC-BY-4.0': { subjects: ['media', 'data'], note: CC_NOTE },
   'CC-BY-SA-4.0': { subjects: ['media', 'data'], note: CC_NOTE },

@@ -464,6 +464,32 @@ let unifiedPromise: Promise<UnifiedEntry[]> | null = null;
  * `LanguageRef-scancode-*` 表示自己的历史变体），强行合并反而会丢信息。
  * 两者的区分通过 `source` 字段暴露给界面。
  */
+/**
+ * ScanCode 里那些其实是 SPDX 已有许可证的**英文单语副本**。
+ *
+ * ScanCode 的键名与 SPDX 标识符是两套体系，抓取脚本按 key 精确去重，
+ * 因此 `mit`、`apache-2.0` 这类重名条目不会进来。但有一类会漏网：
+ * ScanCode 给同一份许可证的中英双语正文**另建了一个 `-en` 键**，
+ * 存的是纯英文版。实测共 7 个：
+ *
+ *   mulanpsl-1.0-en  mulanpsl-2.0-en          木兰宽松（SPDX 那份是**中英双语**）
+ *   cecill-1.0-en    cecill-b-en  cecill-c-en CeCILL（SPDX 那份是法英双语）
+ *   d-fsl-1.0-en                              D-FSL（德语许可，SPDX 那份是德英双语）
+ *   etalab-2.0-en                             Etalab
+ *
+ * 这 7 个都是**信息量更少**的重复：SPDX 那份带官方中文或原文语言，
+ * 而 `-en` 只有英文。留在列表里会出现"同一个许可出现两次、其中一次还没有中文"，
+ * 用户会以为数据出错了（这条规则就是被木兰的重复问题带出来的）。
+ *
+ * 判定方式：把键名末尾的 `-en` 去掉后与 SPDX 标识符比对（大小写不敏感）。
+ * 只认 `-en` 这一个后缀，不做更宽的猜测——宁可漏，不要把两套体系里
+ * 恰好名字相近的不同许可证合并掉。
+ */
+function isEnglishDuplicateOfSpdx(key: string, spdxIds: Set<string>): boolean {
+  if (!key.toLowerCase().endsWith('-en')) return false;
+  return spdxIds.has(key.toLowerCase().slice(0, -3));
+}
+
 export function loadUnifiedCatalog(spdx: SpdxSnapshot, scancode: ScancodeCatalog | null): UnifiedEntry[] {
   const out: UnifiedEntry[] = spdx.licenses.map((l) => ({
     id: l.id,
@@ -475,8 +501,10 @@ export function loadUnifiedCatalog(spdx: SpdxSnapshot, scancode: ScancodeCatalog
     textLength: l.textLength,
   }));
   if (scancode) {
+    const spdxIds = new Set(spdx.licenses.map((l) => l.id.toLowerCase()));
     for (const e of scancode.entries) {
       if (e.isException) continue; // 例外不在"选一个许可证"的语境里
+      if (isEnglishDuplicateOfSpdx(e.key, spdxIds)) continue; // 见上面的说明
       out.push({
         id: `scancode:${e.key}`,
         source: 'scancode',
@@ -666,17 +694,21 @@ export function familyFromEntry(
 }
 
 /**
- * 网络著佐权：**只有 AGPL 系列**多一条"做成网站给别人用也要开源"的义务。
- * 而 ScanCode 把 AGPL 与 GPL 同归 `Copyleft`，enrichment 也直接写成
+ * 网络著佐权：**AGPL 系列与 EUPL** 多一条"做成网站给别人用也要开源"的义务。
+ * 上游把 AGPL 与 GPL 同归 `Copyleft`，enrichment 里 AGPL 的 family 也直接写成
  * strong-copyleft——那是它与 GPL 最实质的差别，必须按标识符补判。
  *
- * ⚠️ 两处都别写宽：
- *  · 不能写成 `(A|L)?GPL`——那样会把 **GPL-3.0 也算进来**，而 GPL 没有网络条款
- *    （详情面板的「做成网站给别人用」对这一条有明确说明）。
- *  · **不要加 EUPL**。EUPL 常被误认为有网络条款，实际正文里没有
- *    network/interact 相关的要求（已逐句核对过 EUPL-1.2）。
+ * ⚠️ 关于 EUPL 的更正：曾经在注释里断言"EUPL 没有网络条款、正文里没有
+ * network/interact 字样"，那是**错的**。ChooseALicense 明确给 EUPL-1.2 标了
+ * `network-use-disclose` 条件（derived.networkTrigger = true），EUPL 正文里的
+ * "Communication of the Work" 就是对应的条款。当初只按字面词 network/interact
+ * 搜索正文，因此漏判。判定以权威词表为准，不靠字面词。
+ *
+ * ⚠️ 另一处别写宽：不能写成 `(A|L)?GPL`——那样会把 **GPL-3.0 也算进来**，
+ * 而 GPL 确实没有网络条款（它由 ChooseALicense 的 network-use-disclose
+ * 条件判定，GPL 不在其中）。
  */
-const NETWORK_ID = /^AGPL-/i;
+const NETWORK_ID = /^(?:A?GPL-|EUPL-)/i;
 
 /**
  * 内容与数据许可：给文字、图片、数据用的。
@@ -901,15 +933,41 @@ const NAME_THEN = (verb: string) => [
   new RegExp(`name[^.]{0,80}not[^.]{0,50}used to ${verb}`, 'i'),
 ];
 
-const ENDORSE_MARKERS = [
-  ...NAME_THEN('endorse'),
-  // 并列写法：一出现就说明两者都被禁
-  /endorse\s*[,/]?\s*(?:or|and)\s*promote/i,
+/**
+ * 两个动词**并列出现**的写法，一出现就说明两者都被禁。
+ *
+ * 顺序与分隔符都要覆盖，实测至少有这三种：
+ *   `endorse or promote`（BSD-3-Clause 一类，341 个）
+ *   `promote, endorse or advertise`（OFL-1.1）
+ *   `promote, endorse`（其它变体）
+ * 早期只认第一种，于是 OFL-1.1 只被判成"禁促销"而漏掉"禁背书"。
+ */
+const VERBS_TOGETHER =
+  /(?:endorse|promote|advertise)\s*[,/]?\s*(?:or|and)?\s*(?:endorse|promote|advertise)/i;
+
+/**
+ * 「不得用于背书/促销」的其它常见写法。
+ *
+ *  - `shall not be used to promote, endorse or advertise`：OFL 的措辞
+ *  - CC 4.0 的 §6 标题就是 `No endorsement`，正文说的是
+ *    "may be construed as permission to assert or imply that You are …
+ *     sponsored or endorsed by the Licensor"——动词是 assert/imply 与
+ *    sponsored，句子里**没有 name 字样**，早期那四条规则因此完全漏掉 CC 全系列
+ *    （CC-BY-4.0 / CC-BY-SA-4.0 都被误判成"正文没写"）。
+ */
+const NO_ENDORSEMENT = [
+  /no endorsement/i,
+  /not be used to (?:promote|endorse|advertise)/i,
+  /(?:assert|imply)[^.]{0,240}(?:endorse|sponsor)/i,
+  /(?:sponsored|endorsed)\s+by[^.]{0,120}(?:licensor|author|copyright)/i,
 ];
+
+const ENDORSE_MARKERS = [...NAME_THEN('endorse'), VERBS_TOGETHER, ...NO_ENDORSEMENT];
 
 const PROMOTE_MARKERS = [
   ...NAME_THEN('promote'),
-  /endorse\s*[,/]?\s*(?:or|and)\s*promote/i,
+  VERBS_TOGETHER,
+  ...NO_ENDORSEMENT,
   /promote[^.]{0,90}without (?:specific )?(?:prior )?written permission/i,
 ];
 

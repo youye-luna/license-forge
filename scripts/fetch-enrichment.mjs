@@ -38,6 +38,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cacheDir = join(here, '..', '.spdx-cache');
@@ -72,6 +73,13 @@ const ZH_TRANSLATION_FILES = {
 
 /** 官方/权威中文文本的其他来源（这些许可证自带中文正文，可继续分发） */
 const OFFICIAL_CHINESE_TEXT = {
+  'MulanPSL-1.0': {
+    url: 'https://spdx.org/licenses/MulanPSL-1.0.html',
+    note: {
+      zh: '木兰宽松许可证第 1 版正文为中英双语。第 2 版还写了"以中文版为准"，第 1 版同样适用该系列的中文效力约定。',
+      en: 'MulanPSL v1 ships a bilingual Chinese-English text, like v2 of the same family.',
+    },
+  },
   'MulanPSL-2.0': {
     url: 'https://spdx.org/licenses/MulanPSL-2.0.html',
     note: {
@@ -102,6 +110,35 @@ const OFFICIAL_CHINESE_TEXT = {
     note: {
       zh: '欧盟 EUPL-1.2 提供 23 种欧盟官方语言的同等效力正式文本——但**不含中文**。这里给出官方文本入口。',
       en: 'EUPL-1.2 has equally authentic texts in 23 EU official languages — but not Chinese. This links to the official texts.',
+    },
+  },
+};
+
+/**
+ * 同样的"官方中文文本入口"，但对象是 **ScanCode 独有的条目**（不在 SPDX 名录里）。
+ *
+ * 单独一张表是因为键空间不同：`OFFICIAL_CHINESE_TEXT` 按 SPDX 标识符分键，
+ * 写进 `licenses[id].chinese`；这里按 ScanCode 的键分键，写进
+ * `chinese[key]`（那个顶层字段本来就是为此预留的）。混在一张表里迟早会有人
+ * 把 ScanCode 的键写进 SPDX 那张，然后困惑为什么界面上不显示。
+ *
+ * 木兰公共许可证就是典型：SPDX 名录里**根本没有它**，所以只能从 ScanCode 拿到，
+ * 而 ScanCode 那份是**纯英文**副本。官方正文其实是中英双语（与木兰宽松一样
+ * 以中文版为准），因此这里给出官方地址，并在说明里如实讲清站内文本的来源。
+ */
+const SCANCODE_CHINESE = {
+  'mulanpubl-2.0': {
+    url: 'http://license.coscl.org.cn/MulanPubL-2.0',
+    note: {
+      zh: '木兰公共许可证第 2 版的官方正文是**中英双语**，且与木兰宽松一样以中文版为准。但站内文本取自 ScanCode 的纯英文副本，构建期取不到官方双语正文（官方站点当时不可用），因此这里给出官方地址。',
+      en: 'The official Mulan PubL v2 text is bilingual Chinese-English and, as with MulanPSL, the Chinese version prevails. The text shown here comes from ScanCode’s English-only copy — the official bilingual text could not be fetched at build time (the official site was unavailable), so this links to it.',
+    },
+  },
+  'mulanpubl-1.0': {
+    url: 'http://license.coscl.org.cn/MulanPubL-1.0',
+    note: {
+      zh: '同第 2 版：官方正文为中英双语，此处给出官方地址；站内文本来自 ScanCode 的纯英文副本。',
+      en: 'As with v2: the official text is bilingual Chinese-English, linked here; the text shown comes from ScanCode’s English-only copy.',
     },
   },
 };
@@ -355,6 +392,62 @@ for (const exception of spdx.exceptions) {
     };
   }
 }
+
+/* ---- ScanCode 独有条目的"官方中文文本"入口（见 SCANCODE_CHINESE 的说明） ---- */
+for (const [key, source] of Object.entries(SCANCODE_CHINESE)) {
+  enrichment.chinese[key] = { kind: 'official-text', ...source };
+  enrichment.coverage.chineseTranslations++;
+}
+
+/*
+ * 同一份正文的其它标识符，继承已有的中文入口。
+ *
+ * 必要性：`ZH_TRANSLATION_FILES` 按 SPDX 标识符精确分键，于是
+ * `GPL-3.0-only` 拿到了审定稿，而正文完全相同的 `GPL-3.0-or-later`
+ * 反而没有——问卷与详情页推荐的恰恰是 `-or-later` 那个。同理
+ * `AGPL-3.0-or-later`、`LGPL-3.0-or-later`、`GPL-2.0-or-later` 都漏了。
+ *
+ * 判据用**归一化正文哈希**而不是按名字去猜变体关系：正文一致才继承，
+ * 避免把 -invariants / -no-RFN 这类"同名但其实另有一份正则"的条目误连起来。
+ */
+const normHash = (t) =>
+  createHash('sha256')
+    .update(String(t ?? '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, ''))
+    .digest('hex');
+// 正文文件由上一步 `data:spdx` 产出；缺失时直接跳过继承，不让 enrichment 因此失败
+const licenseTexts = existsSync(join(publicDir, 'license-texts.json'))
+  ? JSON.parse(readFileSync(join(publicDir, 'license-texts.json'), 'utf8'))
+  : null;
+// **只从 license-texts.json 建哈希表**，不依赖 spdx.licenses 的字段形状：
+// 早先写成 `spdx.licenses.map(l => [l.id, …])`，那批缓存的字段名与预期不同，
+// 取到的键全是 undefined，于是所有条目哈希相同、互相继承，中文入口从十几个涨到 724 个。
+const textHashById = new Map();
+for (const [id, rec] of Object.entries(licenseTexts?.licenses ?? {})) {
+  const h = normHash(rec?.licenseText ?? '');
+  if (id && h) textHashById.set(id, h);
+}
+if (!textHashById.size) console.log('  ⚠ 取不到许可证正文，跳过中文入口的同正文继承');
+const hashToChinese = new Map();
+for (const [id, record] of Object.entries(enrichment.licenses)) {
+  if (!record.chinese) continue;
+  const h = textHashById.get(id);
+  // 正文取不到就没有依据——**绝不能**把 undefined 当键存进 Map：
+  // 那样之后凡是哈希为 undefined 的条目（正文缺失的一大类）都会互相"继承"，
+  // 中文入口会从十几个膨胀到七百多个。
+  if (h) hashToChinese.set(h, record.chinese);
+}
+let inherited = 0;
+for (const [id, record] of Object.entries(enrichment.licenses)) {
+  if (record.chinese) continue;
+  const h = textHashById.get(id);
+  const zh = h ? hashToChinese.get(h) : undefined;
+  if (zh) {
+    enrichment.licenses[id] = { ...record, chinese: { ...zh, inherited: true } };
+    inherited++;
+    enrichment.coverage.chineseTranslations++;
+  }
+}
+if (inherited) console.log(`  同正文继承的中文入口：${inherited} 个`);
 
 writeFileSync(join(publicDir, 'license-enrichment.json'), JSON.stringify(enrichment), 'utf8');
 

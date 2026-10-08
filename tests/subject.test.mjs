@@ -69,7 +69,9 @@ test('长尾条目靠明确的标识符规则判定', () => {
     ['OFL-1.0', 'font'],
     ['LPPL-1.3c', 'font'],
     ['Adobe-Glyph', 'font'],
-    ['CERN-OHL-W-2.0', 'hardware'],
+    // 注意：CERN-OHL-W-2.0 / -P-2.0 后来被收进人工整理集合（问卷的硬件分支要用），
+    // 因此不再是规则层的样例；硬件这里用仍在长尾里的 Solderpad。
+    ['Solderpad-0.51', 'hardware'],
     ['TAPR-OHL-1.0', 'hardware'],
     ['ODbL-1.0', 'data'],
     ['GFDL-1.3-or-later', 'docs'],
@@ -137,7 +139,7 @@ test('每个主题都有中英双语文案', () => {
   );
 });
 
-test('全量 2476 个条目都能得出"适用于"，且不抛错', () => {
+test('全量 2469 个条目都能得出"适用于"，且不抛错', () => {
   let curated = 0;
   let rule = 0;
   let fallback = 0;

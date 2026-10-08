@@ -22,7 +22,7 @@ const TEXTS = (await import('../public/data/license-texts.json', { with: { type:
 const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
 const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } })).default;
 const SCANCODE_INDEX = (await import('../public/data/scancode-index.json', { with: { type: 'json' } })).default;
-/** 全量目录：SPDX 740 + ScanCode 独有，合计 2476 */
+/** 全量目录：SPDX 740 + ScanCode 独有，合计 2469 */
 const UNIFIED = loadUnifiedCatalog(SNAPSHOT, SCANCODE_INDEX);
 
 /* ------------------------------------------------------------------ *
@@ -102,18 +102,21 @@ test('许可类型：人工核对过的 32 个一律以核对结果为准', () =
   assert.equal(checked, LICENSES.length, '人工整理的每一条都应当能在目录里找到');
 });
 
-test('许可类型：网络著佐权只认 AGPL，别把 GPL 与 EUPL 也算进来', () => {
+test('许可类型：网络著佐权认 AGPL 与 EUPL，但不认 GPL / LGPL', () => {
   // 上游把 AGPL 与 GPL 同归 Copyleft，enrichment 里 AGPL 的 family 也写成
   // strong-copyleft——但 AGPL §13「Remote Network Interaction」确实多一条义务，
   // 必须补判（否则列表与详情对不上）。
-  // 反过来两个坑：
-  //  · 正则写宽成 (A|L)?GPL 会把 GPL-3.0 也算进来，而 GPL 没有网络条款；
-  //  · EUPL 常被误认为有网络条款，实际正文里没有（已逐句核对）。
+  //
+  // ⚠️ 这里更正过一个错误结论：曾经断言"EUPL 没有网络条款，正文里没有
+  // network/interact 字样"。那是错的——ChooseALicense 明确给 EUPL-1.2 标了
+  // `network-use-disclose`（derived.networkTrigger = true），EUPL 的
+  // "Communication of the Work" 就是对应条款。当初只按字面词搜正文才漏判。
+  // 这类判定一律以权威词表为准，不靠字面词。
   assert.equal(familyFromEntry({ source: 'spdx', id: 'AGPL-3.0-only' }), 'network-copyleft');
+  assert.equal(familyFromEntry({ source: 'spdx', id: 'EUPL-1.2' }), 'network-copyleft');
+  // 这两个没有网络条款：正则若写宽成 (A|L)?GPL 会把它们也算进来
   assert.notEqual(familyFromEntry({ source: 'spdx', id: 'GPL-3.0-only' }), 'network-copyleft');
   assert.notEqual(familyFromEntry({ source: 'spdx', id: 'LGPL-3.0-only' }), 'network-copyleft');
-  // EUPL 在人工整理集合里，取核对值 strong-copyleft
-  assert.notEqual(familyFromEntry({ source: 'spdx', id: 'EUPL-1.2' }), 'network-copyleft');
 });
 
 test('许可类型：八个分类都要有内容，不能出现空筛选', () => {
@@ -134,6 +137,93 @@ test('许可类型：八个分类都要有内容，不能出现空筛选', () =>
   assert.equal(sum, U.length, '每个条目都应当落进某个分类');
 });
 
+
+test('人工核对值与正文推导值的分歧只能来自这份白名单', () => {
+  // 两套判定并存：人工整理的 34 个用逐条核对的值（spec 走这条），
+  // 其余 2400 多个用 deriveFacts 的正文推导。它们**必然会**在某些条目上不一致，
+  // 但分歧不能悄悄变多——每一条都要有理由，写在这里。
+  //
+  // 这次优化把分歧从 14 条降到 4 条：其中 9 条是人工值**过时**了
+  // （endorse/promote 的判定当时还没修好，CC 与 OFL 被误判成"没写"），
+  // 已按推导值更正；另 1 条是重复计数（BSD-3 的名字限制已由 endorse 表达）。
+  const JUSTIFIED = {
+    // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依，以人工核对为准。
+    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：CDDL 未被 ChooseALicense 覆盖，无权威词表，以人工核对为准',
+    // 这两个许可对专利只字未提。人工值写成 none（"明确不授予"）会让人以为正文有这句声明。
+    Unlicense: 'patentGrant：正文未提专利，推导的 silent 比人工的 none 更准确，但人工值已作为产品口径固定',
+    WTFPL: 'patentGrant：同上',
+  };
+  const KEYS = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
+  const found = [];
+  for (const l of LICENSES) {
+    const item = SNAPSHOT.licenses.find((x) => x.id === l.id);
+    if (!item) continue;
+    const d = deriveFacts(l.id, TEXTS.licenses[l.id]?.licenseText ?? '', item.osiApproved, ENRICHMENT.licenses[l.id]?.family, TERMS);
+    if (KEYS.some((k) => l.facts[k] !== d[k])) found.push(l.id);
+  }
+  const unexpected = found.filter((id) => !JUSTIFIED[id]);
+  assert.deepEqual(
+    unexpected,
+    [],
+    `这些条目的分歧没有登记理由，请核对后补进 JUSTIFIED：${unexpected.join(', ')}`,
+  );
+  // 白名单里也不该有已经不再分歧的条目（否则它会掩盖将来新出现的分歧）
+  const stale = Object.keys(JUSTIFIED).filter((id) => !found.includes(id));
+  assert.deepEqual(stale, [], `这些白名单条目已不再分歧，应当删掉：${stale.join(', ')}`);
+});
+
+test('「保留版权声明与许可证」在人工与推导两侧都不低于 30 个', () => {
+  // 这一项决定"分发时要不要带上声明"，是用户最容易踩的义务。
+  // 早先人工整理里只有 5 个 not-required 与 2 个 source-only，其余都是 required。
+  const byValue = {};
+  for (const l of LICENSES) byValue[l.facts.includeCopyright] = (byValue[l.facts.includeCopyright] ?? 0) + 1;
+  assert.equal(byValue['not-required'], 5, '明确不要求的应当仍是那 5 个');
+  assert.equal(byValue['source-only'], 2, '只要求源码形式保留的应当仍是 Zlib 与 BSL-1.0');
+  assert.ok(byValue.required >= 25, `required 应当占绝大多数，实际 ${byValue.required}`);
+});
+
+
+test('合并目录去掉 ScanCode 的英文单语副本', () => {
+  // ScanCode 给"中英双语正文"的许可证另建了一个 `-en` 键，存纯英文版。
+  // 抓取脚本按 key 精确去重，这类后缀变体会漏网，于是同一个许可在列表里出现两次，
+  // 其中一次还没有中文——用户会以为数据坏了（木兰的重复问题就是这么发现的）。
+  const stillDuplicated = UNIFIED.filter((e) => {
+    if (e.source !== 'scancode' || !(e.scancodeKey ?? '').endsWith('-en')) return false;
+    const base = (e.scancodeKey ?? '').slice(0, -3);
+    return UNIFIED.some((x) => x.source === 'spdx' && x.id.toLowerCase() === base);
+  });
+  assert.deepEqual(stillDuplicated.map((e) => e.scancodeKey), [], '英文副本不应当出现在列表里');
+  for (const key of ['mulanpsl-1.0-en', 'mulanpsl-2.0-en']) {
+    assert.ok(!UNIFIED.some((e) => e.scancodeKey === key), `${key} 是 SPDX 条目的英文副本，应当去掉`);
+  }
+});
+
+test('木兰：宽松型只剩官方双语条目，公共型有官方中文入口', () => {
+  // 木兰两个系列的处理方式不同，容易被看成一个问题：
+  //  · 宽松型（MulanPSL）在 SPDX 名录里，正文**本身就是中英双语**，
+  //    ScanCode 那个 `-en` 是信息量更少的重复，去掉不损失中文。
+  //  · 公共型（MulanPubL）**不在 SPDX 名录里**，只能从 ScanCode 拿到纯英文副本，
+  //    官方双语正文在构建期取不到（官方站点当时返回 502），所以只能给出官方地址。
+  const mulan = UNIFIED.filter((e) => /mulan/i.test(e.id));
+  const spdxMulan = mulan.filter((e) => e.source === 'spdx').map((e) => e.id).sort();
+  assert.deepEqual(spdxMulan, ['MulanPSL-1.0', 'MulanPSL-2.0'], 'SPDX 侧应当只有宽松型两个版本');
+
+  // 宽松型的中文确实在正文里（不是只存在于被删掉的那份副本里）
+  for (const id of ['MulanPSL-1.0', 'MulanPSL-2.0']) {
+    const text = TEXTS.licenses[id]?.licenseText ?? '';
+    const zhChars = (text.match(/[\u4e00-\u9fff]/g) ?? []).length;
+    assert.ok(zhChars > 500, `${id} 的正文应当含中文（实际 ${zhChars} 个汉字）`);
+  }
+
+  // 公共型：ScanCode 独有，且必须带官方中文入口
+  for (const key of ['mulanpubl-1.0', 'mulanpubl-2.0']) {
+    assert.ok(UNIFIED.some((e) => e.scancodeKey === key), `${key} 应当在列表里（它是 ScanCode 独有条目）`);
+    const chinese = ENRICHMENT.chinese?.[key];
+    assert.ok(chinese, `${key} 应当有中文文本入口——它只有英文副本，没入口界面整块不会显示`);
+    assert.match(chinese.url, /coscl\.org\.cn/, `${key} 的中文入口应当指向官方站点`);
+    assert.match(chinese.note.zh, /英文/, `${key} 的说明要讲清站内文本是英文副本`);
+  }
+});
 
 test('facts 的字段不许在传递链上丢失', () => {
   // 踩过的坑：deriveFacts 算出了 endorse / promote / includeCopyright，但
@@ -164,15 +254,16 @@ test('facts 的字段不许在传递链上丢失', () => {
 });
 
 test('字段传递：人工整理的条目优先用逐条核对的值，而不是正则推断', () => {
-  // 这两条路径的值本来就可能不同，那是设计使然：
-  // BSD-3-Clause 的商标条款人工核对为 true（正文确实写了不授权商标），
-  // 而 deriveFacts 的正文正则未必命中。界面上显示的应当是人工资讯。
+  // 这两条路径的值本来就可能不同，那是设计使然。界面显示的应当是人工资讯。
   const spec = resolveSpec('BSD-3-Clause', SNAPSHOT, TEXTS, undefined, ENRICHMENT.licenses, TERMS);
   assert.ok(spec.curated, 'BSD-3-Clause 属于人工整理集合');
-  assert.equal(spec.facts.trademarkClause, true, '人工核对的值应当被采用');
   assert.equal(spec.facts.endorse, 'prohibited', '人工核对：BSD-3-Clause 禁止背书');
   assert.equal(spec.facts.promote, 'prohibited', '人工核对：BSD-3-Clause 禁止促销');
   assert.equal(spec.facts.includeCopyright, 'required', '人工核对：要求保留版权声明');
+  // 名字限制已经由 endorse / promote 两条表达，商标那一条不能再算一次。
+  // ChooseALicense 词表对 `trademark-use` 的定义是"明确声明不授予商标权"，
+  // BSD-3-Clause 的第 3 条讲的是**用名字背书**，不是商标权，所以是 false。
+  assert.equal(spec.facts.trademarkClause, false, '名字限制不该重复计入商标条款');
 });
 
 

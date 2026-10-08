@@ -21,8 +21,14 @@ export interface Question {
   options: {
     value: string;
     label: { zh: string; en: string };
-    /** 选项说明 */
-    note?: { zh: string; en: string };
+    /**
+     * 选项的补充说明。
+     *
+     * 用**数组**而不是单个字符串：需要解释的概念往往是并列的
+     * （例如"背书"与"促销"是两种不同性质的行为），各占一行比挤成一句清楚，
+     * 用户扫一眼就能分清是两件事。
+     */
+    note?: { zh: string[]; en: string[] };
   }[];
   multi?: boolean;
   /** 是否必答 */
@@ -39,7 +45,7 @@ export const QUESTIONS: Question[] = [
     },
     options: [
       { value: 'software', label: { zh: '软件 / 代码', en: 'Software / code' } },
-      { value: 'library', label: { zh: '供别人集成使用的库 / 框架', en: 'A library or framework others integrate' }, note: { zh: '弱著佐权在这里才有意义', en: 'This is where weak copyleft becomes relevant' } },
+      { value: 'library', label: { zh: '供别人集成使用的库 / 框架', en: 'A library or framework others integrate' } },
       { value: 'content', label: { zh: '文档 / 图片 / 数据集 / 教程', en: 'Docs, images, datasets, tutorials' } },
       { value: 'fonts', label: { zh: '字体 / 字形设计', en: 'Fonts / typefaces' } },
       { value: 'hardware', label: { zh: '硬件设计 / CAD / 电路图', en: 'Hardware designs, CAD, schematics' } },
@@ -101,11 +107,27 @@ export const QUESTIONS: Question[] = [
       en: 'Must users keep your attribution?',
     },
     why: {
-      zh: '放弃署名义务（MIT-0 / 0BSD / CC0）能让代码被最无摩擦地复制，代价是你的贡献可能永远不会被提及。',
-      en: 'Dropping the attribution requirement (MIT-0, 0BSD, CC0) makes reuse maximally frictionless, at the cost of your contribution possibly never being mentioned.',
+      zh: '放弃署名义务（MIT-0 / 0BSD / CC0）能让代码被最无摩擦地复制，代价是你的贡献可能永远不会被提及。反过来，署名之外还可以再要求一件事：不许拿你的名字去给他的产品做宣传——那对应 BSD-3-Clause 那一类许可。',
+      en: 'Dropping the attribution requirement (MIT-0, 0BSD, CC0) makes reuse maximally frictionless, at the cost of your contribution possibly never being mentioned. Beyond attribution you may also forbid one more thing: using your name to promote their product — that is the BSD-3-Clause family.',
     },
     options: [
       { value: 'yes', label: { zh: '必须保留署名与版权声明', en: 'Yes, keep my notice' } },
+      {
+        value: 'notice-and-no-promotion',
+        label: { zh: '保留署名，且不许用我的名义背书或促销', en: 'Keep my notice, and no endorsing or promoting with my name' },
+        // 背书与促销是两件事，各占一行讲清楚——用户看到选项名时未必分得清，
+        // 而这两条在许可条款里也常常分开写。
+        note: {
+          zh: [
+            '背书：不能说"作者认可 / 推荐本产品"',
+            '促销：不能在宣传里说"本产品基于作者的技术构建"',
+          ],
+          en: [
+            'Endorsement: they may not say "the authors endorse or recommend this product"',
+            'Promotion: they may not advertise it as "built on the authors’ work"',
+          ],
+        },
+      },
       { value: 'no', label: { zh: '不需要，随便用', en: 'No, use it freely' } },
     ],
   },
@@ -185,36 +207,71 @@ export function recommend(answers: Answers): Recommendation[] {
 
   /* ---- 非软件分支 ---- */
   if (kind === 'content') {
-    return rank(
-      ['CC-BY-4.0', 'CC-BY-SA-4.0', 'CC0-1.0', 'MIT'],
-      answers,
-      {
-        'CC-BY-4.0': [
-          [true, { zh: '内容与数据的默认选择：署名即可自由使用。', en: 'The default for content and data: free use with attribution.' }],
-        ],
-        'CC-BY-SA-4.0': [
-          [closed === 'no', { zh: '你要求衍生作品保持开放，CC BY-SA 是内容层面的著佐权。', en: 'You want derivatives to stay open, and CC BY-SA is copyleft for content.' }],
-        ],
-        'CC0-1.0': [
-          [attribution === 'no', { zh: '你不在意署名，CC0 提供最彻底也最可执行的放弃权利方案（比 Unlicense 法律确定性更高）。', en: 'Attribution does not matter to you, and CC0 is both the most thorough and the most enforceable dedication — more predictable than the Unlicense.' }],
-        ],
-        MIT: [
-          [false, { zh: '如果这其实是代码而不是内容，CC 许可是错误选择——Creative Commons 官方也这么建议。', en: 'If this is actually code rather than content, a CC license is the wrong tool — Creative Commons says so themselves.' }],
-        ],
-      },
-      kind,
-      answers,
-    );
+    return rank(['CC-BY-4.0', 'CC-BY-SA-4.0', 'CC0-1.0', 'MIT'], {
+      'CC-BY-4.0': [
+        [true, { zh: '内容与数据的默认选择：署名即可自由使用。', en: 'The default for content and data: free use with attribution.' }],
+        // CC 4.0 的 §6 标题就叫 No endorsement，正文明确不许宣称"获得了授权方认可"
+        [attribution === 'notice-and-no-promotion', { zh: 'CC 4.0 第 6 条正是「No endorsement」：不许宣称你获得了作者的认可或赞助，与你的要求一致。', en: 'CC 4.0 §6 is literally "No endorsement": nobody may claim your approval or sponsorship. That matches what you asked for.' }],
+      ],
+      'CC-BY-SA-4.0': [
+        [closed === 'no', { zh: '你要求衍生作品保持开放，CC BY-SA 是内容层面的著佐权。', en: 'You want derivatives to stay open, and CC BY-SA is copyleft for content.' }],
+        [attribution === 'notice-and-no-promotion', { zh: '同样带第 6 条的禁止背书条款，并且要求改编作品沿用同一许可。', en: 'It carries the same §6 no-endorsement clause and additionally requires adaptations to keep the same license.' }],
+      ],
+      'CC0-1.0': [
+        [attribution === 'no', { zh: '你不在意署名，CC0 提供最彻底也最可执行的放弃权利方案（比 Unlicense 法律确定性更高）。', en: 'Attribution does not matter to you, and CC0 is both the most thorough and the most enforceable dedication — more predictable than the Unlicense.' }],
+      ],
+      MIT: [
+        [false, { zh: '如果这其实是代码而不是内容，CC 许可是错误选择——Creative Commons 官方也这么建议。', en: 'If this is actually code rather than content, a CC license is the wrong tool — Creative Commons says so themselves.' }],
+      ],
+    });
   }
   if (kind === 'fonts') {
-    return rank(['OFL-1.1', 'CC-BY-4.0'], answers, {
-      'OFL-1.1': [[true, { zh: '字体专用许可，解决字体嵌入与再分发问题，同时用 Reserved Font Name 保护字形设计。', en: 'The font-specific license: it handles embedding and redistribution while protecting the typeface through a Reserved Font Name.' }]],
-    }, kind, answers);
+    // OFL 用 Reserved Font Name 同时满足两种诉求：改名的衍生字体可以闭源分发，
+    // 沿用原名的必须继续用 OFL。所以它既覆盖"允许闭源"也覆盖"衍生保持开放"。
+    const fontPool = closed === 'no' ? ['OFL-1.1'] : ['OFL-1.1', 'CC-BY-4.0'];
+    return rank(fontPool, {
+      'OFL-1.1': [
+        [true, { zh: '字体专用许可，解决字体嵌入与再分发问题，同时用 Reserved Font Name 保护字形设计。', en: 'The font-specific license: it handles embedding and redistribution while protecting the typeface through a Reserved Font Name.' }],
+        // 这条给 OFL 第二个命中，保证它在"允许闭源"时仍排在 CC-BY 之前。
+        // 只靠"字体专用"一条命中时，CC-BY 会凭两条泛泛命中的理由反超，
+        // 于是字体问题给出一个内容许可当首选——那是错的建议。
+        [attribution !== 'no', { zh: '它强制保留作者署名与版权声明。', en: 'It mandates keeping the authors’ notice and copyright.' }],
+        [closed === 'no', { zh: '沿用原名的衍生字体必须继续用 OFL，符合你"衍生作品保持开放"的要求。', en: 'Derivatives that keep the original name must stay under the OFL, which matches your requirement that derivatives stay open.' }],
+        [attribution === 'notice-and-no-promotion', { zh: '第 4 条明确禁止拿作者名义为修改版促销或背书，与你的要求一致。', en: 'Clause 4 explicitly bans using the authors’ names to promote or endorse a modified version — exactly your requirement.' }],
+      ],
+      'CC-BY-4.0': [
+        [true, { zh: '备选：如果你的产物不止字体（例如字体加配图说明），CC-BY 覆盖面更宽。', en: 'The alternative: if what you are licensing is more than the font itself — say a font plus documentation — CC-BY covers the wider work.' }],
+        [false, { zh: '它是内容许可，没有 OFL 的保留字体名机制，字体嵌入与改名场景都不如 OFL 贴切。', en: 'It is a content license with no reserved-font-name mechanism, so it fits embedding and renaming less well than the OFL.' }],
+      ],
+    });
   }
   if (kind === 'hardware') {
-    return rank(['CERN-OHL-S-2.0', 'CERN-OHL-S-2.0', 'Apache-2.0'], answers, {
-      'CERN-OHL-S-2.0': [[true, { zh: '硬件设计不受著作权保护，需要专门的硬件许可；CERN-OHL-S 是强互惠版本，Codeberg 官方指南对硬件项目的首选。', en: 'Hardware designs are not covered by copyright the way code is, so a dedicated hardware license is needed. CERN-OHL-S is the strongly reciprocal variant and Codeberg’s top pick.' }]],
-    }, kind, answers);
+    // 硬件许可也有宽松 / 弱互惠 / 强互惠三档。原来这里写的是两个候选，
+    // 而且第一个 ID 重复了两次，被 rank 去重后实际只剩两条——等于完全忽略了
+    // "能不能闭源"这个最重要的答案。
+    const hwPool =
+      closed === 'yes'
+        ? ['CERN-OHL-P-2.0', 'Apache-2.0', 'CERN-OHL-W-2.0']
+        : closed === 'no'
+          ? ['CERN-OHL-S-2.0', 'CERN-OHL-W-2.0']
+          : ['CERN-OHL-S-2.0', 'CERN-OHL-W-2.0', 'CERN-OHL-P-2.0'];
+    return rank(hwPool, {
+      'CERN-OHL-P-2.0': [
+        [true, { zh: '宽松版硬件许可：修改者不必回馈，采用阻力最小。', en: 'The permissive hardware license: modifiers need not give anything back, the least friction.' }],
+        [closed === 'yes', { zh: '你允许闭源，CERN-OHL-P 正是为此准备的。', en: 'You allow closed derivatives, which is exactly what CERN-OHL-P is for.' }],
+      ],
+      'CERN-OHL-W-2.0': [
+        [true, { zh: '弱互惠版：只要求改过的那部分设计回馈，可以与其他设计组合。', en: 'Weakly reciprocal: only the parts you changed must be given back, and it combines with other designs.' }],
+        [closed === 'unsure', { zh: '你不确定时它是折中：给出去的设计要回馈，你自己的部分不受影响。', en: 'A middle path when unsure: what you were given comes back, your own parts are unaffected.' }],
+      ],
+      'CERN-OHL-S-2.0': [
+        [true, { zh: '强互惠版硬件许可：衍生设计整体要沿用同一许可，Codeberg 官方指南对硬件项目的首选。', en: 'The strongly reciprocal hardware license: derivative designs stay under it. Codeberg’s top pick for hardware.' }],
+        [closed === 'no', { zh: '你要求衍生作品保持开放，它把这一点落实到设计文件本身。', en: 'You require derivatives to stay open, and it enforces that on the design files themselves.' }],
+      ],
+      'Apache-2.0': [
+        [true, { zh: '如果项目里还有配套的固件或上位机软件，Apache-2.0 是硬件项目里最常见的软件侧选择。', en: 'If the project also ships firmware or host software, Apache-2.0 is the usual software-side choice in hardware projects.' }],
+      ],
+    });
   }
 
   /* ---- 软件分支 ---- */
@@ -267,6 +324,22 @@ export function recommend(answers: Answers): Recommendation[] {
       reasons['MIT-0'] = [[true, { zh: '你不在意署名，MIT-0 直接去掉了署名义务，同时保持 MIT 的其余宽松条款。', en: 'You do not need attribution, and MIT-0 removes that requirement while keeping MIT’s permissiveness.' }]];
       reasons['0BSD'] = [[true, { zh: '零条款版本，条件比 MIT-0 还少，且被 OSI 认证。', en: 'A zero-condition variant, even lighter than MIT-0 and OSI-approved.' }]];
     }
+    // 「保留署名，但不许用我的名义背书或促销」——这正是 BSD-3-Clause 相对 MIT
+    // 多出来的那一条。把它提到最前，否则用户选了这一项后看到的候选与"必须保留署名"
+    // 完全一样，等于这个选项没有作用。
+    if (attribution === 'notice-and-no-promotion') {
+      pool.unshift('BSD-3-Clause');
+      reasons['BSD-3-Clause'] = [
+        [true, { zh: '正是你要的组合：保留署名与版权声明，并额外禁止他人用你的名义为衍生品背书或促销。', en: 'Exactly what you asked for: attribution stays, and using your name to endorse or promote derivatives is forbidden.' }],
+        [true, { zh: '注意它**没有**专利授权条款——如果专利对你重要，看下面 Apache-2.0 的取舍。', en: 'Caveat: it grants no patent rights. If patents matter, weigh that against Apache-2.0 below.' }],
+      ];
+      reasons['MIT'] = [
+        [true, { zh: 'MIT 也要求保留署名，但**不禁**用你的名义宣传；差异就在这一条。', en: 'MIT also keeps the notice but does not ban promotion with your name — that is the whole difference.' }],
+      ];
+      reasons['Apache-2.0'] = [
+        [true, { zh: '同样要求署名，且明确授予专利；但它不含禁止背书/促销条款，只禁止用你的商标。', en: 'Also requires attribution and adds an explicit patent grant, but it has no endorsement/promotion ban — only a trademark clause.' }],
+      ];
+    }
   } else if (closed === 'no') {
     const familyRoot = gplVersion === 'only' ? '-only' : '-or-later';
     if (network === 'yes') {
@@ -313,20 +386,32 @@ export function recommend(answers: Answers): Recommendation[] {
     reasons['MPL-2.0'] = [[true, { zh: '中间路线：只要求被改动的文件保持开源。', en: 'The middle path: only modified files must stay open.' }]];
   }
 
-  return rank(pool, answers, reasons, kind, answers);
+  return rank(pool, reasons);
 }
 
+/**
+ * 把候选池排成带理由的推荐列表。
+ *
+ * 打分：`命中数 × 10 − 池内位置`。
+ *
+ * ⚠️ 落空项**刻意不扣分**，这一点容易改错：
+ * `[条件, 理由]` 里的条件为假，绝大多数情况只是"这条理由不适用于你的回答"
+ * （例如 `[closed === 'no', '衍生作品必须保持开放']` 对"允许闭源"的人不适用），
+ * 那**不是冲突**。曾经给落空项扣过 60 分，结果是 OFL-1.1 在"字体 + 允许闭源"
+ * 下被扣成负分，排到了 CC-BY-4.0 后面——把领域内唯一的专用许可挤掉了。
+ * 真正表示"这份许可不适合你"的用法只有一处（内容分支里的 MIT），
+ * 那种情况靠"零命中 + 落空"自然排到最后，并配一句如实的理由（见下）。
+ */
 function rank(
   ids: string[],
-  _answers: Answers,
   reasons: Record<string, [boolean, { zh: string; en: string }][]>,
-  _kind: string,
-  _all: Answers,
 ): Recommendation[] {
   const seen = new Set<string>();
   const out: Recommendation[] = [];
   ids.forEach((id, index) => {
     const entry = LICENSE_BY_ID[id];
+    // 不在人工整理集合里的 ID 会被静默丢弃。写候选池时务必确认 ID 存在，
+    // 否则用户看不到任何提示，只觉得"候选莫名其妙少了一个"。
     if (!entry || seen.has(id)) return;
     seen.add(id);
     const raw = reasons[id] ?? [];
@@ -335,7 +420,12 @@ function rank(
     out.push({
       license: entry,
       score: hits.length * 10 - index,
-      reasons: hits.length ? hits : [{ zh: '与你刚才的回答没有直接冲突。', en: 'No direct conflict with your answers.' }],
+      reasons: hits.length
+        ? hits
+        : misses.length
+          ? // 一条都没命中却有落空项：别说"没有冲突"，如实讲它为什么在这儿
+            [{ zh: '它不是为你这些回答准备的，列在这里是让你看到差别。', en: 'Not built for the answers you gave — it is listed so you can see the contrast.' }]
+          : [{ zh: '与你刚才的回答没有直接冲突。', en: 'No direct conflict with your answers.' }],
       cautions: [
         ...misses,
         { zh: entry.tradeoffs.zh, en: entry.tradeoffs.en },

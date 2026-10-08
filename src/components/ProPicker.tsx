@@ -594,6 +594,16 @@ function CatalogDetail({
 
   const isSpdx = entry.source === 'spdx';
   const scEntry = !isSpdx ? scancode?.entries.find((e) => e.key === entry.scancodeKey) : undefined;
+  /**
+   * 中文文本来源。两个来源要都看：
+   *  · `extra.chinese` —— SPDX 条目走这里（enrichment 只为 SPDX 名录生成记录）
+   *  · `enrichment.chinese[key]` —— ScanCode 独有条目走这里
+   *
+   * 后者是必需的：木兰公共许可证**不在 SPDX 名录里**，只能从 ScanCode 拿到
+   * 纯英文副本，它的官方中文正文入口只存在于这张按 ScanCode 键分键的映射里。
+   * 早先只看 `extra.chinese`，于是木兰公共的「中文文本」区块整块不显示。
+   */
+  const chineseText = extra?.chinese ?? enrichment?.chinese?.[isSpdx ? entry.id : (entry.scancodeKey ?? '')];
 
   // 正文按需加载：只有真正看某一条时才去取，避免浏览列表就下载 13MB
   useEffect(() => {
@@ -834,11 +844,11 @@ function CatalogDetail({
       ) : null}
 
       {/* 中文文本 */}
-      {extra?.chinese ? (
+      {chineseText ? (
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">{zh ? '中文文本' : 'Chinese text'}</h3>
           <p className="mt-1.5 text-xs text-ink-600">
-            {extra.chinese.kind === 'reviewed-translation'
+            {chineseText.kind === 'reviewed-translation'
               ? zh
                 ? '有开放原子《源译识》经专家评审的中英对照审定稿（译文以 CC0 贡献）。'
                 : 'A reviewed Chinese-English final text from the OpenAtom Foundation project (CC0).'
@@ -846,14 +856,33 @@ function CatalogDetail({
                 ? '该许可证自带官方中文正文或权利人发布了官方中文文本。'
                 : 'This license ships an official Chinese text, or its steward publishes one.'}
           </p>
-          {extra.chinese.note ? <p className="mt-1 text-xs text-advisory">{extra.chinese.note[lang]}</p> : null}
+          {chineseText.note ? <p className="mt-1 text-xs text-advisory">{chineseText.note[lang]}</p> : null}
           <p className="mono mt-1.5 text-[11px] break-all">
-            <a className="underline decoration-dotted" href={extra.chinese.url} target="_blank" rel="noreferrer noopener">
-              {extra.chinese.url}
+            <a className="underline decoration-dotted" href={chineseText.url} target="_blank" rel="noreferrer noopener">
+              {chineseText.url}
             </a>
           </p>
         </section>
-      ) : null}
+      ) : (
+        // 没有中文出处时**如实标注**，而不是什么都不显示——否则用户会以为
+        // 这个许可有中文、只是我没找到入口。ISC / BSD-2 / Zlib / OFL / CERN-OHL
+        // 这 19 个人工整理的许可就属于"既没有官方中文正文，也没有评审译稿"。
+        // 措辞只讲本站收录到什么，不断言"世上没有中文"——不存在的来源里找东西，
+        // 结论只能是"我们没有"，不能是"它没有"。
+        <section>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">{zh ? '中文文本' : 'Chinese text'}</h3>
+          <p className="mt-1.5 text-xs text-ink-600">
+            {zh
+              ? '本站未收录该许可的中文文本：既没有官方中文正文，也没有经评审的译稿。'
+              : 'No Chinese text for this license is included here: neither an official Chinese text nor a reviewed translation.'}
+          </p>
+          <p className="mt-1 text-xs text-ink-400">
+            {zh
+              ? '不代表世上不存在中文译本——只是本站收录的六个数据源里没有。'
+              : 'This does not mean no Chinese translation exists anywhere — only that none of the six sources this site draws from has one.'}
+          </p>
+        </section>
+      )}
 
       {/* WITH 例外：仅对 SPDX 条目有意义 */}
       {isSpdx ? (

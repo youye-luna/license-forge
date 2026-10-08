@@ -2,7 +2,7 @@
 
 > 按**真实条款差异**选许可证，然后一次生成整套合规文件。
 
-一个纯静态的开源许可证选择与产物生成器：收录 **2476 个**许可证（SPDX 全量 + ScanCode 独有部分），
+一个纯静态的开源许可证选择与产物生成器：收录 **2469 个**许可证（SPDX 全量 + ScanCode 独有部分），
 用问卷或类别浏览帮你选，选中后一次产出 `LICENSE`、`NOTICE`、源文件声明头、README 许可段、
 包管理器 `license` 字段，以及 REUSE 布局的 `LICENSES/` 目录。
 
@@ -73,13 +73,13 @@ OSADL 义务清单；条款字段的人工标注来自 ChooseALicense；OSI 审�
 | 来源 | 提供什么 | 覆盖 | 许可 |
 |---|---|---|---|
 | **[SPDX License List](https://spdx.org/licenses/)** | 标识符、全量正文、`standardLicenseHeader`（93 个官方文件头）、OSI/FSF 状态 | 740 + 86 例外 | CC0 |
-| **[ScanCode LicenseDB](https://scancode-licensedb.aboutcode.org/)** | 权威 `category` 分类、归属方、主页，以及 **SPDX 没收录的 1736 个许可证正文** | 分类 726/740；独有 1736 条 | CC-BY-4.0 |
+| **[ScanCode LicenseDB](https://scancode-licensedb.aboutcode.org/)** | 权威 `category` 分类、归属方、主页，以及 **SPDX 没收录的 1729 个许可证正文** | 分类 726/740；独有 1729 条 | CC-BY-4.0 |
 | **[OSADL Obligations Checklist](https://www.osadl.org/Checklists)** | 兼容性矩阵、copyleft 判定、源码披露义务 | 115 个许可 / 13225 条判定 | CC-BY-4.0 |
 | **[ChooseALicense](https://github.com/github/choosealicense.com)** | 条款字段的人工标注（专利、商标、改动标注、网络触发） | 47 个主流许可 | CC-BY-3.0 |
 | **[OSI 官方 API](https://opensource.org/api/licenses)** | `keywords`（superseded / non-reusable 等）、批准日期 | 123/740 | — |
 | **[开放原子《源译识》](https://gitcode.com/translation/license-translation)** | 15 个许可证的中英对照审定稿链接 | 15 | 译文 CC0 |
 
-**合计可选 2476 个许可证**：SPDX 的 740 个 + ScanCode 独有的 1736 个。
+**合计可选 2469 个许可证**：SPDX 的 740 个 + ScanCode 独有的 1729 个。
 
 ScanCode 那部分正是 SPDX 查不到的东西——`Anti 996` License、ActiveState Community License、
 各类厂商的 Proprietary Free / Non-Commercial / Source-available 条款。这些在真实代码库里
@@ -158,7 +158,7 @@ SPDX-License-Identifier: MIT
 | 步骤 | 做什么 |
 |---|---|
 | ① 问卷选许可 | 8 个问题，每题说明"为什么问这个"与背后的条款差异；产出**候选集 + 各自的代价**，而不是"唯一正确答案" |
-| ② 选择与对比 | 2476 个许可证，按类别/来源/搜索定位；列表与**对比矩阵**两种视图；最多 4 个放进对比工作台细看 |
+| ② 选择与对比 | 2469 个许可证，按类别/来源/搜索定位；列表与**对比矩阵**两种视图；最多 4 个放进对比工作台细看 |
 | ③ 生成产物 | 许可证全文、源文件头、NOTICE（可选）、README 段、包管理器字段，打包下载 |
 | ④ 关于 | 数据从哪来、遵守哪几条硬规则、有哪些已知限制 |
 
@@ -257,7 +257,7 @@ MulanPSL-2.0 的正文为中英双语，且其第 6 条明确"以中文版为准
 BSD-3-Clause-Clear 会被判成同一类。
 
 **4. ScanCode 的分类不覆盖独有条目。** enrichment 只覆盖 SPDX 列表内的 740 个，
-ScanCode 独有的 1736 个在它里面找不到记录。家族判定必须先查 enrichment、
+ScanCode 独有的 1729 个在它里面找不到记录。家族判定必须先查 enrichment、
 查不到再退回条目自带的 `category`，否则会全部默认成 permissive。
 
 **5. 各源自身的字段坑**：
