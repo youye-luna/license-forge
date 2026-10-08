@@ -225,6 +225,40 @@ test('木兰：宽松型只剩官方双语条目，公共型有官方中文入�
   }
 });
 
+test('ScanCode 里四组"同文不同名"的条目必须保持独立，不得合并', () => {
+  // 归一化正文哈希相同，**不等于**同一份许可。这四组逐条核对过元数据后决定不合并：
+  //
+  //  · linum / philippe-de-muyter —— 两键里存的都只是同一段免责声明（188/179 字），
+  //    **许可本体没被提取到**。哈希相同是去掉注释符号 ` * ` 后的假象，
+  //    实为两个许可共用同段免责文案。
+  //  · ms-refl / ms-rsl —— 正文同为 2068 字，但名称（Reference vs Reference Source）
+  //    与首页（sharedsource/... vs referencesource.microsoft.com）都不同，
+  //    仅凭数据无法判定是同一份文档，合并等于替上游做判断。
+  //  · ralf-corsepius / red-hat-attribution —— 121 字正文**一字不差**，
+  //    但归属不同（Red Hat 有 owner 字段、另一条没有）；合并会丢掉归属方。
+  //  · google-patent-license-fuchsia / -fuschia —— 同文同归属，差异只在键名拼写
+  //    与首页路径。这一组确实是同一份许可的拼写变体，但**仍然分开**：
+  //    键名是上游给的，擅自合并会在与 ScanCode 对账时对不上。
+  //
+  // 结论：本项目按"键名"收录，不按"正文"归并。正文相同只作为**提示**，
+  // 不能作为删除一条的理由。
+  const keepSeparate = [
+    ['linum', 'philippe-de-muyter'],
+    ['ms-refl', 'ms-rsl'],
+    ['ralf-corsepius', 'red-hat-attribution'],
+    ['google-patent-license-fuchsia', 'google-patent-license-fuschia'],
+  ];
+  const present = new Set(UNIFIED.filter((e) => e.source === 'scancode').map((e) => e.scancodeKey));
+  for (const [a, b] of keepSeparate) {
+    assert.ok(present.has(a), `${a} 应当保持独立存在`);
+    assert.ok(present.has(b), `${b} 应当保持独立存在`);
+  }
+  // 反向守住：`-en` 那类英文单语副本仍然要被剔除（那是真正的重复）
+  for (const key of ['mulanpsl-1.0-en', 'mulanpsl-2.0-en']) {
+    assert.ok(!present.has(key), `${key} 是英文副本，应当被剔除`);
+  }
+});
+
 test('facts 的字段不许在传递链上丢失', () => {
   // 踩过的坑：deriveFacts 算出了 endorse / promote / includeCopyright，但
   // LicenseSpec.facts 的类型 LicenseFacts 是**手写枚举**的，没声明这几个字段，
