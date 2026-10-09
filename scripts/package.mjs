@@ -62,7 +62,7 @@ const toEntry = (p) => relative(outDir, p).split(sep).join('/');
 
 const files = (await walk(outDir)).map((p) => ({ path: p, entry: toEntry(p) }));
 // release/ 里的文件放在 zip 根目录
-for (const name of ['DEPLOY.md', 'server.mjs', '启动网站.cmd']) {
+for (const name of ['DEPLOY.md', 'server.mjs', '启动网站.cmd', 'web.config']) {
   const p = join(releaseDir, name);
   if (!existsSync(p)) {
     console.error(`✗ release/${name} 不存在`);
