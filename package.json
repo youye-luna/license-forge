@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "开源许可证选择与完整产物生成器 — 一次生成 LICENSE、NOTICE、源文件头、README 段与包管理器字段",
+  "description": "寮€婧愯鍙瘉閫夋嫨涓庡畬鏁翠骇鐗╃敓鎴愬櫒 鈥?涓€娆＄敓鎴?LICENSE銆丯OTICE銆佹簮鏂囦欢澶淬€丷EADME 娈典笌鍖呯鐞嗗櫒瀛楁",
   "license": "MIT",
   "author": "youye-luna",
   "homepage": "https://github.com/youye-luna/license-forge",
@@ -38,6 +38,7 @@
     "audit:placeholders": "node scripts/audit-placeholders.mjs",
     "dev": "next dev",
     "build": "next build --webpack",
+    "package": "node scripts/package.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/generate.test.mjs tests/enrichment.test.mjs tests/scancode.test.mjs tests/terms.test.mjs tests/compare.test.mjs tests/subject.test.mjs tests/sort.test.mjs tests/flow.test.mjs"

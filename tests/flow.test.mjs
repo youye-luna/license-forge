@@ -1,6 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+
+test('发行版启动脚本必须是纯 ASCII（cmd.exe 按控制台代码页解析）', () => {
+  // 这条有实际教训：第一版 .cmd 的注释里带了个全角破折号 `—`（UTF-8 占 3 字节），
+  // cmd.exe 用控制台代码页读批处理文件，非 ASCII 会被误解码，严重的会中断解析。
+  // 所以发布用的 .cmd 一律只允许 ASCII。
+  const url = new URL('../release/启动网站.cmd', import.meta.url);
+  const cmd = readFileSync(url, 'utf8');
+  assert.ok(cmd.length > 500, '启动脚本应当是完整实现，不是占位');
+
+  const buf = readFileSync(url);
+  const nonAscii = [...buf].filter((b) => b > 127);
+  assert.deepEqual(nonAscii, [], `启动脚本含 ${nonAscii.length} 个非 ASCII 字节，cmd.exe 会解析错`);
+  assert.ok(
+    !(buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf),
+    '启动脚本不能带 UTF-8 BOM',
+  );
+  // 关键步骤都要在：找运行时、起服务器、开浏览器、找不到时给安装地址
+  for (const marker of ['where node', 'server.mjs', 'start "" http://', 'pause', 'exit /b 1']) {
+    assert.ok(cmd.includes(marker), `启动脚本缺少关键步骤：${marker}`);
+  }
+});
+
+test('打包脚本与发布源文件都在仓库里，不落在被忽略的 dist/', () => {
+  // dist/ 在 .gitignore 里，放进去的文件克隆一份就没了。发布用的源文件
+  // （部署文档、服务器、启动脚本）必须放在受跟踪的 release/ 里。
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok(pkg.scripts.package, '应当有 npm run package 脚本，打包才可复现');
+  for (const f of ['DEPLOY.md', 'server.mjs', '启动网站.cmd']) {
+    assert.ok(
+      existsSync(new URL(`../release/${f}`, import.meta.url)),
+      `release/${f} 应当存在（不能只放在被忽略的 dist/ 里）`,
+    );
+  }
+  assert.ok(existsSync(new URL('../scripts/package.mjs', import.meta.url)), '打包脚本应当入库');
+  // 打包脚本必须守住正斜杠
+  const pack = readFileSync(new URL('../scripts/package.mjs', import.meta.url), 'utf8');
+  assert.ok(pack.includes('split(sep).join'), '打包脚本应当把 Windows 反斜杠转成正斜杠');
+  assert.ok(pack.includes('BACKSLASH='), '打包脚本应当自检有没有反斜杠路径');
+});
 
 test('中文文本没有出处时要如实标注，不能什么都不显示', () => {
   // 19 个人工整理的许可（ISC、BSD-2、Zlib、OFL、CERN-OHL 系列…）既没有官方中文正文，
