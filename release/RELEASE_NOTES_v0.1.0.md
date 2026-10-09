@@ -8,9 +8,11 @@
 
 ## 下载
 
-`license-forge-v0.1.0-static.zip`（4.7 MB）——解压后**双击 `启动网站.cmd`** 就能在本机打开；要部署则把里面的文件原样上传到静态托管的**根目录**，不需要 Node.js 或构建步骤。`SHA256SUMS.txt` 用于校验下载完整性。
+`license-forge-v0.1.0-static.zip`（4.7 MB）——解压后上传到静态托管的**根目录**即可，不需要 Node.js 或构建步骤。包内含 `web.config`（IIS 部署用）。`SHA256SUMS.txt` 用于校验下载完整性。
 
-> **不要直接双击 `index.html`**：页面资源与数据都走绝对路径，且数据是用 `fetch()` 拉取的，`file://` 下浏览器会直接拒绝——这是安全策略，不是包坏了。`启动网站.cmd` 会起本地服务器并自动开浏览器；它调用的零依赖 `server.mjs` 请一并保留。
+> **不要直接双击 `index.html`**：页面资源与数据都走绝对路径，且数据是用 `fetch()` 拉取的，`file://` 下浏览器会直接拒绝——这是安全策略，不是包坏了。本机预览请在解压目录里起个服务器，例如 `python -m http.server 8080`。
+>
+> **部署到 IIS** 请一并带上 `web.config`（补 MIME 与默认文档），并把站点建在根路径。
 >
 > **子路径部署**（如 `example.com/licenses/`）需要从源码重新构建并设置 `basePath`，详见包内 `DEPLOY.md`。
 

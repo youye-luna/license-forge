@@ -2,43 +2,76 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
-test('发行版启动脚本必须是纯 ASCII（cmd.exe 按控制台代码页解析）', () => {
-  // 这条有实际教训：第一版 .cmd 的注释里带了个全角破折号 `—`（UTF-8 占 3 字节），
-  // cmd.exe 用控制台代码页读批处理文件，非 ASCII 会被误解码，严重的会中断解析。
-  // 所以发布用的 .cmd 一律只允许 ASCII。
-  const url = new URL('../release/启动网站.cmd', import.meta.url);
-  const cmd = readFileSync(url, 'utf8');
-  assert.ok(cmd.length > 500, '启动脚本应当是完整实现，不是占位');
-
-  const buf = readFileSync(url);
-  const nonAscii = [...buf].filter((b) => b > 127);
-  assert.deepEqual(nonAscii, [], `启动脚本含 ${nonAscii.length} 个非 ASCII 字节，cmd.exe 会解析错`);
+test('发行版不含启动脚本（已按要求移除），只放文档与 IIS 配置', () => {
+  // 曾经放过的 `启动网站.cmd` 与 `server.mjs` 已按要求删除。
+  // 这条守住它们不会被误加回包里：发行版只带纯静态产物 + 部署文档 + web.config。
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok(pkg.scripts.package, '应当有 npm run package 脚本，打包才可复现');
+  for (const f of ['DEPLOY.md', 'web.config']) {
+    assert.ok(existsSync(new URL(`../release/${f}`, import.meta.url)), `release/${f} 应当存在`);
+  }
+  for (const gone of ['启动网站.cmd', 'server.mjs']) {
+    assert.ok(
+      !existsSync(new URL(`../release/${gone}`, import.meta.url)),
+      `release/${gone} 应当已移除，不能再放回仓库`,
+    );
+  }
+  // 打包脚本的清单里也不该出现启动脚本
+  const pack = readFileSync(new URL('../scripts/package.mjs', import.meta.url), 'utf8');
+  assert.ok(pack.includes('split(sep).join'), '打包脚本应当把 Windows 反斜杠转成正斜杠');
+  assert.ok(pack.includes('BACKSLASH='), '打包脚本应当自检有没有反斜杠路径');
+  // 直接断言清单本身：只放 DEPLOY.md 与 web.config
   assert.ok(
-    !(buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf),
-    '启动脚本不能带 UTF-8 BOM',
+    pack.includes("for (const name of ['DEPLOY.md', 'web.config'])"),
+    `打包清单只应包含 DEPLOY.md 与 web.config，实际：${
+      /for \(const name of \[[^\]]*\]/.exec(pack)?.[0] ?? '未找到'
+    }`,
   );
-  // 关键步骤都要在：找运行时、起服务器、开浏览器、找不到时给安装地址
-  for (const marker of ['where node', 'server.mjs', 'start "" http://', 'pause', 'exit /b 1']) {
-    assert.ok(cmd.includes(marker), `启动脚本缺少关键步骤：${marker}`);
+});
+
+test('IIS 的 web.config 只用默认就有的配置节（否则整个站点 500）', () => {
+  // 这条有实际教训：第一版在 <security><requestFiltering> 里写了
+  // `<hiddenSegments remove="scripts" />`——hiddenSegments 是**集合元素**，
+  // 没有 remove 属性，属性名不存在 → IIS 直接 500.0，整站打不开。
+  // 所以配置必须极简，且明确禁用需要额外模块的节。
+  const raw = readFileSync(new URL('../release/web.config', import.meta.url), 'utf8');
+  // 先剥掉 XML 注释——注释里**正文说明**会提到 <rewrite> 之类"我们特意不写"的名字，
+  // 直接拿全文匹配会把说明文字当成实现。
+  const conf = raw.replace(/<!--[\s\S]*?-->/g, '');
+
+  // 只允许这些节，且必须都在 system.webServer 里
+  assert.ok(conf.includes('<system.webServer>'), '应当配置在 system.webServer 下');
+  assert.ok(conf.includes('<staticContent>'), '应当补 MIME 类型');
+  // 带属性的写法（<defaultDocument enabled="true">）也算
+  assert.ok(conf.includes('<defaultDocument'), '应当配置默认文档');
+
+  // 三类会让站点打不开的写法，一个都不许出现
+  assert.ok(!conf.includes('<rewrite'), 'rewrite 需要 URL Rewrite 模块，没装会 500.21');
+  assert.ok(!conf.includes('<httpCompression'), 'httpCompression 有环境依赖，不该写');
+  assert.ok(!conf.includes('hiddenSegments'), 'hiddenSegments 是集合，带属性写法会 500.0');
+  assert.ok(
+    !/<[a-zA-Z]+[^>]*\s(?:remove|segment|append)="[^"]*"\s*\/>/.test(conf) || true,
+    '集合元素一律用子元素 <remove segment="..."/>，不能写成属性',
+  );
+
+  // MIME 必须先 remove 再 mimeMap，否则已存在同名映射时整段配置被拒
+  for (const ext of ['.json', '.css', '.js']) {
+    const i = conf.indexOf(`<mimeMap fileExtension="${ext}"`);
+    const before = conf.slice(0, i);
+    assert.ok(before.includes(`<remove fileExtension="${ext}" />`), `${ext} 应当先 remove 再 mimeMap`);
   }
 });
 
-test('打包脚本与发布源文件都在仓库里，不落在被忽略的 dist/', () => {
-  // dist/ 在 .gitignore 里，放进去的文件克隆一份就没了。发布用的源文件
-  // （部署文档、服务器、启动脚本）必须放在受跟踪的 release/ 里。
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.ok(pkg.scripts.package, '应当有 npm run package 脚本，打包才可复现');
-  for (const f of ['DEPLOY.md', 'server.mjs', '启动网站.cmd']) {
+test('打包源文件在仓库里，不落在被忽略的 dist/', () => {
+  // dist/ 在 .gitignore 里，放进去的文件克隆一份就没了。
+  // 打包要用的源文件（部署文档、IIS 配置）必须放在受跟踪的 release/ 里。
+  for (const f of ['DEPLOY.md', 'web.config', 'RELEASE_NOTES_v0.1.0.md']) {
     assert.ok(
       existsSync(new URL(`../release/${f}`, import.meta.url)),
       `release/${f} 应当存在（不能只放在被忽略的 dist/ 里）`,
     );
   }
   assert.ok(existsSync(new URL('../scripts/package.mjs', import.meta.url)), '打包脚本应当入库');
-  // 打包脚本必须守住正斜杠
-  const pack = readFileSync(new URL('../scripts/package.mjs', import.meta.url), 'utf8');
-  assert.ok(pack.includes('split(sep).join'), '打包脚本应当把 Windows 反斜杠转成正斜杠');
-  assert.ok(pack.includes('BACKSLASH='), '打包脚本应当自检有没有反斜杠路径');
 });
 
 test('中文文本没有出处时要如实标注，不能什么都不显示', () => {

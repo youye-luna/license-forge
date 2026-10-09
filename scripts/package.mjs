@@ -11,9 +11,10 @@
  *  1. ZIP 内路径**必须用正斜杠** —— Windows 的 Compress-Archive 会写成反斜杠，
  *     而所有静态托管解析 zip 都按正斜杠，反斜杠会导致解压后路径错乱。
  *  2. 不打包 `preview.*` 之类的历史脚本（已按要求删除）。
- *  3. 不打包 `node_modules/`、`out/` 之外的任何东西。
- *  4. `启动网站.cmd` 的内容必须是**纯 ASCII** —— cmd.exe 按控制台代码页解析
- *     批处理，UTF-8 中文会被误解码，甚至影响解析。仓库里有测试守住这一点。
+ *  3. 不打包 `node_modules/`、`out/` 之外的任何东西，也不打包启动脚本
+ *     （`启动网站.cmd` / `server.mjs` 已按要求移除，只留文档与 IIS 配置）。
+ *  4. `web.config` 必须**只用 IIS 默认就有的配置节** —— 一个带不存在属性的写法
+ *     就能让整站 500。仓库里有测试守住。
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -61,8 +62,10 @@ async function walk(dir, base = dir) {
 const toEntry = (p) => relative(outDir, p).split(sep).join('/');
 
 const files = (await walk(outDir)).map((p) => ({ path: p, entry: toEntry(p) }));
-// release/ 里的文件放在 zip 根目录
-for (const name of ['DEPLOY.md', 'server.mjs', '启动网站.cmd', 'web.config']) {
+// release/ 里的文件放在 zip 根目录。
+// 这里**不放任何启动脚本**（启动网站.cmd / server.mjs 已按要求移除）：
+// 本地与 IIS 都用文档中给出的命令自行启动。
+for (const name of ['DEPLOY.md', 'web.config']) {
   const p = join(releaseDir, name);
   if (!existsSync(p)) {
     console.error(`✗ release/${name} 不存在`);
