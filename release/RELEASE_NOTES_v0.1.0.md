@@ -2,7 +2,7 @@
 
 按真实条款差异选开源许可证，一次生成整套合规文件。纯静态站点，浏览器里运行，填写的内容不上传。
 
-**MIT** · [youye-luna](https://github.com/youye-luna) · [源码](https://github.com/youye-luna/license-forge)
+**GPL-3.0-or-later** · [youye-luna](https://github.com/youye-luna) · [源码](https://github.com/youye-luna/license-forge)
 
 ---
 
@@ -45,4 +45,4 @@
 
 数据来自多个上游，转发时请保留署名：ScanCode、OSADL 为 CC-BY-4.0，ChooseALicense 内容为 CC-BY-3.0，SPDX 与开放原子译文为 CC0。许可证正文版权归各原始发布方所有。
 
-本项目以 MIT 发布。
+本项目以 GPL-3.0-or-later 发布。

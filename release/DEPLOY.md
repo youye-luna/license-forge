@@ -155,7 +155,7 @@ php -S localhost:8080              # 有 PHP
 `data/license-texts.json` 与 `data/scancode-texts.json` 里的许可证正文，
 版权归各许可证的原始发布方所有，此处为逐字引用。
 
-本站点自身的代码以 **MIT** 发布，见源码仓库。
+本站点自身的代码以 **GPL-3.0-or-later** 发布，见源码仓库。
 
 ---
 

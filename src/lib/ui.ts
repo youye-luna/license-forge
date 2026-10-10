@@ -62,7 +62,14 @@ export const PROJECT = {
    */
   releasesLabel: 'v0.1.0',
   issues: 'https://github.com/youye-luna/license-forge/issues',
-  license: 'MIT',
+  /**
+   * 项目自身的许可证标识符。
+   *
+   * 用 `GPL-3.0-or-later` 而不是 `GPL-3.0`：后者是 SPDX 的**废弃**写法，
+   * 本工具自己就会把它归进「旧名字（已废弃）」。
+   * 三者正文完全相同，区别只在源文件声明与清单字段里——也几乎不可逆。
+   */
+  license: 'GPL-3.0-or-later',
   licenseUrl: 'https://github.com/youye-luna/license-forge/blob/main/LICENSE',
   author: 'youye-luna',
   authorUrl: 'https://github.com/youye-luna',

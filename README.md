@@ -349,11 +349,14 @@ pnpm run test
 
 ## 许可证与致谢
 
-本项目自身以 **MIT** 发布，作者 **youye-luna**（[github.com/youye-luna](https://github.com/youye-luna)），
+本项目自身以 **GPL-3.0-or-later** 发布，作者 **youye-luna**（[github.com/youye-luna](https://github.com/youye-luna)），
 见 [`LICENSE`](./LICENSE)。
 
-> 本站的 `LICENSE` 就是用这个工具自己生成的——MIT 的版权行由工具填入，与生成器输出逐字节一致
-> （有测试守着这一点）。
+> 用 `GPL-3.0-or-later` 而不是 `GPL-3.0`：后者是 SPDX 的**废弃**写法，本工具自己就会把它
+> 归进「旧名字（已废弃）」。三者正文完全相同，区别只在源文件声明与清单字段里。
+>
+> 本站的 `LICENSE` 计划由这个工具自己生成，与生成器输出逐字节一致（有测试守着这一点）。
+> **当前正文尚未替换**，因此那条测试暂时是红的——见下。
 
 `public/data/` 里的数据来自多个上游，转发时请保留各自的署名要求：
 

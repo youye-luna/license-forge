@@ -1,7 +1,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
+
+test('仓库里的文本文件不能出现编码损坏（GBK 误读 UTF-8 的乱码）', () => {
+  // 真实教训：我曾用 PowerShell 的 Get-Content/Set-Content 往返读写 package.json，
+  // 它按 GBK 解释了 UTF-8 字节，description 整个变成乱码，然后被静默提交进仓库
+  // ——没有任何检查发现得了。
+  //
+  // 判定用两种特征：
+  //  1. U+FFFD 替换字符（解码已失败的铁证）
+  //  2. GBK 误读 UTF-8 后高频出现的那些汉字
+  //
+  // 两条豁免，都是踩过的误报：
+  //  · `public/data/` 整个跳过——那是各家的许可证语料，上游原文本身就含生僻字
+  //    与替换字符（13MB 的 ScanCode 正文里确实有）。
+  //  · 本文件自己跳过——它必须写出乱码特征的**码点**才能检测，注释里也会提到，
+  //    否则它就命中自己。所以判定逻辑只放在这里，不放进被扫描的集合。
+  const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
+    .trim()
+    .split('\n')
+    .filter((f) => /\.(md|json|ts|tsx|mjs|cmd|txt|ya?ml)$/.test(f))
+    .filter((f) => !f.startsWith('public/data/'))
+    .filter((f) => f !== 'tests/flow.test.mjs');
+  assert.ok(files.length > 20, `应当扫到足够多的文件，实际 ${files.length}`);
+
+  const MOJIBAKE = /[\u9359\u9417\u95AB\u93C1\u7FE0\u9A87\u9225\u9419\u9354\u6D93\u5EA1\u93B4\u9428]/;
+  const broken = [];
+  for (const f of files) {
+    let t;
+    try {
+      t = readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+    } catch {
+      continue;
+    }
+    if (t.includes('\uFFFD')) broken.push(`${f}: 含替换字符 U+FFFD`);
+    else if (MOJIBAKE.test(t)) broken.push(`${f}: 含 GBK 误读 UTF-8 的乱码`);
+  }
+  assert.deepEqual(
+    broken,
+    [],
+    `这些文件编码损坏，请用 edit 工具重写（不要用 PowerShell 往返读写）：\n  ${broken.join('\n  ')}`,
+  );
+});
+
+test('package.json 是可解析的 JSON，且关键字段齐全（防往返读写损坏）', () => {
+  const raw = readFileSync(new URL('../package.json', import.meta.url));
+  assert.ok(!(raw[0] === 0xef && raw[1] === 0xbb && raw[2] === 0xbf), 'package.json 不能带 BOM');
+  const pkg = JSON.parse(raw.toString('utf8'));
+  for (const k of ['name', 'version', 'license', 'author', 'scripts', 'dependencies', 'devDependencies']) {
+    assert.ok(pkg[k], `package.json 缺少 ${k}`);
+  }
+  assert.ok(pkg.scripts.package, 'package 脚本不能丢');
+  // description 必须是可读中文，不是乱码
+  assert.match(pkg.description, /[\u4e00-\u9fff]/, 'description 应当含中文');
+});
 
 test('复制按钮要能应付非安全上下文（navigator.clipboard 不存在）', () => {
   // 用户从 IIS 用普通 http:// 访问时，`navigator.clipboard` 是 undefined
@@ -153,7 +207,9 @@ test('开源信息齐全，且指向正确的仓库与账号', () => {
   assert.equal(PROJECT.repoLabel, 'youye-luna/license-forge');
   assert.equal(PROJECT.author, 'youye-luna');
   assert.equal(PROJECT.authorUrl, 'https://github.com/youye-luna');
-  assert.equal(PROJECT.license, 'MIT');
+  // 不写死具体许可：项目 2026 年从 MIT 改为 0BSD，写死的值会让这条无谓地红。
+  // 真正要守的是"是个真实存在的 SPDX 标识符"，与 package.json 的一致性由下一条测。
+  assert.match(PROJECT.license, /^[A-Za-z0-9.+-]+$/, '许可证应当是 SPDX 标识符');
   assert.ok(PROJECT.licenseUrl.endsWith('/blob/main/LICENSE'), '许可证应链接到仓库里的 LICENSE');
   assert.ok(PROJECT.releases.startsWith(PROJECT.repo + '/releases'));
 });
@@ -362,20 +418,48 @@ test('详情面板用大白话讲条款，不堆术语', () => {  // 面板的�
   );
 });
 
-test('关于页宣称"本站 LICENSE 由本工具生成"——这句话必须是真的', () => {  // 这是页面上的一处可验证声明。逐字节比对官方 MIT 文本经本工具填充后的输出，
+test('关于页宣称"本站 LICENSE 由本工具生成"——这句话必须是真的', () => {
+  // 这是页面上的一处可验证声明。逐字节比对**官方原文经本工具填充后**的输出，
   // 一旦有人手改了 LICENSE 或改了填充逻辑，这条会立刻失败。
+  //
+  // 这里刻意用 PROJECT.license 而不是写死 'MIT'：项目从 MIT 改成 0BSD 时，
+  // 写死的那个值让这条测试红了——但真正要守的不是"它必须是 MIT"，
+  // 而是"我们宣称哪个许可，LICENSE 就必须是那个许可经工具生成的结果"。
   const LICENSE = readFileSync(new URL('../LICENSE', import.meta.url), 'utf8');
   const TEXTS = JSON.parse(readFileSync(new URL('../public/data/license-texts.json', import.meta.url), 'utf8'));
+  const text = TEXTS.licenses[PROJECT.license];
+  assert.ok(text, `许可证正文数据里应当有 ${PROJECT.license}`);
 
-  const generated = fillLicenseText('MIT', TEXTS.licenses.MIT.licenseText, {
+  const generated = fillLicenseText(PROJECT.license, text.licenseText, {
     holders: [{ name: PROJECT.author, from: '2026' }],
     projectName: 'license-forge',
     symbolStyle: 'word',
     joiner: 'newline',
   }).text;
 
-  assert.equal(LICENSE, generated, 'LICENSE 必须与工具为 (MIT, ' + PROJECT.author + ') 生成的输出逐字节一致');
-  assert.ok(LICENSE.includes(PROJECT.ownCopyright), '页面抄录的版权行必须与 LICENSE 里的相同');
+  assert.equal(
+    LICENSE,
+    generated,
+    `LICENSE 必须与工具为 (${PROJECT.license}, ${PROJECT.author}) 生成的输出逐字节一致`,
+  );
+
+  // 版权行的位置**随许可证而变**，不能一律要求它出现在 LICENSE 里：
+  //   · 正文留了版权位置（MIT、BSD 这类）→ 工具填进去，LICENSE 里就有这一行
+  //   · 正文没留位置（GPL-3.0 就是）→ 工具一个字都不加，版权行走**源文件头**，
+  //     这也正是 GPL 的 "How to Apply These Terms" 要求的做法
+  // 项目从 MIT 换成 GPL-3.0 时，写死"版权行必须在 LICENSE 里"的断言就红了——
+  // 但它要守的其实是"我们没有改动官方正文"。
+  const officialText = TEXTS.licenses[PROJECT.license].licenseText;
+  const filled = LICENSE.includes(PROJECT.ownCopyright);
+  const verbatim = LICENSE === officialText;
+  assert.ok(
+    filled || verbatim,
+    '版权行要么被填进 LICENSE（正文留了位置），要么 LICENSE 就是逐字官方原文（正文没留位置，版权行走源文件头）',
+  );
+  // 关于页展示的正是源文件头的两行式，所以版权行与标识符都要在那里出现
+  const about = readFileSync(new URL('../src/components/Generator.tsx', import.meta.url), 'utf8');
+  assert.ok(about.includes('PROJECT.ownCopyright'), '关于页应当展示版权行');
+  assert.ok(about.includes('SPDX-License-Identifier'), '关于页应当展示 SPDX 标识符');
 });
 
 /* ------------------------------------------------------------------ *
