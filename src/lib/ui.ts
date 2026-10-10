@@ -119,7 +119,7 @@ export const T = {
     optNotice: '生成 NOTICE 文件',
     optFileHeader: '生成源文件声明头模板',
     optReadme: '生成 README 许可段落',
-    optReuse: '生成 REUSE 布局（LICENSES/ 目录）',
+    optReuse: '生成 REUSE 风格布局（LICENSES/ 目录，文件名不带扩展名）',
     mandatoryLock: '该许可证强制要求，无法关闭',
     thirdParty: '第三方组件归属（每行一个）',
     thirdPartyHint: '若项目包含他人代码，逐行写出「组件名 — 版权人 — 许可证」，NOTICE 里会列成归属清单。',

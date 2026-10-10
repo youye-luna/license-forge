@@ -419,21 +419,26 @@ export function generate(input: GenerateInput): GenerationResult {
   /* ---- 5. REUSE 布局 ---- */
   if (options.includeReuseLayout) {
     files.push({
-      path: `LICENSES/${spec.id}.txt`,
+      // 按用户要求去掉了文件名的后缀。
+      // REUSE 3.0 规范原文要求文件名是 "the SPDX identifier of the license
+      // followed by an appropriate file extension"（官方示例 .txt），
+      // 所以这**不是严格合规**的 REUSE 布局。说明文案里如实讲清，
+      // 免得有人以为 `reuse lint` 能通过。
+      path: `LICENSES/${spec.id}`,
       content: textData.trimEnd() + '\n',
       why: {
-        zh: 'REUSE 3.x 布局：这是给机器校验用的**逐字原文**副本，因此保持官方文本不变（含其中的占位符）。你自己的版权信息请以根目录的 LICENSE、NOTICE 与源文件头为准。',
-        en: 'REUSE 3.x layout: a verbatim machine-checkable copy, so the official text is kept unmodified (placeholders included). Your own copyright details belong in the root LICENSE, the NOTICE file and source headers.',
+        zh: 'REUSE 风格的 LICENSES/ 布局：这是给机器校验用的**逐字原文**副本，因此保持官方文本不变（含其中的占位符）。你自己的版权信息请以根目录的 LICENSE、NOTICE 与源文件头为准。注意 REUSE 3.0 要求该目录下的文件名是「SPDX 标识符 + 适当的扩展名」（官方示例 `.txt`），这里按本站约定**去掉了扩展名**，所以 `reuse lint` 会报不合规——要跑校验请自行加上 `.txt`。',
+        en: 'REUSE-style LICENSES/ layout: a verbatim machine-checkable copy, so the official text is kept unmodified (placeholders included). Your own copyright details belong in the root LICENSE, the NOTICE file and source headers. Note that REUSE 3.0 requires the file name to be "the SPDX identifier followed by an appropriate file extension" (their example is `.txt`); this drops the extension by convention, so `reuse lint` will report non-compliance — add `.txt` back if you need to pass it.',
       },
       mandatory: false,
     });
     if (spec.exceptionId && exceptionText) {
       files.push({
-        path: `LICENSES/${spec.exceptionId}.txt`,
+        path: `LICENSES/${spec.exceptionId}`,
         content: exceptionText.licenseText.trimEnd() + '\n',
         why: {
-          zh: 'REUSE 要求每个用到的许可证与例外都在 LICENSES/ 下有一份可校验副本。',
-          en: 'REUSE requires a verifiable copy of every license and exception used under LICENSES/.',
+          zh: 'REUSE 要求每个用到的许可证与例外都在 LICENSES/ 下有一份可校验副本（同上，扩展名已按约定去掉）。',
+          en: 'REUSE requires a verifiable copy of every license and exception used under LICENSES/ (extension dropped by the same convention as above).',
         },
         mandatory: false,
       });

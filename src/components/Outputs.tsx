@@ -46,6 +46,8 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   const tr = t(lang);
   const [activePath, setActivePath] = useState<string | null>(null);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  /** 复制失败（浏览器不给权限、或非安全上下文下两种方式都不可用） */
+  const [copyFailed, setCopyFailed] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [snapshot, setSnapshot] = useState<SpdxSnapshot | null>(null);
   const [texts, setTexts] = useState<SpdxTexts | null>(null);
@@ -179,14 +181,53 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   const updateCopyright = (patch: Partial<CopyrightInput>) =>
     onChange({ ...state, copyright: { ...state.copyright, ...patch } });
 
-  const copy = async (path: string, content: string) => {
+  /**
+   * 复制到剪贴板。
+   *
+   * `navigator.clipboard` **只在安全上下文**（HTTPS 或 localhost）存在。从 IIS、
+   * 局域网地址、或任何 `http://` 非 localhost 的源访问时它是 `undefined`，
+   * 直接调用会抛错——而原先的 catch 把错误吞掉，表现为"按钮点了没反应、也不报错"。
+   *
+   * 所以留一条 `document.execCommand('copy')` 的老路：它在非安全上下文仍可用，
+   * 只是要借助一个临时 textarea。两种都失败时才真的提示失败。
+   */
+  const writeClipboard = async (content: string): Promise<boolean> => {
     try {
-      await navigator.clipboard.writeText(content);
-      setCopiedPath(path);
-      window.setTimeout(() => setCopiedPath((p) => (p === path ? null : p)), 1600);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+        return true;
+      }
     } catch {
-      setCopiedPath(null);
+      // 落到下面的兜底，不在这里返回失败
     }
+    // 兜底：临时 textarea + execCommand
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = content;
+      // 必须留在可滚动区域内且不被渲染遮挡，否则 iOS 上复制不生效
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '0';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const copy = async (path: string, content: string) => {
+    const ok = await writeClipboard(content);
+    // 失败时给出状态而不是静默无反应：用户至少知道"没复制成功"
+    setCopyFailed(ok ? false : true);
+    if (!ok) return;
+    setCopiedPath(path);
+    window.setTimeout(() => setCopiedPath((p) => (p === path ? null : p)), 1600);
   };
 
   const download = (path: string, content: string) => {
@@ -576,7 +617,11 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                     <li key={f.path}>
                       <button
                         type="button"
-                        onClick={() => setActivePath(f.path)}
+                        onClick={() => {
+                          setActivePath(f.path);
+                          // 切文件时清掉上一次的失败状态，否则会挂在新文件上误导人
+                          setCopyFailed(false);
+                        }}
                         className={[
                           'w-full rounded-lg border px-3 py-2 text-left text-sm transition',
                           isActive ? 'border-ink-900 bg-ink-900/[0.04]' : 'border-ink-900/10 hover:border-ink-900/30',
@@ -604,9 +649,25 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                     <button
                       type="button"
                       onClick={() => copy(active.path, active.content)}
-                      className="rounded border border-ink-900/20 px-2.5 py-1 text-xs hover:border-ink-900"
+                      className={[
+                        'rounded border px-2.5 py-1 text-xs',
+                        copyFailed ? 'border-mandatory/50 text-mandatory' : 'border-ink-900/20 hover:border-ink-900',
+                      ].join(' ')}
+                      title={
+                        copyFailed
+                          ? lang === 'zh'
+                            ? '浏览器拒绝了剪贴板访问，请手动选中右侧内容复制'
+                            : 'The browser refused clipboard access — select the text and copy manually'
+                          : undefined
+                      }
                     >
-                      {copiedPath === active.path ? tr.copied : tr.copy}
+                      {copyFailed
+                        ? lang === 'zh'
+                          ? '复制失败，请手动复制'
+                          : 'Copy failed — copy manually'
+                        : copiedPath === active.path
+                          ? tr.copied
+                          : tr.copy}
                     </button>
                     <button
                       type="button"

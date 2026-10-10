@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
 
+test('复制按钮要能应付非安全上下文（navigator.clipboard 不存在）', () => {
+  // 用户从 IIS 用普通 http:// 访问时，`navigator.clipboard` 是 undefined
+  // （它只在 HTTPS 或 localhost 存在）。原先直接调它、catch 吞掉错误，
+  // 表现为"按钮点了没反应也不报错"。必须有 execCommand 兜底 + 失败提示。
+  const src = readFileSync(new URL('../src/components/Outputs.tsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('document.execCommand'), '应当有 execCommand 兜底路径');
+  assert.ok(src.includes('navigator.clipboard?.writeText'), '应当先探测 clipboard 是否存在');
+  assert.ok(src.includes('copyFailed'), '复制失败要给出可见状态，不能静默无反应');
+  assert.ok(src.includes('复制失败'), '失败文案要说清怎么办');
+  // 切文件时要清掉失败状态，否则会挂在新文件上误导人
+  assert.ok(/setActivePath\(f\.path\);[\s\S]{0,120}setCopyFailed\(false\)/.test(src), '切换文件应重置失败状态');
+});
+
 test('注释语言下拉要覆盖常见项目语言，CSS 不能漏', () => {
   // 用户对照 GitHub 的 Languages 条（TS 65.7% / JS 34% / CSS 0.3%）找自己项目的语言，
   // 结果 CSS 不在下拉里——而 CSS 只支持块注释，恰好这组渲染成 /* */，应该放进来的。

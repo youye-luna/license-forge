@@ -422,11 +422,17 @@ test('Apache-2.0：NOTICE 是硬性义务，即使调用方关闭也要生成', 
 test('REUSE 布局保存逐字原文，与根目录填好的文件不同', () => {
   const { get } = build('MIT', options({ includeReuseLayout: true }));
   const root = get('LICENSE');
-  const reuse = get('LICENSES/MIT.txt');
+  // 文件名不带扩展名（按用户要求去掉）。REUSE 3.0 规范要的是
+  // 「SPDX 标识符 + 适当的扩展名」，所以这不是严格合规的布局，
+  // 该文件的 why 文案里已如实说明。
+  const reuse = get('LICENSES/MIT');
   assert.ok(reuse);
+  assert.ok(!get('LICENSES/MIT.txt'), '不应当再带 .txt 后缀');
   assert.match(root.content, /Acme Inc\./);
   assert.match(reuse.content, /<copyright holders>/);
   assert.notEqual(reuse.content, root.content);
+  // 说明里要讲清与 REUSE 规范的差异，不能让用户以为 reuse lint 能过
+  assert.match(reuse.why.zh, /reuse lint/, 'why 文案应当说明这样会让 reuse lint 报不合规');
 });
 
 test('包管理器字段使用完整 SPDX 表达式', () => {
@@ -454,7 +460,8 @@ test('WITH 例外：表达式、例外正文与清单字段三处一致', () => 
 
 test('WITH 例外：REUSE 布局下例外也有可校验副本', () => {
   const { get } = build('GPL-2.0-only', options({ includeReuseLayout: true }), 'Classpath-exception-2.0');
-  assert.ok(get('LICENSES/Classpath-exception-2.0.txt'), 'REUSE 需要例外副本');
+  assert.ok(get('LICENSES/Classpath-exception-2.0'), 'REUSE 需要例外副本（同样不带扩展名）');
+  assert.ok(get('LICENSES/GPL-2.0-only'), '许可证本身也要有副本');
 });
 
 /* ------------------------------------------------------------------ *
