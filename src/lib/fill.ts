@@ -494,7 +494,10 @@ export interface LanguageProfile {
 }
 
 export const LANGUAGES: LanguageProfile[] = [
-  { id: 'c', label: 'C / C++ / C# / Java / JS / TS / Go / Rust / Swift / Kotlin', style: 'slash', ext: 'c', manifests: ['package.json', 'Cargo.toml', 'pom.xml'] },
+  // 这组全是 `/* */` 块注释。把 JS / TS / CSS 排在最前：它们是绝大多数项目的语言
+  // （本仓库自身就是 TS + JS + CSS），用户在下拉里找自己项目的语言时应当第一眼看到。
+  // CSS 之前漏掉了——它只有块注释、不支持 `//` 行注释，而这组恰好渲染成块注释，所以放这里。
+  { id: 'c', label: 'JS / TS / CSS / SCSS / LESS / C / C++ / C# / Java / Go / Rust / Swift / Kotlin', style: 'slash', ext: 'c', manifests: ['package.json', 'Cargo.toml', 'pom.xml'] },
   { id: 'python', label: 'Python / Ruby / Shell / YAML / TOML', style: 'hash', ext: 'py', manifests: ['pyproject.toml', 'setup.cfg', 'Gemfile'] },
   { id: 'sql', label: 'SQL', style: 'dash', ext: 'sql', manifests: [] },
   { id: 'lisp', label: 'Lisp / Clojure / ASM', style: 'semicolon', ext: 'lisp', manifests: [] },

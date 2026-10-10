@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
+
+test('注释语言下拉要覆盖常见项目语言，CSS 不能漏', () => {
+  // 用户对照 GitHub 的 Languages 条（TS 65.7% / JS 34% / CSS 0.3%）找自己项目的语言，
+  // 结果 CSS 不在下拉里——而 CSS 只支持块注释，恰好这组渲染成 /* */，应该放进来的。
+  const c = LANGUAGES.find((l) => l.id === 'c');
+  assert.ok(c, '应当有 C 风格这一组');
+  for (const lang of ['JS', 'TS', 'CSS']) {
+    assert.ok(c.label.includes(lang), `第一组应当包含 ${lang}（用户按项目语言在下拉里找）`);
+  }
+  // CSS 只有块注释、不支持 // 行注释，所以渲染必须是 /* */ 而不是 //
+  const out = renderComment('line', 'slash');
+  assert.ok(out.startsWith('/*'), '这组应当渲染成块注释（CSS 不接受 // 行注释）');
+  assert.ok(!out.trimStart().startsWith('//'), '不得生成 // 行注释');
+});
 
 test('发行版不含启动脚本（已按要求移除），只放文档与 IIS 配置', () => {
   // 曾经放过的 `启动网站.cmd` 与 `server.mjs` 已按要求删除。
