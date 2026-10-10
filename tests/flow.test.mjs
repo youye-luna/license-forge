@@ -4,6 +4,20 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
 
+test('README 的测试表要覆盖 package.json 里列出的每个测试文件', () => {
+  // 这条防的是文档漂移：README 里那张表一度写着「共 123 项」，
+  // 而实际已经是 202 项，还漏列了 subject 与 sort 两个文件——
+  // 因为加了测试文件却没人回去改表。项数没法自动核对（测试数不出自己），
+  // 但"有没有列全文件"是可以的。
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const files = [...pkg.scripts.test.matchAll(/tests\/([\w.-]+)\.test\.mjs/g)].map((m) => `${m[1]}.test.mjs`);
+  assert.ok(files.length >= 5, `应当从 test 脚本里解析出测试文件，实际 ${files.length}`);
+
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  const missing = files.filter((f) => !readme.includes(f));
+  assert.deepEqual(missing, [], `README 的测试表没有列出这些文件：${missing.join(', ')}`);
+});
+
 test('404 页：深底白字、中英双语文案、有返回入口，且不依赖客户端 JS', () => {
   // 曾经这里是 Next 的默认 404：纯英文 "404: This page could not be found."，
   // 没有样式也没有返回入口——用户在"页面不存在"时只能自己改地址栏。
