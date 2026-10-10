@@ -4,6 +4,27 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
 
+test('404 页：深底白字、中英双语文案、有返回入口，且不依赖客户端 JS', () => {
+  // 曾经这里是 Next 的默认 404：纯英文 "404: This page could not be found."，
+  // 没有样式也没有返回入口——用户在"页面不存在"时只能自己改地址栏。
+  const p = new URL('../src/app/not-found.tsx', import.meta.url);
+  assert.ok(existsSync(p), '应当有自定义 not-found.tsx（静态导出会产出 404.html）');
+  const src = readFileSync(p, 'utf8');
+
+  // 深底 + 白字必须成对出现：底色错了就是白字落到近白的 body 上，整页看不见
+  assert.match(src, /bg-ink-950/, '底色应当用色板里的 ink-950');
+  assert.match(src, /text-white/, '文字应当是白色');
+  assert.ok(!/#000\b|bg-black\b/.test(src), '不要用纯黑，站点色板里已有 ink-950');
+
+  // 中英双语文案，与站点其它页面一致
+  assert.match(src, /Page not found!/, '应当有英文文案');
+  assert.match(src, /未找到此页面/, '应当有中文文案');
+  assert.match(src, /返回首页/, '404 是死胡同，必须有返回入口');
+
+  // 纯静态：不能挂 'use client'，否则静态托管返回 404.html 时可能没有 JS 可执行
+  assert.ok(!src.includes("'use client'"), '404 页应当是服务端组件，不依赖客户端 JS');
+});
+
 test('仓库里的文本文件不能出现编码损坏（GBK 误读 UTF-8 的乱码）', () => {
   // 真实教训：我曾用 PowerShell 的 Get-Content/Set-Content 往返读写 package.json，
   // 它按 GBK 解释了 UTF-8 字节，description 整个变成乱码，然后被静默提交进仓库
