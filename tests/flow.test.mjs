@@ -48,9 +48,12 @@ test('仓库里的文本文件不能出现编码损坏（GBK 误读 UTF-8 的乱
   //  1. U+FFFD 替换字符（解码已失败的铁证）
   //  2. GBK 误读 UTF-8 后高频出现的那些汉字
   //
-  // 两条豁免，都是踩过的误报：
+  // 三条豁免，都是踩过的误报：
   //  · `public/data/` 整个跳过——那是各家的许可证语料，上游原文本身就含生僻字
   //    与替换字符（13MB 的 ScanCode 正文里确实有）。
+  //  · `docs/dsh-context/session-*.md` 与 `docs/dsh-context/sessions/*.md` 跳过——
+  //    历史会话存档。编码事故（PowerShell GBK 往返损坏）当时的真实乱码样本就是
+  //    证据本身，档案必须原样保留引用，不能"修"。
   //  · 本文件自己跳过——它必须写出乱码特征的**码点**才能检测，注释里也会提到，
   //    否则它就命中自己。所以判定逻辑只放在这里，不放进被扫描的集合。
   const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
@@ -58,6 +61,7 @@ test('仓库里的文本文件不能出现编码损坏（GBK 误读 UTF-8 的乱
     .split('\n')
     .filter((f) => /\.(md|json|ts|tsx|mjs|cmd|txt|ya?ml)$/.test(f))
     .filter((f) => !f.startsWith('public/data/'))
+    .filter((f) => !/^docs\/dsh-context\/(session-.*|sessions\/.*)\.md$/.test(f))
     .filter((f) => f !== 'tests/flow.test.mjs');
   assert.ok(files.length > 20, `应当扫到足够多的文件，实际 ${files.length}`);
 

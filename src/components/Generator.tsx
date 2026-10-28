@@ -73,6 +73,12 @@ export default function Generator() {
               </span>
             </h1>
             <p className="mt-2 max-w-2xl text-ink-600">{UI.tagline[lang]}</p>
+            {/* AI 项目声明：显眼但不喧宾夺主，颜色用 advisory 与站内警示体系一致 */}
+            <p className="mt-3 max-w-2xl rounded-lg border border-advisory/30 bg-advisory/[0.06] px-3 py-2 text-xs leading-relaxed text-advisory">
+              {lang === 'zh'
+                ? '⚠️ 这是一个 AI 项目，仅供学习参考：代码与条款解读基本由 AI 完成，未经人类逐条审校，不构成法律意见；正式判断请以许可证原文为准。发现问题欢迎提 Issue 指出。'
+                : '⚠️ This is an AI project, for learning reference only: the code and clause commentary were produced by AI without human line-by-line review, and are not legal advice. For a formal decision, go by the license text itself. Issues are welcome if you spot problems.'}
+            </p>
           </div>
           <button
             type="button"
