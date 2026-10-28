@@ -38,7 +38,7 @@ const P = (
   sameLicensePerFile: false,
   networkTrigger: false,
   // 默认值按"绝大多数许可"来设，个别例外的在条目里覆盖。
-  // 人工整理的这 32 个逐条核对过：只有 BSD-3-Clause 系列禁止背书与促销，
+  // 精校的这 32 个逐条核对过：只有 BSD-3-Clause 系列禁止背书与促销，
   // 只有 0BSD / CC0 / MIT-0 / Unlicense / WTFPL 不要求保留版权声明。
   includeCopyright: 'required',
   endorse: 'silent',

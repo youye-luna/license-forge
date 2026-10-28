@@ -134,11 +134,11 @@ test('没有标注时退回正文推断，并标为 text', () => {
   assert.equal(facts.termsSource, 'text');
 });
 
-test('人工标注能纠正正则的误判', () => {
+test('上游标注能纠正正则的误判', () => {
   // MPL-2.0 的正文里有 "no patent license is granted" 的局部排除，
-  // 正则曾把它判成"明确不授权"；人工标注明确写了 patent-use → explicit
+  // 正则曾把它判成"明确不授权"；上游标注明确写了 patent-use → explicit
   const withTerms = deriveFacts('MPL-2.0', TEXTS.licenses['MPL-2.0'].licenseText, true, 'weak-copyleft', TERMS);
-  assert.equal(withTerms.patentGrant, 'explicit', 'MPL 的专利授权应取人工标注');
+  assert.equal(withTerms.patentGrant, 'explicit', 'MPL 的专利授权应取上游标注');
   assert.equal(withTerms.termsSource, 'choosealicense');
   // 不带标注时正则仍会给出推断结果（可能是错的，但会被标注为推断）
   const withoutTerms = deriveFacts('MPL-2.0', TEXTS.licenses['MPL-2.0'].licenseText, true, 'weak-copyleft');
@@ -156,11 +156,11 @@ function build(id) {
   return { spec, result };
 }
 
-test('生成提示会说明条款字段来自人工标注还是推断', () => {
+test('生成提示会说明条款字段来自上游标注还是推断', () => {
   const { result: apache } = build('Apache-2.0');
   assert.ok(
-    apache.notices.some((n) => n.zh.includes('人工标注')),
-    'Apache-2.0 应提示条款来自人工标注',
+    apache.notices.some((n) => n.zh.includes('上游标注')),
+    'Apache-2.0 应提示条款来自上游标注',
   );
 
   // 找一个既不在标注范围内、又能生成的许可证

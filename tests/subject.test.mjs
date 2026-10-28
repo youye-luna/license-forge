@@ -33,7 +33,7 @@ test('CC-BY-SA-4.0 适用于文本/媒体，而不是源代码', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * 人工指定层
+ * 逐条指定层
  * ------------------------------------------------------------------ */
 
 test('字体、硬件、内容这几类不会被误判成源代码', () => {
@@ -52,10 +52,10 @@ test('CC0 与 WTFPL 判为"各类作品"，并说明 CC0 不含专利授权', ()
   assert.deepEqual(subjectsOf('WTFPL').subjects, ['any']);
 });
 
-test('全部 32 个人工整理的许可证都有明确判定，不落到默认层', () => {
+test('全部 32 个精校的许可证都有明确判定，不落到默认层', () => {
   for (const l of LICENSES) {
     const v = subjectsOf(l.id);
-    assert.equal(v.source, 'curated', `${l.id} 应当人工指定适用于什么`);
+    assert.equal(v.source, 'curated', `${l.id} 应当逐条指定适用于什么`);
     assert.ok(v.subjects.length > 0, `${l.id} 的适用于不能为空`);
   }
 });
@@ -69,7 +69,7 @@ test('长尾条目靠明确的标识符规则判定', () => {
     ['OFL-1.0', 'font'],
     ['LPPL-1.3c', 'font'],
     ['Adobe-Glyph', 'font'],
-    // 注意：CERN-OHL-W-2.0 / -P-2.0 后来被收进人工整理集合（问卷的硬件分支要用），
+    // 注意：CERN-OHL-W-2.0 / -P-2.0 后来被收进精校集合（问卷的硬件分支要用），
     // 因此不再是规则层的样例；硬件这里用仍在长尾里的 Solderpad。
     ['Solderpad-0.51', 'hardware'],
     ['TAPR-OHL-1.0', 'hardware'],
@@ -154,7 +154,7 @@ test('全量 2469 个条目都能得出"适用于"，且不抛错', () => {
   assert.equal(curated + rule + fallback, UNIFIED.length);
   // 规则覆盖应当是有意义的量，而不是几乎全落到默认
   assert.ok(rule > 100, `规则层只覆盖了 ${rule} 个，太少了`);
-  assert.equal(curated, LICENSES.length, '人工指定层应当与人工整理的许可证数量一致');
+  assert.equal(curated, LICENSES.length, '逐条指定层应当与精校的许可证数量一致');
 });
 
 test('判为非纯代码的条目数量在合理范围，没有大规模误判', () => {

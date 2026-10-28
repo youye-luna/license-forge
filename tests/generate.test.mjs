@@ -469,13 +469,13 @@ test('WITH 例外：REUSE 布局下例外也有可校验副本', () => {
  * ------------------------------------------------------------------ */
 
 test('长尾许可证也能生成完整产物，并如实声明条款是推断所得', () => {
-  // 挑一个既没有人工整理、又不在常见名单里的条目
+  // 挑一个既没有精校、又不在常见名单里的条目
   const longTail = SNAPSHOT.licenses.find(
     (l) => !l.deprecated && !LICENSES.some((c) => c.id === l.id) && l.textLength > 200,
   );
   assert.ok(longTail, '应当存在长尾许可证');
   const { result, spec, get } = build(longTail.id);
-  assert.equal(spec.curated, null, '长尾条目不应被标为人工整理');
+  assert.equal(spec.curated, null, '长尾条目不应被标为精校');
   assert.equal(spec.factsInferred, true, '条款必须标注为推断');
   assert.ok(get(spec.fileName), '长尾许可证也要产出正文文件');
   assert.ok(
@@ -496,9 +496,9 @@ test('废弃标识符仍可生成，但必须给出明确警告', () => {
  * 注册表一致性
  * ------------------------------------------------------------------ */
 
-test('人工整理集合里的每一个标识符都必须是现行写法', () => {
+test('精校集合里的每一个标识符都必须是现行写法', () => {
   for (const l of LICENSES) {
-    assert.equal(DEPRECATED_IDS[l.id], undefined, `${l.id} 是已废弃写法，不应出现在人工整理集合里`);
+    assert.equal(DEPRECATED_IDS[l.id], undefined, `${l.id} 是已废弃写法，不应出现在精校集合里`);
   }
 });
 
@@ -556,10 +556,10 @@ test('FTL 的 "Please replace <year>" 说明句不能被当成占位符填掉', 
   assert.match(get(spec.fileName).content, /Please replace <year> with the value from the FreeType version/, '作者的说明句必须保留');
 });
 
-test('人工整理集合里的每个许可证都实际存在于 SPDX 快照中', () => {
+test('精校集合里的每个许可证都实际存在于 SPDX 快照中', () => {
   const ids = new Set(SNAPSHOT.licenses.map((l) => l.id));
   for (const l of LICENSES) {
-    assert.ok(ids.has(l.id), `人工整理集合里的 ${l.id} 不在 SPDX 快照中`);
+    assert.ok(ids.has(l.id), `精校集合里的 ${l.id} 不在 SPDX 快照中`);
   }
 });
 

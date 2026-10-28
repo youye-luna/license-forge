@@ -164,7 +164,7 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-/** "最常用"是人工筛选的高频短名单，而不是按字母序的前几十个 */
+/** "最常用"是精选的高频短名单，而不是按字母序的前几十个 */
 const FEATURED = [
   'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'EPL-2.0',
   'LGPL-2.1-only', 'LGPL-2.1-or-later', 'LGPL-3.0-only', 'LGPL-3.0-or-later',
@@ -271,7 +271,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
   /** 对比工作台需要正文才能对长尾条目做推断——按需取一次并缓存 */
   useEffect(() => {
     if (!unified) return;
-    // 需要正文的只有"没有 ChooseALicense 人工标注、且还没有正文"的条目：
+    // 需要正文的只有"没有 ChooseALicense 上游标注、且还没有正文"的条目：
     // 有标注的条目条款是查表得来的，不必为了推断去下载正文。
     const candidates = compareEntries;
     const need = (e: UnifiedEntry) => {
@@ -429,7 +429,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
           {needsLicenseText(sortKey) ? (
             <p className="rounded-lg border border-advisory/30 bg-advisory/5 p-2 text-xs text-advisory">
               {zh
-                ? '「专利授权」需要正文才能判定。列表为了速度不下载全文，所以只有已人工核对或人工标注的许可能排准，其余按"未提及"排在后面——点开某个许可证看详情时才会按正文推断。'
+                ? '「专利授权」需要正文才能判定。列表为了速度不下载全文，所以只有已精校或上游标注的许可能排准，其余按"未提及"排在后面——点开某个许可证看详情时才会按正文推断。'
                 : '"Patent grant" needs the license text. The list does not download full texts just to sort, so only licenses with known terms order correctly; the rest fall back to "silent". Open a license to see its text-based inference.'}
             </p>
           ) : null}
@@ -683,7 +683,7 @@ function CatalogDetail({
           </span>
         </p>
 
-        {/* 简介：人工整理的用手写定位语，其余按已核实字段生成——两种都会标注来源 */}
+        {/* 简介：精校条目的用手写定位语，其余按已核实字段生成——两种都会标注来源 */}
         <p className="mt-3 border-l-2 border-ink-900/20 pl-3 text-sm leading-relaxed">
           {(() => {
             const curated = isSpdx ? LICENSE_BY_ID[entry.id] : undefined;
@@ -691,7 +691,7 @@ function CatalogDetail({
               return (
                 <>
                   <span className="mr-2 rounded-full bg-ok/10 px-1.5 py-0.5 text-[10px] text-ok">
-                    {zh ? '人工核对' : 'hand-checked'}
+                    {zh ? '精校' : 'curated'}
                   </span>
                   {curated.tagline[lang]}
                 </>
@@ -727,8 +727,8 @@ function CatalogDetail({
                 <span className="text-ink-400">
                   {verdict.source === 'curated'
                     ? zh
-                      ? '我们人工填的'
-                      : 'hand-assigned'
+                      ? '我们逐条填的'
+                      : 'curated'
                     : verdict.source === 'rule'
                       ? zh
                         ? '按名字判断的'
@@ -765,8 +765,8 @@ function CatalogDetail({
           </p>
           <p className="mt-1.5 text-xs text-ink-600">
             {zh
-              ? '来源：ScanCode LicenseDB（CC-BY-4.0）。由人工整理，但没有走 SPDX 的法律审核流程。'
-              : 'Source: ScanCode LicenseDB (CC-BY-4.0), human-curated but outside the SPDX legal review process.'}
+              ? '来源：ScanCode LicenseDB（CC-BY-4.0）。由第三方逐条整理，但没有走 SPDX 的法律审核流程。'
+              : 'Source: ScanCode LicenseDB (CC-BY-4.0), community-curated but outside the SPDX legal review process.'}
           </p>
         </section>
       ) : null}
@@ -866,7 +866,7 @@ function CatalogDetail({
       ) : (
         // 没有中文出处时**如实标注**，而不是什么都不显示——否则用户会以为
         // 这个许可有中文、只是我没找到入口。ISC / BSD-2 / Zlib / OFL / CERN-OHL
-        // 这 19 个人工整理的许可就属于"既没有官方中文正文，也没有评审译稿"。
+        // 这 19 个精校的许可就属于"既没有官方中文正文，也没有评审译稿"。
         // 措辞只讲本站收录到什么，不断言"世上没有中文"——不存在的来源里找东西，
         // 结论只能是"我们没有"，不能是"它没有"。
         <section>
@@ -1048,8 +1048,8 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
  * 分成两页只会让人来回切换。现在并入选许可证页：条款面板里点「加入对比」，
  * 选中项在这里横向摊开。
  *
- * 能对比的不只是人工核对的 32 个：任何条目（含长尾与 ScanCode 独有）都能加入，
- * 只是结论会有"人工标注 / 机器从正文推断"的区别，表里逐列如实标注来源。
+ * 能对比的不只是精校的 32 个：任何条目（含长尾与 ScanCode 独有）都能加入，
+ * 只是结论会有"上游标注 / 机器从正文推断"的区别，表里逐列如实标注来源。
  * ------------------------------------------------------------------ */
 
 /** 对比表用到的事实快照——从 UnifiedEntry + 补充数据里一次解析出来 */
@@ -1118,7 +1118,7 @@ function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode 
       return <span className="text-ink-400">{zh ? '没提到' : 'not mentioned'}</span>;
     case 'conclusion-source':
       return value === 'choosealicense' ? (
-        <span className="text-ok">{zh ? '有人标注过' : 'hand-labelled'}</span>
+        <span className="text-ok">{zh ? '上游标注过' : 'upstream-labelled'}</span>
       ) : (
         <span className="text-advisory">{zh ? '机器猜的' : 'inferred'}</span>
       );
@@ -1184,8 +1184,8 @@ function CompareBoard({
       </div>
       <p className="mt-1 text-xs text-ink-400">
         {zh
-          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。「结论怎么来的」一列会如实区分"有人标注过"与"机器猜的"——两者的可信度不同，不该看起来一样。'
-          : 'Any entry can be compared, including the long tail and ScanCode-only licenses. The "Terms from" row distinguishes hand-labelled from inferred — they do not deserve to look alike.'}
+          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。「结论怎么来的」一列会如实区分"上游标注过"与"机器猜的"——两者的可信度不同，不该看起来一样。'
+          : 'Any entry can be compared, including the long tail and ScanCode-only licenses. The "Terms from" row distinguishes upstream-labelled from inferred — they do not deserve to look alike.'}
       </p>
 
       <div className="table-scroll mt-3">
@@ -1401,8 +1401,8 @@ function InferredTerms({
         >
           {facts.termsSource === 'choosealicense'
             ? zh
-              ? '有人逐条标注过'
-              : 'hand-labelled'
+              ? '上游逐条标注过'
+              : 'upstream-labelled'
             : zh
               ? '机器从正文猜的，别当定论'
               : 'inferred from the text — not authoritative'}
@@ -1426,8 +1426,8 @@ function InferredTerms({
       <p className="mt-2 text-xs text-ink-600">
         {facts.termsSource === 'choosealicense'
           ? zh
-            ? '以上几条是人工逐条标注的，可以放心参考。'
-            : 'These were labelled by hand and can be relied on.'
+            ? '以上几条是上游逐条标注的，可以放心参考。'
+            : 'These were labelled upstream and can be relied on.'
           : zh
             ? '以上几条是机器读正文猜的，只能当参考。要下正式判断请打开许可证原文。'
             : 'These were inferred by machine from the text — treat them as a hint only. For a real decision, read the license itself.'}
@@ -1443,8 +1443,8 @@ function InferredTerms({
           <p>
             {facts.termsSource === 'choosealicense'
               ? zh
-                ? '其余几条来自 ChooseALicense 的词表人工标注（覆盖 47 个主流许可证），比机器读正文可靠得多。它的词表分成 permissions / conditions / limitations 三段，其中 `patent-use` 在 permissions 里表示"授予专利"、在 limitations 里表示"不授予专利"，合并时已按段区分。'
-                : 'The rest come from ChooseALicense’s hand-labelled vocabulary (47 mainstream licenses), which is far more reliable than machine reading. Its vocabulary splits into permissions / conditions / limitations, and `patent-use` means "grants patents" under permissions but "grants none" under limitations — that distinction is handled when merging.'
+                ? '其余几条来自 ChooseALicense 的词表逐条标注（覆盖 47 个主流许可证），比机器读正文可靠得多。它的词表分成 permissions / conditions / limitations 三段，其中 `patent-use` 在 permissions 里表示"授予专利"、在 limitations 里表示"不授予专利"，合并时已按段区分。'
+                : 'The rest come from ChooseALicense’s upstream-labelled vocabulary (47 mainstream licenses), which is far more reliable than machine reading. Its vocabulary splits into permissions / conditions / limitations, and `patent-use` means "grants patents" under permissions but "grants none" under limitations — that distinction is handled when merging.'
               : zh
                 ? '其余几条由许可证正文的关键词匹配得出。这个许可证不在 ChooseALicense 的 47 个标注范围内，所以只能这样。我们宁可标注"不确定"，也不给一个看起来确定的答案。'
                 : 'The rest come from keyword matching over the license text, because this license is outside ChooseALicense’s 47 labelled entries. We label the uncertainty rather than show a confident answer we cannot back.'}

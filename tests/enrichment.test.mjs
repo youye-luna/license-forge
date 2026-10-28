@@ -29,7 +29,7 @@ const UNIFIED = loadUnifiedCatalog(SNAPSHOT, SCANCODE_INDEX);
  * 保留版权声明与许可证（includeCopyright）
  * ------------------------------------------------------------------ */
 
-/** 用 ChooseALicense 的人工标注推一个许可证的这一项 */
+/** 用 ChooseALicense 的上游标注推一个许可证的这一项 */
 function includeCopyrightOf(id) {
   const entry = SNAPSHOT.licenses.find((l) => l.id === id);
   assert.ok(entry, `${id} 应当在 SPDX 快照里`);
@@ -81,8 +81,8 @@ test('保留版权声明：正文确实没写的，如实标为"没写"而不是
   }
 });
 
-test('许可类型：人工核对过的 32 个一律以核对结果为准', () => {
-  // familyFromEntry 读的是 enrichment 里的**上游** family，而人工核对的值
+test('许可类型：逐条精校过的 32 个一律以核对结果为准', () => {
+  // familyFromEntry 读的是 enrichment 里的**上游** family，而精校的值
   // 并没有写进那份数据。所以必须让核对结果在这里显式生效，否则列表筛选用上游值、
   // 详情面板用核对值，两边对不上（AGPL 就出过这个问题：列表归"整个项目"，
   // 详情显示"含网络使用"）。
@@ -95,11 +95,11 @@ test('许可类型：人工核对过的 32 个一律以核对结果为准', () =
     assert.equal(
       familyFromEntry(e, ENRICHMENT.licenses[key]),
       l.family,
-      `${l.id} 的判定应当与人工核对值一致`,
+      `${l.id} 的判定应当与精校值一致`,
     );
     checked++;
   }
-  assert.equal(checked, LICENSES.length, '人工整理的每一条都应当能在目录里找到');
+  assert.equal(checked, LICENSES.length, '精校的每一条都应当能在目录里找到');
 });
 
 test('许可类型：网络著佐权认 AGPL 与 EUPL，但不认 GPL / LGPL', () => {
@@ -138,19 +138,19 @@ test('许可类型：八个分类都要有内容，不能出现空筛选', () =>
 });
 
 
-test('人工核对值与正文推导值的分歧只能来自这份白名单', () => {
-  // 两套判定并存：人工整理的 34 个用逐条核对的值（spec 走这条），
+test('精校值与正文推导值的分歧只能来自这份白名单', () => {
+  // 两套判定并存：精校的 34 个用逐条核对的值（spec 走这条），
   // 其余 2400 多个用 deriveFacts 的正文推导。它们**必然会**在某些条目上不一致，
   // 但分歧不能悄悄变多——每一条都要有理由，写在这里。
   //
-  // 这次优化把分歧从 14 条降到 4 条：其中 9 条是人工值**过时**了
+  // 这次优化把分歧从 14 条降到 4 条：其中 9 条是精校值**过时**了
   // （endorse/promote 的判定当时还没修好，CC 与 OFL 被误判成"没写"），
   // 已按推导值更正；另 1 条是重复计数（BSD-3 的名字限制已由 endorse 表达）。
   const JUSTIFIED = {
-    // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依，以人工核对为准。
-    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：CDDL 未被 ChooseALicense 覆盖，无权威词表，以人工核对为准',
-    // 这两个许可对专利只字未提。人工值写成 none（"明确不授予"）会让人以为正文有这句声明。
-    Unlicense: 'patentGrant：正文未提专利，推导的 silent 比人工的 none 更准确，但人工值已作为产品口径固定',
+    // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依，以精校值为准。
+    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：CDDL 未被 ChooseALicense 覆盖，无权威词表，以精校值为准',
+    // 这两个许可对专利只字未提。精校值写成 none（"明确不授予"）会让人以为正文有这句声明。
+    Unlicense: 'patentGrant：正文未提专利，推导的 silent 比精校的 none 更准确，但精校值已作为产品口径固定',
     WTFPL: 'patentGrant：同上',
   };
   const KEYS = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
@@ -172,9 +172,9 @@ test('人工核对值与正文推导值的分歧只能来自这份白名单', ()
   assert.deepEqual(stale, [], `这些白名单条目已不再分歧，应当删掉：${stale.join(', ')}`);
 });
 
-test('「保留版权声明与许可证」在人工与推导两侧都不低于 30 个', () => {
+test('「保留版权声明与许可证」在精校与推导两侧都不低于 30 个', () => {
   // 这一项决定"分发时要不要带上声明"，是用户最容易踩的义务。
-  // 早先人工整理里只有 5 个 not-required 与 2 个 source-only，其余都是 required。
+  // 早先精校表里只有 5 个 not-required 与 2 个 source-only，其余都是 required。
   const byValue = {};
   for (const l of LICENSES) byValue[l.facts.includeCopyright] = (byValue[l.facts.includeCopyright] ?? 0) + 1;
   assert.equal(byValue['not-required'], 5, '明确不要求的应当仍是那 5 个');
@@ -264,7 +264,7 @@ test('facts 的字段不许在传递链上丢失', () => {
   // LicenseSpec.facts 的类型 LicenseFacts 是**手写枚举**的，没声明这几个字段，
   // 于是赋值时被静默挡住——详情面板永远显示默认值，而直接调 deriveFacts 却是对的。
   //
-  // 注意要拿**长尾条目**（没有人工整理值）来比：人工整理的 32 个优先用逐条核对
+  // 注意要拿**长尾条目**（没有精校值）来比：精校的 32 个优先用逐条核对
   // 的值，与 deriveFacts 的正则推断本来就可能不同（那是设计使然，不是丢字段）。
   const longTail = SNAPSHOT.licenses.find(
     (l) => !l.deprecated && !LICENSES.some((c) => c.id === l.id) && l.textLength > 200,
@@ -287,13 +287,13 @@ test('facts 的字段不许在传递链上丢失', () => {
   }
 });
 
-test('字段传递：人工整理的条目优先用逐条核对的值，而不是正则推断', () => {
-  // 这两条路径的值本来就可能不同，那是设计使然。界面显示的应当是人工资讯。
+test('字段传递：精校的条目优先用逐条核对的值，而不是正则推断', () => {
+  // 这两条路径的值本来就可能不同，那是设计使然。界面显示的应当是精校信息。
   const spec = resolveSpec('BSD-3-Clause', SNAPSHOT, TEXTS, undefined, ENRICHMENT.licenses, TERMS);
-  assert.ok(spec.curated, 'BSD-3-Clause 属于人工整理集合');
-  assert.equal(spec.facts.endorse, 'prohibited', '人工核对：BSD-3-Clause 禁止背书');
-  assert.equal(spec.facts.promote, 'prohibited', '人工核对：BSD-3-Clause 禁止促销');
-  assert.equal(spec.facts.includeCopyright, 'required', '人工核对：要求保留版权声明');
+  assert.ok(spec.curated, 'BSD-3-Clause 属于精校集合');
+  assert.equal(spec.facts.endorse, 'prohibited', '精校：BSD-3-Clause 禁止背书');
+  assert.equal(spec.facts.promote, 'prohibited', '精校：BSD-3-Clause 禁止促销');
+  assert.equal(spec.facts.includeCopyright, 'required', '精校：要求保留版权声明');
   // 名字限制已经由 endorse / promote 两条表达，商标那一条不能再算一次。
   // ChooseALicense 词表对 `trademark-use` 的定义是"明确声明不授予商标权"，
   // BSD-3-Clause 的第 3 条讲的是**用名字背书**，不是商标权，所以是 false。
@@ -302,8 +302,8 @@ test('字段传递：人工整理的条目优先用逐条核对的值，而不�
 
 
 
-test('人工整理的 32 个许可证不含 undefined 字段', () => {
-  // P() 的默认值要覆盖 LicenseFacts 的**每一个**字段，否则人工整理与
+test('精校的 32 个许可证不含 undefined 字段', () => {
+  // P() 的默认值要覆盖 LicenseFacts 的**每一个**字段，否则精校与
   // 长尾两条路径的结论会不一致。
   for (const l of LICENSES) {
     for (const [k, v] of Object.entries(l.facts)) {

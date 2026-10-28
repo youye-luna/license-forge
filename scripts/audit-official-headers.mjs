@@ -55,7 +55,7 @@ for (const row of perLicense.filter((r) => r.tokenCount > 0)) {
   console.log(`  ${row.id.padEnd(30)} ${row.unique.join(' , ')}`);
 }
 
-console.log('\n=== 原始模板前 3 行（供人工核对）===');
+console.log('\n=== 原始模板前 3 行（供逐条核对）===');
 for (const [id, entry] of headers) {
   const head = entry.standardLicenseHeader.split('\n').slice(0, 3).join(' ⏎ ');
   console.log(`  ${id.padEnd(30)} ${JSON.stringify(head.slice(0, 120))}`);

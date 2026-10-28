@@ -34,7 +34,7 @@ export interface CompareFacts {
     osiApproved: boolean;
     requiresNotice: boolean;
   };
-  /** 条款字段的来源：`choosealicense` 表示人工核对/标注，`text` 表示正文推断 */
+  /** 条款字段的来源：`choosealicense` 表示精校/上游标注，`text` 表示正文推断 */
   termsSource: 'choosealicense' | 'text';
   hasOfficialHeader: boolean;
   copyleft?: string;
@@ -51,7 +51,7 @@ export interface CompareFacts {
 /**
  * 从一个条目解析出对比用的事实。
  *
- * `licenseText` 可以缺失：有 ChooseALicense 人工标注的条目条款是查表得来的，
+ * `licenseText` 可以缺失：有 ChooseALicense 上游标注的条目条款是查表得来的，
  * 不必为了推断去下载正文。这让矩阵能"先渲染、后补正文"，而不是卡在下载上。
  */
 export function factsOf(
@@ -64,7 +64,7 @@ export function factsOf(
   // 家族优先取 enrichment；ScanCode 独有条目在 enrichment 里没有记录（它只覆盖 SPDX 列表），
   // 因此必须退回条目自带的分类，否则会被默认成 permissive——木兰公共型就被这样误判过。
   const facts = deriveFacts(key, licenseText ?? '', entry.osiApproved, familyFromEntry(entry, extra), terms);
-  // 人工整理的条目条款是逐条核对的，比推断更可信
+  // 精校的条目条款是逐条核对的，比推断更可信
   const curated = entry.source === 'spdx' ? LICENSE_BY_ID[entry.id] : undefined;
   return {
     id: entry.id,
@@ -107,11 +107,11 @@ export function allowsClosedSource(r: CompareFacts): boolean {
 }
 
 /**
- * 为没有人工简介的许可证**生成**一段中文/英文简介。
+ * 为没有现成简介的许可证**生成**一段中文/英文简介。
  *
  * 数据全部来自已核实的字段（家族、专利判定、归属方、来源），
  * 不编造许可证没有写过的内容；每句话都能在条款或元数据里找到依据。
- * 人工整理的 32 个许可证不经过这里——它们有手写的 tagline，措辞更有观点。
+ * 精校的 32 个许可证不经过这里——它们有手写的 tagline，措辞更有观点。
  */
 export function generatedIntro(r: CompareFacts, lang: Lang): string {
   const zh = lang === 'zh';
@@ -253,9 +253,9 @@ export function compareDimensions(lang: Lang): Dimension[] {
     {
       key: 'conclusion-source',
       label: zh ? '结论怎么来的' : 'How it was decided',
-      hint: zh ? '人工核对或人工标注的远比机器猜的可靠' : 'Hand-checked or hand-labelled is far more reliable than machine inference',
+      hint: zh ? '精校或上游标注的远比机器猜的可靠' : 'Curated or upstream-labelled is far more reliable than machine inference',
       kind: 'text',
-      cell: (r) => (r.termsSource === 'text' ? (zh ? '机器猜的' : 'inferred') : zh ? '有人标注过' : 'hand-labelled'),
+      cell: (r) => (r.termsSource === 'text' ? (zh ? '机器猜的' : 'inferred') : zh ? '上游标注过' : 'upstream-labelled'),
     },
     {
       key: 'patent',

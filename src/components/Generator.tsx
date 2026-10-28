@@ -103,8 +103,8 @@ export default function Generator() {
           </span>
           <span>
             {lang === 'zh'
-              ? `其中 ${curated.total} 个做了人工条款梳理与双语解读`
-              : `${curated.total} with hand-curated terms and commentary`}
+              ? `其中 ${curated.total} 个做了逐条精校的条款梳理与双语解读`
+              : `${curated.total} with curated terms and commentary`}
           </span>
         </p>
       </header>
@@ -270,8 +270,8 @@ function Docs({ lang }: { lang: Lang }) {
             {
               t: zh ? '全量收录，且分层说明' : 'Full coverage, honestly layered',
               d: zh
-                ? `通过 SPDX 官方 JSON API 收录了全部 ${full?.licenses ?? 740} 个许可证与 ${full?.exceptions ?? 86} 个例外，正文逐字保存、可核查。其中 ${LICENSES.length} 个做了人工条款梳理与中英双语解读；其余长尾条目的条款由**正文文本推断**，界面上明确标注"推断结果，非权威认定"，让每一项结论都能看出可信度来自哪里。`
-                : `All ${full?.licenses ?? 740} licenses and ${full?.exceptions ?? 86} exceptions come from the official SPDX JSON API with verbatim, checkable texts. ${LICENSES.length} of them have hand-curated terms and bilingual commentary; for the long tail the terms are **inferred from the license text** and labelled as such, so every conclusion shows where its confidence comes from.`,
+                ? `通过 SPDX 官方 JSON API 收录了全部 ${full?.licenses ?? 740} 个许可证与 ${full?.exceptions ?? 86} 个例外，正文逐字保存、可核查。其中 ${LICENSES.length} 个做了逐条精校的条款梳理与中英双语解读；其余长尾条目的条款由**正文文本推断**，界面上明确标注"推断结果，非权威认定"，让每一项结论都能看出可信度来自哪里。`
+                : `All ${full?.licenses ?? 740} licenses and ${full?.exceptions ?? 86} exceptions come from the official SPDX JSON API with verbatim, checkable texts. ${LICENSES.length} of them have curated terms and bilingual commentary; for the long tail the terms are **inferred from the license text** and labelled as such, so every conclusion shows where its confidence comes from.`,
             },
             {
               t: zh ? '只用现行 SPDX 标识符' : 'Only current SPDX identifiers',
@@ -536,21 +536,21 @@ function Docs({ lang }: { lang: Lang }) {
 
         <p className="mt-4 rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-3 text-xs text-ink-600">
           {zh
-            ? '这些结论有些是人工逐条核对的，有些是机器读正文推断的——详情面板里每条都会标注来源。下正式判断前请以许可证原文为准；本页只是告诉你该看什么。'
-            : 'Some of these conclusions were checked by hand, others inferred by machine from the text — the detail panel labels the source of each. Before a formal decision, go by the license text itself; this page only tells you what to look at.'}
+            ? '这些结论有些是逐条精校的，有些是机器读正文推断的——详情面板里每条都会标注来源。下正式判断前请以许可证原文为准；本页只是告诉你该看什么。'
+            : 'Some of these conclusions were verified entry by entry, others inferred by machine from the text — the detail panel labels the source of each. Before a formal decision, go by the license text itself; this page only tells you what to look at.'}
         </p>
       </section>
 
       <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
         <h2 className="text-xl font-semibold">
           {zh
-            ? `人工整理的 ${LICENSES.length} 个许可证（另有长尾条目由正文推断）`
-            : `The ${LICENSES.length} hand-curated licenses (the long tail is inferred from text)`}
+            ? `精校的 ${LICENSES.length} 个许可证（另有长尾条目由正文推断）`
+            : `The ${LICENSES.length} curated licenses (the long tail is inferred from text)`}
         </h2>
         <p className="mt-2 text-sm text-ink-600">
           {zh
             ? `下面这些许可证的条款说明是我们逐条核对过的，也配了中文解读。官方名录一共 ${full?.licenses ?? '740'} 个，其余的在「选择与对比」里按类别浏览。`
-            : `The licenses below have hand-checked clause notes and Chinese commentary. The official list has ${full?.licenses ?? '740'} in total; browse the rest by category under "Pick and compare".`}
+            : `The licenses below have verified clause notes and Chinese commentary. The official list has ${full?.licenses ?? '740'} in total; browse the rest by category under "Pick and compare".`}
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(Object.keys(FAMILY_LABEL) as (keyof typeof FAMILY_LABEL)[]).map((f) => {
@@ -576,8 +576,8 @@ function Docs({ lang }: { lang: Lang }) {
         <h2 className="text-xl font-semibold">{zh ? '数据从哪来（多家数据源混合）' : 'Where the data comes from (several sources combined)'}</h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
-            ? '许可证正文来自 SPDX 官方名录；许可类型的分类由 ScanCode 数据库补齐；"能不能和别的许可一起用"来自 OSADL 义务清单；条款的人工标注来自 ChooseALicense；OSI 认证标签来自 OSI 官方 API；中文审定稿链接来自开放原子《源译识》。这些都在**构建时**抓一次、作为静态文件随站点分发——运行时不联网，你填的信息也不出浏览器，任何人都可以重跑抓取脚本核对。'
-            : 'License texts come from the official SPDX list; license-type categories from the ScanCode database; "can it be combined" verdicts from the OSADL obligations checklist; hand-labelled clauses from ChooseALicense; OSI approval tags from the official OSI API; and Chinese translation links from the OpenAtom Foundation project. All of it is fetched once at **build time** and shipped as static files — no network at runtime, nothing you type leaves the browser, and anyone can re-run the fetch scripts to verify.'}
+            ? '许可证正文来自 SPDX 官方名录；许可类型的分类由 ScanCode 数据库补齐；"能不能和别的许可一起用"来自 OSADL 义务清单；条款的上游标注来自 ChooseALicense；OSI 认证标签来自 OSI 官方 API；中文审定稿链接来自开放原子《源译识》。这些都在**构建时**抓一次、作为静态文件随站点分发——运行时不联网，你填的信息也不出浏览器，任何人都可以重跑抓取脚本核对。'
+            : 'License texts come from the official SPDX list; license-type categories from the ScanCode database; "can it be combined" verdicts from the OSADL obligations checklist; upstream-labelled clauses from ChooseALicense; OSI approval tags from the official OSI API; and Chinese translation links from the OpenAtom Foundation project. All of it is fetched once at **build time** and shipped as static files — no network at runtime, nothing you type leaves the browser, and anyone can re-run the fetch scripts to verify.'}
         </p>
         <div className="table-scroll mt-4">
           <table className="w-full border-collapse text-xs">
@@ -630,8 +630,8 @@ function Docs({ lang }: { lang: Lang }) {
                 </td>
                 <td>
                   {zh
-                    ? '人工逐条标注的条款结论（专利、商标、要不要写明改动）'
-                    : 'Hand-labelled clause verdicts (patents, trademarks, change notices)'}
+                    ? '上游逐条标注的条款结论（专利、商标、要不要写明改动）'
+                    : 'Upstream-labelled clause verdicts (patents, trademarks, change notices)'}
                 </td>
                 <td className="mono">
                   47 {zh ? '个主流许可' : 'popular licenses'} · CC-BY-3.0

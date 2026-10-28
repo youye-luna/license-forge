@@ -410,7 +410,7 @@ function rank(
   const out: Recommendation[] = [];
   ids.forEach((id, index) => {
     const entry = LICENSE_BY_ID[id];
-    // 不在人工整理集合里的 ID 会被静默丢弃。写候选池时务必确认 ID 存在，
+    // 不在精校集合里的 ID 会被静默丢弃。写候选池时务必确认 ID 存在，
     // 否则用户看不到任何提示，只觉得"候选莫名其妙少了一个"。
     if (!entry || seen.has(id)) return;
     seen.add(id);

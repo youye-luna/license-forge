@@ -12,7 +12,7 @@
  *
  * 因此"这个许可证的正文里有没有给使用者填的位置"不能靠一个正则判断，
  * 否则会像 0BSD 那样把 YEAR / AUTHOR 原样输出给用户。这个脚本把全量正文扫一遍，
- * 把命中情况打印出来，用于人工核对受控替换表（src/lib/fill.ts 的 COPYRIGHT_SLOT_PATTERNS）。
+ * 把命中情况打印出来，用于逐条核对受控替换表（src/lib/fill.ts 的 COPYRIGHT_SLOT_PATTERNS）。
  */
 import { readFileSync } from 'node:fs';
 

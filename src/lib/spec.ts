@@ -18,10 +18,10 @@ import type { Family, FillKind, HeaderStyle, LicenseEntry, LicenseFacts } from '
 /**
  * 统一许可证规格（LicenseSpec）。
  *
- * 站点收录 SPDX 全量许可证，但只有少数做了人工整理的条款字段与双语解读。
+ * 站点收录 SPDX 全量许可证，但只有少数做了逐条精校的条款字段与双语解读。
  * 与其假装全量都懂，不如把两者明确分层，并让界面把差别告诉用户：
  *
- *  - `curated`：人工整理。条款字段、双语的「你得到什么 / 你放弃什么 / 常见误解」都可信。
+ *  - `curated`：逐条精校。条款字段、双语的「你得到什么 / 你放弃什么 / 常见误解」都可信。
  *  - `derived`：从许可证正文推断。只用于展示与基本判定，界面上必须标注"文本推断"。
  *
  * 关键差别在**文件头策略**，因为这直接决定生成进用户仓库的内容：
@@ -47,7 +47,7 @@ export interface LicenseSpec {
   headerStrategy: HeaderStrategy;
   /** 官方头模板原文（仅 spdx-official 有） */
   officialHeader?: string;
-  /** 该许可证是否必须随附 NOTICE（目前只有人工整理能确定） */
+  /** 该许可证是否必须随附 NOTICE（目前只有精校条目能确定） */
   requiresNotice: boolean;
   /** 与许可证一起使用的例外（`WITH` 表达式） */
   exceptionId?: string;
@@ -60,9 +60,9 @@ export interface LicenseSpec {
   factsInferred: boolean;
   /** 家族判定的依据来源，界面上要如实交代 */
   familySource?: 'scancode-category' | 'spdx-id' | 'text';
-  /** 条款字段的来源：人工标注（ChooseALicense）还是正则推断 */
+  /** 条款字段的来源：上游标注（ChooseALicense）还是正则推断 */
   termsSource?: 'choosealicense' | 'text';
-  /** 人工整理的条目（含双语解读与常见误解） */
+  /** 精校的条目（含双语解读与常见误解） */
   curated: LicenseEntry | null;
 
   /* ---- 以下来自第三方补充数据（ScanCode LicenseDB / OSI API） ---- */
@@ -94,7 +94,7 @@ export interface LicenseSpec {
   licenseRef?: string;
 }
 
-/** 人工整理的许可证所用的文件名惯例 */
+/** 精校许可证所用的文件名惯例 */
 function fileNameForCurated(entry: LicenseEntry): string {
   return entry.fileName;
 }
@@ -104,9 +104,9 @@ function safeFamily(f: string): Family {
 }
 
 /**
- * 由人工整理的条目构造规格。
+ * 由精校条目构造规格。
  *
- * 条款字段仍以人工整理为准（那是逐条核对的），但需要**如实标注来源**：
+ * 条款字段仍以精校值为准（那是逐条核对过的），但需要**如实标注来源**：
  * 如果这个许可证也在 ChooseALicense 的 47 个标注范围内，两套数据互相印证，
  * 界面就可以给出比"推断"更高的置信度。
  */
@@ -139,12 +139,12 @@ function fromCurated(
     fileName: fileNameForCurated(entry),
     facts: entry.facts,
     factsInferred: false,
-    // 人工整理的家族判定不来自第三方分类，如实标注
+    // 精校的家族判定不来自第三方分类，如实标注
     familySource: 'spdx-id',
     // 在 ChooseALicense 标注范围内时，条款字段有第二份独立来源印证
     termsSource: cal ? 'choosealicense' : 'text',
     curated: entry,
-    // 第三方补充数据一律透传：人工整理只覆盖条款解读，
+    // 第三方补充数据一律透传：精校只覆盖条款解读，
     // 分类 / 义务判定 / 中文来源这些来自外部，必须照搬而不是丢掉。
     category: enrichment?.category,
     categorySource: enrichment?.category ? 'ScanCode LicenseDB' : undefined,
@@ -171,7 +171,7 @@ export function fromCatalog(
   if (entry) return fromCurated(entry, text, enrichment, terms);
 
   const raw = text?.licenseText ?? '';
-  // 家族优先取 ScanCode 的权威分类，条款字段优先取 ChooseALicense 的人工标注，
+  // 家族优先取 ScanCode 的权威分类，条款字段优先取 ChooseALicense 的上游标注，
   // 两者都拿不到才回落到正文正则推断
   const facts: DerivedFacts = deriveFacts(item.id, raw, item.osiApproved, enrichment?.family, terms);
   const hasOfficialHeader = Boolean(text?.standardLicenseHeader);
@@ -326,7 +326,7 @@ export function resolveSpec(
       terms,
     );
   } else {
-    // 人工整理的许可证即使正文还没加载出来也要能展示
+    // 精校许可证即使正文还没加载出来也要能展示
     const entry = LICENSE_BY_ID[id];
     if (entry) spec = fromCurated(entry, undefined, extra, terms);
   }
@@ -342,7 +342,7 @@ export function expressionOf(spec: LicenseSpec): string {
   return spec.exceptionId ? `${spec.id} WITH ${spec.exceptionId}` : spec.id;
 }
 
-/** 人工整理（有完整条款字段与双语解读）的许可证数量，用于界面说明覆盖范围 */
+/** 精校（有完整条款字段与双语解读）的许可证数量，用于界面说明覆盖范围 */
 export function curatedCount(): number {
   return Object.keys(LICENSE_BY_ID).length;
 }

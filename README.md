@@ -37,7 +37,7 @@ pnpm install
 pnpm run data        # 构建期抓取全部许可证数据（首次必须执行，约 20MB）
 pnpm run dev         # 开发服务器
 pnpm run build       # 静态导出到 out/
-pnpm run test        # 123 项测试
+pnpm run test        # 203 项测试
 pnpm run typecheck   # 类型检查
 ```
 
@@ -64,7 +64,7 @@ node scripts/serve-out.mjs 4173   # 本地预览 out/ 产物（开发自检用�
 ## 数据来源
 
 许可证正文来自 SPDX 官方 License List；条款分类由 ScanCode LicenseDB 补齐；兼容性判定来自
-OSADL 义务清单；条款字段的人工标注来自 ChooseALicense；OSI 审批标签来自 OSI 官方 API；
+OSADL 义务清单；条款字段的上游标注来自 ChooseALicense；OSI 审批标签来自 OSI 官方 API；
 中文审定稿链接来自开放原子《源译识》。
 
 全部在**构建期**抓取一次，作为静态文件随站点分发——运行时不依赖外部网络，
@@ -75,7 +75,7 @@ OSADL 义务清单；条款字段的人工标注来自 ChooseALicense；OSI 审�
 | **[SPDX License List](https://spdx.org/licenses/)** | 标识符、全量正文、`standardLicenseHeader`（93 个官方文件头）、OSI/FSF 状态 | 740 + 86 例外 | CC0 |
 | **[ScanCode LicenseDB](https://scancode-licensedb.aboutcode.org/)** | 权威 `category` 分类、归属方、主页，以及 **SPDX 没收录的 1729 个许可证正文** | 分类 726/740；独有 1729 条 | CC-BY-4.0 |
 | **[OSADL Obligations Checklist](https://www.osadl.org/Checklists)** | 兼容性矩阵、copyleft 判定、源码披露义务 | 115 个许可 / 13225 条判定 | CC-BY-4.0 |
-| **[ChooseALicense](https://github.com/github/choosealicense.com)** | 条款字段的人工标注（专利、商标、改动标注、网络触发） | 47 个主流许可 | CC-BY-3.0 |
+| **[ChooseALicense](https://github.com/github/choosealicense.com)** | 条款字段的上游标注（专利、商标、改动标注、网络触发） | 47 个主流许可 | CC-BY-3.0 |
 | **[OSI 官方 API](https://opensource.org/api/licenses)** | `keywords`（superseded / non-reusable 等）、批准日期 | 123/740 | — |
 | **[开放原子《源译识》](https://gitcode.com/translation/license-translation)** | 15 个许可证的中英对照审定稿链接 | 15 | 译文 CC0 |
 
@@ -91,11 +91,16 @@ ScanCode 那部分正是 SPDX 查不到的东西——`Anti 996` License、Activ
 
 | 来源 | 覆盖 | 界面标注 |
 |---|---|---|
-| 人工整理（本项目逐条核对） | 32 | 绿色「人工整理」 |
-| ChooseALicense 人工标注 | 47 | 绿色「来自 ChooseALicense 的人工标注」 |
-| 正文关键词推断 | 其余 | 橙色「由正文推断，非权威认定」 |
+| 本项目整理（由 **AI** 逐条核对许可证正文） | 32 | 绿色「精校」 |
+| ChooseALicense 上游标注 | 47 | 绿色「上游标注过」 |
+| 正文关键词推断 | 其余 | 橙色「机器猜的（由正文推断，非权威认定）」 |
 
-界面不会把推断结果和人工核对显示成同一种东西。
+界面不会把推断结果和逐条核对的结果显示成同一种东西。
+
+> **本项目基本由 AI 完成。** 代码、条款梳理、双语文案与文档都出自 AI 会话，
+> **未经人类逐条审校**。上表第一行的 32 个标为「精校」、逐条核对过许可证正文，
+> 但核对者是 AI，与第二行那种由 ChooseALicense 维护者完成的上游标注不是一回事；
+> 第二行的 47 个标注确实由人完成。有疑问请以许可证原文为准。
 
 ---
 
@@ -174,12 +179,12 @@ REUSE 布局默认开启——是换一个默认值，不是换一套逻辑（�
   （来源 / 家族 / 条款来源 / 专利授权 / 允许闭源衍生 / 网络服务触发 / 须标注改动 /
   商标条款 / NOTICE 义务 / 官方文件头 / OSI / copyleft / 源码披露 / 分类），支持 4 种排序。
 
-矩阵的行数跟随筛选：默认「最常用」29 行（条款全部人工核对）；选了类别或数据源就摊开该范围，
+矩阵的行数跟随筛选：默认「最常用」29 行（条款全部逐条核对过）；选了类别或数据源就摊开该范围，
 上限 80 行。每行都能直接选用或加入对比工作台。
 
 条款面板底部有「加入对比」，最多放 4 个，在工作台里逐列横向摊开。
 **任何条目都能加入**（含长尾与 ScanCode 独有），而表格里的「条款来源」一行会如实区分
-人工标注与正文推断。
+上游标注与正文推断。
 
 ### 分类
 
@@ -284,15 +289,15 @@ scripts/
   fetch-spdx.mjs              抓取 SPDX 全量许可证与例外（磁盘缓存 + 并发池 + 重试）
   fetch-scancode-extra.mjs    抓取 SPDX 未收录的 ScanCode 条目（正文与名称）
   fetch-enrichment.mjs        合并 ScanCode 分类 / OSADL 矩阵 / OSI keywords / 中文链接
-  fetch-choosealicense.mjs    抓取条款字段的人工标注（含 6 项已知答案自检）
+  fetch-choosealicense.mjs    抓取条款字段的上游标注（含 6 项已知答案自检）
   audit-official-headers.mjs  审计 93 个官方文件头模板的替换结果
   audit-placeholders.mjs      审计 740 个许可证正文里的版权占位符形态
   serve-out.mjs               开发期本地预览 out/ 的极简静态服务器
 public/data/                  构建期数据快照（约 19MB，随仓库分发）
 src/lib/
   types.ts                    数据模型
-  licenses.ts                 人工整理的 32 个许可证（条款字段 + 双语解读）
-  spec.ts                     统一规格：人工整理与长尾推断两层的桥接、文件头策略选择
+  licenses.ts                 整理过的 32 个许可证（条款字段 + 双语解读）
+  spec.ts                     统一规格：整理值与长尾推断两层的桥接、文件头策略选择
   spdx.ts                     SPDX/ScanCode 数据读取、解析、条款推断、家族映射
   compare.ts                  对比维度定义与事实解析（矩阵与工作台共用）
   fill.ts                     占位符填充（受控白名单）、版权行格式化、注释语法、文件头生成
@@ -314,15 +319,15 @@ src/components/
 pnpm run test
 ```
 
-共 **202 项**，全部基于真实数据快照（不需要网络）：
+共 **203 项**，全部基于真实数据快照（不需要网络）：
 
 | 文件 | 项数 | 覆盖 |
 |---|---|---|
 | `generate.test.mjs` | 44 | 全量数据完整性、非必要不改（逐字节比对）、官方文件头、产物、`WITH` 例外 |
-| `enrichment.test.mjs` | 41 | 多源融合、分类优先、兼容性查询、义务提示、人工值与推导值的一致性 |
-| `flow.test.mjs` | 38 | 流程顺序、无模式切换、默认值、关于页编辑立场、编码损坏与 404 页 |
+| `enrichment.test.mjs` | 41 | 多源融合、分类优先、兼容性查询、义务提示、整理值与推导值的一致性 |
+| `flow.test.mjs` | 39 | 流程顺序、无模式切换、默认值、关于页编辑立场、编码损坏与 404 页 |
 | `compare.test.mjs` | 22 | 对比维度一致性、事实解析、简介生成、木兰两支区分 |
-| `subject.test.mjs` | 17 | 「用来授权」的三层判定（人工 / 规则 / 未判定）|
+| `subject.test.mjs` | 17 | 「用来授权」的三层判定（逐条指定 / 规则 / 未判定）|
 | `scancode.test.mjs` | 16 | ScanCode 条目、`LicenseRef` 提示、合并目录与检索、英文单语副本剔除 |
 | `terms.test.mjs` | 13 | ChooseALicense 词表、`patent-use` 同名反义、条款来源标注 |
 | `sort.test.mjs` | 11 | 四种排序键、未判定条目的排位 |
@@ -375,8 +380,8 @@ pnpm run test
 > 用 `GPL-3.0-or-later` 而不是 `GPL-3.0`：后者是 SPDX 的**废弃**写法，本工具自己就会把它
 > 归进「旧名字（已废弃）」。三者正文完全相同，区别只在源文件声明与清单字段里。
 >
-> 本站的 `LICENSE` 计划由这个工具自己生成，与生成器输出逐字节一致（有测试守着这一点）。
-> **当前正文尚未替换**，因此那条测试暂时是红的——见下。
+> 本站的 `LICENSE` 由这个工具自己生成，与「官方原文经本工具填充后」的输出逐字节一致
+> （有测试守着这一点）。
 
 `public/data/` 里的数据来自多个上游，转发时请保留各自的署名要求：
 

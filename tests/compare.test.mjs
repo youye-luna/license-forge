@@ -96,7 +96,7 @@ test('维度 key 与 label 分离：改文案不会改坏渲染', () => {
  * factsOf：从条目解析事实
  * ------------------------------------------------------------------ */
 
-test('人工标注的条目不需要正文也能得出条款（矩阵因此能先渲染后补数据）', () => {
+test('上游标注的条目不需要正文也能得出条款（矩阵因此能先渲染后补数据）', () => {
   // Apache-2.0 在 ChooseALicense 的 47 个标注范围内，无需正文
   const withText = factsFor('Apache-2.0', true);
   const withoutText = factsFor('Apache-2.0', false);
@@ -135,7 +135,7 @@ test('MPL-2.0 这类文件级著佐权：允许闭源衍生，但被改的文件
   assert.equal(allowsClosedSource(mpl), true);
 });
 
-test('条款来源如实区分人工标注与正文推断', () => {
+test('条款来源如实区分上游标注与正文推断', () => {
   assert.equal(factsFor('MIT', false).termsSource, 'choosealicense');
   assert.equal(factsFor('Apache-2.0', false).termsSource, 'choosealicense');
   // 长尾条目不在 47 个标注范围内 → 只能推断

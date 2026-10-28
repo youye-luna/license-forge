@@ -3,12 +3,12 @@ import type { Family } from './types.ts';
 import { LICENSES } from './licenses.ts';
 
 /**
- * 人工逐条核对过的家族判定。这 32 个的结论**优先于任何上游分类与正则推导**——
- * 它们是人按许可证实际条款逐条看过定下来的，上游的粗分类与推导都只是近似。
+ * 逐条精校过的家族判定。这 32 个的结论**优先于任何上游分类与正则推导**——
+ * 它们是按许可证实际条款逐条看过定下来的，上游的粗分类与推导都只是近似。
  *
  * 必须在这里生效而不是只放在 licenses.ts：`familyFromEntry` 读的是 enrichment
- * 里的上游 family，人工整理的值并没有写进那份数据，所以不加这一步的话，
- * 列表筛选用的仍是上游值，与详情面板（读人工值）对不上。
+ * 里的上游 family，精校的值并没有写进那份数据，所以不加这一步的话，
+ * 列表筛选用的仍是上游值，与详情面板（读精校值）对不上。
  */
 const CURATED_FAMILY = new Map(LICENSES.map((l) => [l.id, l.family]));
 
@@ -260,7 +260,7 @@ export interface ChineseTextSource {
 export interface EnrichmentRecord {
   /** ScanCode 的粗分类，例如 "Permissive" / "Copyleft Limited" / "Source-available" */
   category?: string;
-  /** 由分类映射出的家族；仅在人工整理条目缺席时使用 */
+  /** 由分类映射出的家族；仅在精校条目缺席时使用 */
   family?: string;
   owner?: string;
   homepage?: string;
@@ -566,9 +566,9 @@ export function scancodeStats(catalog: ScancodeCatalog) {
 /* ------------------------------------------------------------------ *
  * ChooseALicense 的条款标签（权威覆盖层）
  *
- * 这是本项目**唯一**能拿到"条款布尔字段"精确标注的来源：它用固定词表人工标注了
+ * 这是本项目**唯一**能拿到"条款布尔字段"精确标注的来源：它用固定词表逐条标注了
  * 47 个主流许可证，字段语义与我们的完全对应。因此条款字段的合并优先级是：
- *   人工整理的条目 > ChooseALicense 标签 > 正文正则推断
+ *   精校条目 > ChooseALicense 标签 > 正文正则推断
  * 前两者之外的部分仍然只能推断，并如实标注来源。
  * ------------------------------------------------------------------ */
 
@@ -686,7 +686,7 @@ export function familyFromEntry(
   extra?: EnrichmentRecord,
 ): string | undefined {
   const id = entry.id ?? entry.scancodeKey ?? '';
-  // 人工核对过的（32 个）以核对结果为准，不用上游分类也不用推导
+  // 精校过的（32 个）以核对结果为准，不用上游分类也不用推导
   const curated = CURATED_FAMILY.get(id);
   if (curated) return curated;
   const base = extra?.family ?? (entry.category ? SCANCODE_FAMILY[entry.category] : undefined);
@@ -771,7 +771,7 @@ export const OSI_KEYWORD_NOTE: Record<string, { zh: string; en: string }> = {
 /* ------------------------------------------------------------------ *
  * 从正文推断条款事实
  *
- * 长尾许可证没有人工整理的条款字段。家族优先取第三方权威分类（ScanCode），
+ * 长尾许可证没有精校的条款字段。家族优先取第三方权威分类（ScanCode），
  * 拿不到时才退回**正文关键词**推断；其余条款字段只能靠文本推断，
  * 并始终标记为 inferred，在界面上明示"这是文本推断，不是权威认定"。
  * 宁可承认不确定，也不要给用户一个看起来确定、实际靠猜的勾。
@@ -815,7 +815,7 @@ export interface DerivedFacts {
   endorse: 'prohibited' | 'silent';
   /** 能不能拿作者/贡献者的名义为你的产品做**推广促销**；语义同 `endorse` */
   promote: 'prohibited' | 'silent';
-  /** 条款字段的来源；`choosealicense` 表示人工标注，`text` 表示正则推断 */
+  /** 条款字段的来源；`choosealicense` 表示上游标注，`text` 表示正则推断 */
   termsSource: 'choosealicense' | 'text';
   /** 全部非权威结论都来自文本匹配，必须标注 */
   inferred: true;
@@ -1015,7 +1015,7 @@ function familyFromId(id: string): Family | null {
  *
  * 家族判定的优先级（越靠前越权威）：
  *   1. `categoryFamily` —— ScanCode LicenseDB 的粗分类（覆盖 98% 的 SPDX 许可证）。
- *      它是第三方人工策展的结果，比正则可靠得多，但仍不是法律认定。
+ *      它是第三方机构逐条策展的结果，比正则可靠得多，但仍不是法律认定。
  *   2. SPDX 标识符前缀 —— 例如 `GPL-*` 一定是强著佐权。
  *   3. 正文关键词 —— 只在前两者都拿不到时使用（约 1% 的条目）。
  */
@@ -1057,7 +1057,7 @@ export function deriveFacts(
     familySource = 'text';
   }
 
-  // 网络触发：先看人工标注（ChooseALicense 覆盖的 47 个里只有 4 个是真网络条款），
+  // 网络触发：先看上游标注（ChooseALicense 覆盖的 47 个里只有 4 个是真网络条款），
   // 再退到正文匹配。分类里没有这个维度，而 AGPL 与 GPL 在 ScanCode 里同属 copyleft 大类。
   const cal = lookupTerms(chooseALicense, id);
   const networkTrigger = cal ? cal.derived.networkTrigger : NETWORK_MARKERS.some((re) => re.test(t));
@@ -1067,7 +1067,7 @@ export function deriveFacts(
   const wholeWorkFamily = family === 'strong-copyleft' || family === 'network-copyleft';
 
   /*
-   * 条款字段：有 ChooseALicense 的人工标注就直接用它，没有才回落到正则推断。
+   * 条款字段：有 ChooseALicense 的上游标注就直接用它，没有才回落到正则推断。
    * 这是本合同项目里唯一能把"猜"升级为"查"的地方，因此优先级的处理必须明确。
    * 注意上游的 `patent-use` 在 permissions 与 limitations 里同名反义，
    * 那一步的区分在 fetch-choosealicense.mjs 里完成（分别落到 explicit / none）。

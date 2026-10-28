@@ -353,10 +353,10 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           {spec.curated
             ? lang === 'zh'
               ? '这个许可证的条款说明是我们逐条核对过的；源文件声明用的是官方原文。'
-              : 'The clause notes for this license were checked by hand; the source-header wording is the official text.'
+              : 'The clause notes for this license were verified entry by entry; the source-header wording is the official text.'
             : lang === 'zh'
               ? '这是个少见的长尾许可证：条款说明是机器读正文猜的，没有人逐条核对过。'
-              : 'A long-tail license: the clause notes are machine-inferred from the text and nobody has checked them by hand.'}
+              : 'A long-tail license: the clause notes are machine-inferred from the text and nobody has verified them entry by entry.'}
         </p>
       </section>
 

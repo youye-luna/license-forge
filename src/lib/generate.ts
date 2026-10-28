@@ -411,7 +411,7 @@ export function generate(input: GenerateInput): GenerationResult {
         ].join(', ')}）。请手工填写后再提交，不要直接使用。`,
         en: `The official header template still has ${leftoverPlaceholders.length} placeholder(s) we did not recognise (${[
           ...new Set(leftoverPlaceholders),
-        ].join(', ')}). Fill them in by hand before committing.`,
+        ].join(', ')}). Fill them in yourself before committing.`,
       });
     }
   }
@@ -517,27 +517,27 @@ export function generate(input: GenerateInput): GenerationResult {
     notices.push({
       level: 'info',
       zh: '这是个少见的长尾许可证：上面那些条款说明是机器读正文**推断**出来的——说白了就是猜的，没有人逐条核对过，也没有中文解读。要下正式判断，请看许可证原文。',
-      en: 'A long-tail license: the clause notes above were **inferred** by machine from the text — in plain terms, guessed. Nobody checked them by hand and there is no commentary. For a real decision, read the license itself.',
+      en: 'A long-tail license: the clause notes above were **inferred** by machine from the text — in plain terms, guessed. Nobody verified them entry by entry and there is no commentary. For a real decision, read the license itself.',
     });
   }
-  // 这些结论的来源要如实交代：有人标注过、我们人工核对过、还是机器猜的——三者可信度不同。
+  // 这些结论的来源要如实交代：上游标注过、我们精校过、还是机器猜的——三者可信度不同。
   if (spec.factsInferred) {
     notices.push({
       level: 'info',
       zh:
         spec.termsSource === 'choosealicense'
-          ? '上面那些条款说明来自 ChooseALicense 的人工逐条标注，可以放心参考。'
+          ? '上面那些条款说明来自 ChooseALicense 的上游逐条标注，可以放心参考。'
           : '上面那些条款说明是机器读正文**推断**出来的——说白了就是猜的。这个许可证不在 ChooseALicense 的 47 个标注范围内，所以我们标成"不确定"，而不是给你一个看起来确定的答案。',
       en:
         spec.termsSource === 'choosealicense'
-          ? 'The clause notes above come from ChooseALicense’s hand-labelled entries and can be relied on.'
+          ? 'The clause notes above come from ChooseALicense’s upstream-labelled entries and can be relied on.'
           : 'The clause notes above were **inferred** by machine from the text — in plain terms, guessed. This license is outside ChooseALicense’s 47 labelled entries, so we mark them uncertain rather than hand you a confident-looking answer.',
     });
   } else if (spec.termsSource === 'choosealicense') {
     notices.push({
       level: 'info',
-      zh: '上面那些条款说明是我们人工核对的，并且与 ChooseALicense 的人工标注互相印证。',
-      en: 'The clause notes above were checked by hand here, and they agree with ChooseALicense’s hand-labelled entries.',
+      zh: '上面那些条款说明是我们逐条精校的，并且与 ChooseALicense 的上游标注互相印证。',
+      en: 'The clause notes above were verified here entry by entry, and they agree with ChooseALicense’s upstream-labelled entries.',
     });
   }
   if (spec.family === 'content' || spec.id.startsWith('CC-')) {

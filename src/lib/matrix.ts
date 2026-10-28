@@ -8,7 +8,7 @@ import { LICENSES } from './licenses.ts';
  * 不应该继续出现在前端产物里）。
  */
 
-/** 人工核对过的许可证的覆盖情况，用于首页说明"我们做了多少" */
+/** 精校过的许可证的覆盖情况，用于首页说明"我们做了多少" */
 export function coverageStats() {
   return {
     total: LICENSES.length,

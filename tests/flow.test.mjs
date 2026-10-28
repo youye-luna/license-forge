@@ -192,7 +192,7 @@ test('打包源文件在仓库里，不落在被忽略的 dist/', () => {
 });
 
 test('中文文本没有出处时要如实标注，不能什么都不显示', () => {
-  // 19 个人工整理的许可（ISC、BSD-2、Zlib、OFL、CERN-OHL 系列…）既没有官方中文正文，
+  // 19 个精校的许可（ISC、BSD-2、Zlib、OFL、CERN-OHL 系列…）既没有官方中文正文，
   // 也没有评审译稿。原先这里什么都不显示，用户会以为有中文、只是没找到入口。
   const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
   assert.ok(
@@ -660,7 +660,7 @@ test('署名题的推荐不会变成唯一答案：仍给出取舍', () => {
  * 数据与类别
  * ------------------------------------------------------------------ */
 
-test('分类导航覆盖全部人工整理的许可证，且每个类别都有双语名称', () => {
+test('分类导航覆盖全部精校的许可证，且每个类别都有双语名称', () => {
   const grouped = FAMILY_ORDER.flatMap((f) => LICENSES.filter((l) => l.family === f));
   assert.equal(grouped.length, LICENSES.length, '按类别分组后不应丢许可证');
   for (const f of FAMILY_ORDER) {

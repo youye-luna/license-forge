@@ -98,7 +98,7 @@ test('按专利授权：明确授予的排最前，未加载正文的退化为"�
   // 第一项必须是"明确授予专利"的那一类（具体是哪一个取决于字母序，不要去猜 ID）
   const firstKey = keyOf(out[0]);
   const firstCal = lookupTerms(TERMS, firstKey);
-  assert.ok(firstCal, `第一项 ${firstKey} 应当有 ChooseALicense 人工标注，否则不该排在最前`);
+  assert.ok(firstCal, `第一项 ${firstKey} 应当有 ChooseALicense 上游标注，否则不该排在最前`);
   assert.equal(firstCal.derived.patentGrant, 'explicit', `第一项 ${firstKey} 应当是明确授予专利`);
 
   // 明确授予专利的那批必须在靠前区间
