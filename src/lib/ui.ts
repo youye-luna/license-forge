@@ -58,11 +58,11 @@ export const PROJECT = {
    * 因此加了测试守着：`发行版版本号必须与 package.json 同步`。
    *
    * 约定（见 README「版本号与发行」）：**只在有大改动时才递增版本号**。
-   * 小的修复与增补直接覆盖同一个 v0.1.0 发行版，不逐次抬号；
+   * 小的修复与增补直接覆盖同一个 v0.1.1 发行版，不逐次抬号；
    * 等改动大到"用户需要判断该不该升级"时（数据源换了、产物结构变了、
    * 生成结果不再向后兼容），才递增并在发行说明里写清差异。
    */
-  releasesLabel: 'v0.1.0',
+  releasesLabel: 'v0.1.1',
   issues: 'https://github.com/youye-luna/license-forge/issues',
   /**
    * 项目自身的许可证标识符。

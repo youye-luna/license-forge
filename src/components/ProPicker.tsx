@@ -1,14 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Check, Info, X } from './Icons';
 import { FAMILY_LABEL, LICENSE_BY_ID } from '../lib/licenses.ts';
-import {
-  compareDimensions,
-  factsOf,
-  generatedIntro,
-  type CompareFacts,
-  type Dimension,
-} from '../lib/compare.ts';
+import { factsOf, generatedIntro } from '../lib/compare.ts';
 import { matchesSubject, SUBJECT_LABEL, subjectsOf, type Subject } from '../lib/subject.ts';
 import { needsLicenseText, sortLicenses, SORTS, type SortKey } from '../lib/ordering.ts';
 import {
@@ -144,7 +139,7 @@ const SUBJECT_FILTERS: (Subject | 'all')[] = [
  */
 function selectClass(active: boolean): string {
   return [
-    'min-w-0 flex-1 rounded-lg border px-2 py-1.5 text-xs outline-none transition',
+    'min-w-0 flex-1 rounded-lg border px-2 py-2 text-xs outline-none transition',
     'focus:border-ink-900',
     active ? 'border-ink-900 bg-ink-900 font-medium text-white' : 'border-ink-900/15 bg-white hover:border-ink-900/40',
   ].join(' ');
@@ -331,7 +326,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
   }
   if (!spdx || !stats || !unified) {
     return (
-      <div className="rounded-xl border border-ink-900/10 bg-white p-8 text-center text-sm text-ink-600">
+      <div className="rounded-2xl border border-ink-900/10 bg-white p-8 text-center text-sm text-ink-600">
         {zh ? '正在加载 SPDX 与 ScanCode 许可证目录…' : 'Loading the SPDX and ScanCode catalogs…'}
       </div>
     );
@@ -348,7 +343,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
             : `${total} licenses in total: ${stats.licenses} from the official list (SPDX ${stats.version}; ${stats.active} still current, ${stats.osiApproved} OSI-approved), plus ${scStats?.total ?? 0} that are not on the official list but do show up in real code.`}
         </p>
         {scStats ? (
-          <p className="mt-1.5 text-xs">
+          <p className="mt-2 text-xs">
             {zh
               ? `后一类正是官方名录查不到的：商业许可、非商业许可、只开放源码不给修改权的条款、以及各家厂商自定的条款，其中 ${scStats.nonOpen} 个被归为非开源。这类条目**只能用来查证**——"我在代码里看到的这段到底是什么"。它们的名字不在官方名录里，填进配置文件的 license 字段会被工具判为无效。`
               : `That second group is what the official list lacks: commercial, non-commercial, source-available and vendor-specific terms — ${scStats.nonOpen} of them classified as non-open. Use them **for reference only**, to answer "what is this clause I found in the code". Their names are not on the official list, so putting one in a config license field will be rejected as invalid.`}
@@ -356,7 +351,8 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
         ) : null}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[26rem_1fr]">
+      {/* 宽屏下把左栏放宽一档：筛选器一行放得下更多，右栏详情仍有 900 左右的正文宽度 */}
+      <div className="grid gap-6 lg:grid-cols-[26rem_1fr] xl:grid-cols-[30rem_1fr]">
         {/* ---------- 左：搜索与列表 ---------- */}
         <div className="space-y-3">
           <input
@@ -440,7 +436,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
               : `${sortedResults.length} match${sortedResults.length === 1 ? '' : 'es'}${sortedResults.length >= 400 ? ' (showing the first 400; narrow your search)' : ''}; click for details, double-click to use`}
           </p>
 
-          <ul className="max-h-[40rem] space-y-0.5 overflow-auto rounded-xl border border-ink-900/10 bg-white p-1.5">
+          <ul className="max-h-[40rem] space-y-1 overflow-auto rounded-2xl border border-ink-900/10 bg-white p-2">
             {sortedResults.map((l) => {
               const active = focus?.id === l.id;
               const chosen = pickedId === l.id;
@@ -456,36 +452,36 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
                     onDoubleClick={() => onPick(l.id, null)}
                     title={zh ? '单击看详情，双击直接选用' : 'Click for details, double-click to use'}
                     className={[
-                      'w-full rounded-lg border px-2.5 py-1.5 text-left',
+                      'w-full rounded-lg border px-3 py-2 text-left',
                       ROW_TRANSITION,
                       rowEdgeClass(chosen ? 'picked' : active ? 'focused' : 'idle'),
                       rowTintClass(chosen ? 'picked' : active ? 'focused' : 'idle'),
                     ].join(' ')}
                   >
-                    <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="flex flex-wrap items-center gap-2">
                       <code className="mono text-[11px]">{l.source === 'spdx' ? l.id : l.scancodeKey}</code>
                       {l.source === 'scancode' ? (
                         <span className="rounded bg-ink-900/[0.08] px-1 text-[9px] uppercase tracking-wide text-ink-600">
                           ScanCode
                         </span>
                       ) : null}
-                      {chosen ? <span className="rounded-full bg-ok/10 px-1.5 text-[10px] text-ok">{zh ? '已选' : 'selected'}</span> : null}
+                      {chosen ? <span className="rounded-md bg-ok/10 px-2 text-[10px] text-ok">{zh ? '已选' : 'selected'}</span> : null}
                       {nonOpen ? (
-                        <span className="rounded-full bg-mandatory/10 px-1.5 text-[10px] text-mandatory" title={l.category ?? extra?.category}>
+                        <span className="rounded-md bg-mandatory/10 px-2 text-[10px] text-mandatory" title={l.category ?? extra?.category}>
                           {zh ? '非开源' : 'not OSS'}
                         </span>
                       ) : null}
                       {superseded ? (
-                        <span className="rounded-full bg-advisory/10 px-1.5 text-[10px] text-advisory">{zh ? '已取代' : 'superseded'}</span>
+                        <span className="rounded-md bg-advisory/10 px-2 text-[10px] text-advisory">{zh ? '已取代' : 'superseded'}</span>
                       ) : null}
                       {l.deprecated ? (
-                        <span className="rounded-full bg-advisory/10 px-1.5 text-[10px] text-advisory">{zh ? '废弃' : 'deprecated'}</span>
+                        <span className="rounded-md bg-advisory/10 px-2 text-[10px] text-advisory">{zh ? '废弃' : 'deprecated'}</span>
                       ) : null}
                       {l.hasOfficialHeader ? (
-                        <span className="rounded-full bg-ink-900/[0.06] px-1.5 text-[10px] text-ink-600">{zh ? '官方头' : 'header'}</span>
+                        <span className="rounded-md bg-ink-900/[0.06] px-2 text-[10px] text-ink-600">{zh ? '官方头' : 'header'}</span>
                       ) : null}
                     </span>
-                    <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[11px] text-ink-600">
+                    <span className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[11px] text-ink-600">
                       <span className="truncate">{l.name}</span>
                       {l.category ? <span className="mono text-[10px] text-ink-400">{l.category}</span> : null}
                     </span>
@@ -518,7 +514,7 @@ export default function ProPicker({ lang, pickedId, exceptionId, onPick }: Props
               onPick={(exc) => onPick(focus.id, exc)}
             />
           ) : (
-            <div className="rounded-xl border border-dashed border-ink-900/20 bg-white p-8 text-center text-sm text-ink-600">
+            <div className="rounded-2xl border border-dashed border-ink-900/20 bg-white p-8 text-center text-sm text-ink-600">
               {zh
                 ? '从左边按类别、来源或搜索挑一个许可证查看条款。「用来授权」会告诉你它是给源代码、文档还是内容用的。双击条目可以直接选中并去生成；点面板里的「加入对比」可把最多 4 个许可证摊开横向比较。'
                 : 'Pick a license by category, source or search to see its terms — "Applies to" tells you whether it is for source code, documentation or content. Double-click to select and generate; use "Add to comparison" to line up to four licenses side by side.'}
@@ -640,26 +636,26 @@ function CatalogDetail({
   const prefixGroups = ID_PREFIX_GROUPS.filter((g) => g.test(entry.id)).map((g) => g.label[lang]);
 
   return (
-    <article className="space-y-5 rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+    <article className="space-y-6 rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
       <header>
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold">{entry.name}</h2>
-          <code className="mono rounded bg-ink-900/[0.06] px-1.5 py-0.5 text-xs">
+          <code className="mono rounded bg-ink-900/[0.06] px-2 py-1 text-xs">
             {isSpdx ? entry.id : entry.scancodeKey}
           </code>
           <span
             className={[
-              'rounded-full border px-2 py-0.5 text-xs',
+              'rounded-md border px-2 py-1 text-xs',
               isSpdx ? 'border-ink-900/15 text-ink-600' : 'border-advisory/40 bg-advisory/5 text-advisory',
             ].join(' ')}
           >
             {isSpdx ? (zh ? '官方名录' : 'official list') : zh ? '不在官方名录' : 'not on the official list'}
           </span>
           {entry.osiApproved ? (
-            <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-xs text-ink-600">OSI</span>
+            <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">OSI</span>
           ) : null}
           {entry.deprecated ? (
-            <span className="rounded-full border border-advisory/40 bg-advisory/5 px-2 py-0.5 text-xs text-advisory">
+            <span className="rounded-md border border-advisory/40 bg-advisory/5 px-2 py-1 text-xs text-advisory">
               {zh ? '已废弃' : 'deprecated'}
             </span>
           ) : null}
@@ -690,7 +686,7 @@ function CatalogDetail({
             if (curated) {
               return (
                 <>
-                  <span className="mr-2 rounded-full bg-ok/10 px-1.5 py-0.5 text-[10px] text-ok">
+                  <span className="mr-2 rounded-md bg-ok/10 px-2 py-1 text-[10px] text-ok">
                     {zh ? '精校' : 'curated'}
                   </span>
                   {curated.tagline[lang]}
@@ -700,7 +696,7 @@ function CatalogDetail({
             const facts = factsOf(entry, extra, terms, undefined);
             return (
               <>
-                <span className="mr-2 rounded-full bg-ink-900/[0.06] px-1.5 py-0.5 text-[10px] text-ink-600">
+                <span className="mr-2 rounded-md bg-ink-900/[0.06] px-2 py-1 text-[10px] text-ink-600">
                   {zh ? '按已有信息生成' : 'generated from metadata'}
                 </span>
                 {generatedIntro(facts, lang)}
@@ -719,7 +715,7 @@ function CatalogDetail({
                 {verdict.subjects.map((s) => (
                   <span
                     key={s}
-                    className="rounded-full border border-ink-900/15 bg-ink-900/[0.04] px-2 py-0.5 font-medium"
+                    className="rounded-md border border-ink-900/15 bg-ink-900/[0.04] px-2 py-1 font-medium"
                   >
                     {SUBJECT_LABEL[s][lang]}
                   </span>
@@ -739,7 +735,7 @@ function CatalogDetail({
                 </span>
               </div>
               {verdict.note ? (
-                <p className="mt-2 rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-2.5 text-xs leading-relaxed text-ink-600">
+                <p className="mt-2 rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-3 text-xs leading-relaxed text-ink-600">
                   {verdict.note[lang]}
                 </p>
               ) : null}
@@ -754,7 +750,7 @@ function CatalogDetail({
           <p className="font-medium text-advisory">
             {zh ? '这份许可不在官方名录里，别写进你的配置文件' : 'Not on the official list — do not put this in your config files'}
           </p>
-          <p className="mt-1.5 text-xs text-ink-700">
+          <p className="mt-2 text-xs text-ink-700">
             {zh
               ? '它的正式记录写法是 '
               : 'Its formal record is written as '}
@@ -763,7 +759,7 @@ function CatalogDetail({
               ? '。这个名字在核对资料的场合可以用，但 package.json、Cargo.toml 这类配置文件里的 license 字段只认官方名录里的名字——填这个会被工具判为无效。这一页适合用来查"我在代码里看到的这段条款到底是什么"。'
               : '. That name is fine when you are checking records, but the license field in package.json, Cargo.toml and similar accepts only names from the official list — this one will be rejected as invalid. Use this page to work out "what exactly is this clause I found in the code".'}
           </p>
-          <p className="mt-1.5 text-xs text-ink-600">
+          <p className="mt-2 text-xs text-ink-600">
             {zh
               ? '来源：ScanCode LicenseDB（CC-BY-4.0）。由第三方逐条整理，但没有走 SPDX 的法律审核流程。'
               : 'Source: ScanCode LicenseDB (CC-BY-4.0), community-curated but outside the SPDX legal review process.'}
@@ -780,6 +776,7 @@ function CatalogDetail({
           osiApproved={entry.osiApproved}
           categoryFamily={familyFromEntry(entry, extra)}
           terms={terms}
+          nonOpen={isNonOpenCategory(entry.category ?? extra?.category)}
         />
       ) : (
         <p className="rounded-lg border border-ink-900/10 bg-ink-900/[0.02] p-3 text-xs text-ink-600">
@@ -787,13 +784,22 @@ function CatalogDetail({
         </p>
       )}
 
+      {/* 数据出处、兼容性、中文文本、附加例外都是"查资料"时才需要的东西：
+          默认收起，避免把第一次选许可证的人淹在术语里 */}
+      <details className="rounded-lg border border-ink-900/10 bg-ink-900/[0.015] p-3">
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-ink-400">
+          {zh
+            ? '进阶信息：数据出处、兼容性、中文文本、附加例外'
+            : 'Advanced details: sources, compatibility, Chinese text, exceptions'}
+        </summary>
+        <div className="mt-4 space-y-6">
       {/* 其它数据库的补充信息 */}
       {extra && (extra.category || extra.osiKeywords?.length || extra.copyleft) ? (
         <section className="rounded-lg border border-ink-900/10 bg-ink-900/[0.015] p-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">
             {zh ? '其它数据库的补充信息' : 'From other databases'}
           </h3>
-          <dl className="mt-2 grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
+          <dl className="mt-2 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
             {extra.category ? (
               <Row
                 label={zh ? 'ScanCode 的分类' : 'ScanCode category'}
@@ -847,7 +853,7 @@ function CatalogDetail({
       {chineseText ? (
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">{zh ? '中文文本' : 'Chinese text'}</h3>
-          <p className="mt-1.5 text-xs text-ink-600">
+          <p className="mt-2 text-xs text-ink-600">
             {chineseText.kind === 'reviewed-translation'
               ? zh
                 ? '有开放原子《源译识》经专家评审的中英对照审定稿（译文以 CC0 贡献）。'
@@ -857,7 +863,7 @@ function CatalogDetail({
                 : 'This license ships an official Chinese text, or its steward publishes one.'}
           </p>
           {chineseText.note ? <p className="mt-1 text-xs text-advisory">{chineseText.note[lang]}</p> : null}
-          <p className="mono mt-1.5 text-[11px] break-all">
+          <p className="mono mt-2 text-[11px] break-all">
             <a className="underline decoration-dotted" href={chineseText.url} target="_blank" rel="noreferrer noopener">
               {chineseText.url}
             </a>
@@ -871,7 +877,7 @@ function CatalogDetail({
         // 结论只能是"我们没有"，不能是"它没有"。
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">{zh ? '中文文本' : 'Chinese text'}</h3>
-          <p className="mt-1.5 text-xs text-ink-600">
+          <p className="mt-2 text-xs text-ink-600">
             {zh
               ? '本站未收录该许可的中文文本：既没有官方中文正文，也没有经评审的译稿。'
               : 'No Chinese text for this license is included here: neither an official Chinese text nor a reviewed translation.'}
@@ -890,7 +896,7 @@ function CatalogDetail({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-400">
             {zh ? '额外开个口子（附加例外）' : 'Attach an exception'}
           </h3>
-          <p className="mt-1.5 text-xs text-ink-600">
+          <p className="mt-2 text-xs text-ink-600">
             {zh
               ? '有些许可证允许再附加一条"例外"，放宽某个具体要求。比如 GPL-2.0 加上 Classpath 例外，用这个库时就不必跟着 GPL 开源。例外是一份单独的文件，要跟许可证一起放进仓库，否则别人看不懂你实际给的是什么权利。'
               : 'Some licenses let you attach an exception that relaxes one specific requirement. GPL-2.0 with the Classpath exception, for example, means you can use the library without having to open-source under the GPL. An exception is a separate document and has to ship with the license, or others cannot tell what you actually granted.'}
@@ -901,12 +907,12 @@ function CatalogDetail({
             placeholder={zh ? '搜索例外，例如 Classpath' : 'Search exceptions, e.g. Classpath'}
             className="mt-2 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-xs outline-none focus:border-ink-900"
           />
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => onPick(null)}
               className={[
-                'rounded-full border px-2.5 py-1 text-xs',
+                'rounded-md border px-3 py-1 text-xs',
                 activeException === null ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
               ].join(' ')}
             >
@@ -919,7 +925,7 @@ function CatalogDetail({
                 onClick={() => onPick(e.id)}
                 title={e.name}
                 className={[
-                  'mono rounded-full border px-2.5 py-1 text-[11px]',
+                  'mono rounded-md border px-3 py-1 text-[11px]',
                   activeException === e.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 hover:border-ink-900/40',
                 ].join(' ')}
               >
@@ -934,6 +940,8 @@ function CatalogDetail({
           ) : null}
         </section>
       ) : null}
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-ink-900/10 pt-4">
         <button type="button" onClick={() => onPick(activeException)} className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white">
@@ -989,11 +997,11 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
     <section>
       <h3 className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
         {zh ? '能不能和别的许可证一起用' : 'Can it be combined with other licenses'}
-        <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-[10px] normal-case tracking-normal text-ink-600">
+        <span className="rounded-md border border-ink-900/15 px-2 py-1 text-[10px] normal-case tracking-normal text-ink-600">
           {zh ? '判定来自 OSADL' : 'verdicts from OSADL'}
         </span>
       </h3>
-      <p className="mt-1.5 text-xs text-ink-600">
+      <p className="mt-2 text-xs text-ink-600">
         {zh
           ? `OSADL 义务清单对这个许可证给出了 ${entries.length} 条判定：`
           : `The OSADL obligations checklist gives ${entries.length} verdicts for this license: `}
@@ -1002,7 +1010,7 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
           .map(([v, n]) => `${COMPATIBILITY_VERDICT[v]?.[lang] ?? v} ${n}`)
           .join(' · ')}
       </p>
-      <ul className="mt-2 flex flex-wrap gap-1.5">
+      <ul className="mt-2 flex flex-wrap gap-2">
         {shown.map(([other, verdict]) => {
           const note = COMPATIBILITY_VERDICT[verdict] ?? COMPATIBILITY_VERDICT.Unknown;
           return (
@@ -1010,7 +1018,7 @@ function CompatibilitySection({ lang, id, enrichment }: { lang: Lang; id: string
               key={other}
               title={`${id} × ${other} → ${note[lang]}`}
               className={[
-                'mono rounded border px-1.5 py-0.5 text-[11px]',
+                'mono rounded border px-2 py-1 text-[11px]',
                 note.tone === 'yes'
                   ? 'border-ok/30 text-ok'
                   : note.tone === 'no'
@@ -1097,43 +1105,13 @@ function rowEdgeClass(state: RowState): string {
   return 'border-transparent hover:border-ink-900/20';
 }
 
-/** 把维度定义里的原始单元格值渲染成界面元素 */
-function renderCell(d: Dimension, r: CompareFacts, lang: Lang): React.ReactNode {
-  const value = d.cell(r);
-  const zh = lang === 'zh';
-  if (d.kind === 'yesno') {
-    return value === true ? (
-      <span className="text-ok">●</span>
-    ) : (
-      <span className="text-ink-400">○</span>
-    );
-  }
-  if (value === null || value === undefined || value === '') return <span className="text-ink-400">—</span>;
-
-  // 按稳定的 key 分支，不按 label——label 是文案，改措辞时不该连带改坏样式
-  switch (d.key) {
-    case 'patent':
-      if (value === 'explicit') return <span className="text-ok">{zh ? '明确授予' : 'grants'}</span>;
-      if (value === 'none') return <span className="text-mandatory">{zh ? '明确不授' : 'grants none'}</span>;
-      return <span className="text-ink-400">{zh ? '没提到' : 'not mentioned'}</span>;
-    case 'conclusion-source':
-      return value === 'choosealicense' ? (
-        <span className="text-ok">{zh ? '上游标注过' : 'upstream-labelled'}</span>
-      ) : (
-        <span className="text-advisory">{zh ? '机器猜的' : 'inferred'}</span>
-      );
-    case 'source':
-      return <span className={value === 'not listed' || value === '不在名录里' ? 'text-advisory' : ''}>{value}</span>;
-    case 'copyleft':
-    case 'source-disclosure':
-      return <span className={/^(Yes|要)/.test(String(value)) ? 'text-advisory' : 'mono text-[11px]'}>{value}</span>;
-    case 'category':
-      return <span className="mono text-[11px]">{value}</span>;
-    default:
-      return <span className="text-[11px]">{value}</span>;
-  }
-}
-
+/**
+ * 对比工作台：每张卡片与右侧详情面板同一套版式
+ *
+ * 早先这里是一张「维度 × 许可证」的表格，14 行里大半是"没提到 / —"，
+ * 真正要看的权利与义务反而要横向扫。现在改成每个许可证一张卡：
+ * 名称、简介、GitHub 式条款框、选它按钮——与点开详情看到的东西一致。
+ */
 function CompareBoard({
   lang,
   entries,
@@ -1156,110 +1134,328 @@ function CompareBoard({
   onPick: (id: string) => void;
 }) {
   const zh = lang === 'zh';
-  const rows = entries.map((e) =>
-    factsOf(
-      e,
-      enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')],
-      terms,
-      licenseTexts[e.id],
-    ),
-  );
+  const cards = entries.map((e) => {
+    const extra = enrichment?.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')];
+    const facts = factsOf(e, extra, terms, licenseTexts[e.id]);
+    const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? e.id);
+    // 条款框与详情面板走同一条路径：有上游标注照抄，没有就从推断的事实映射
+    const derived = deriveFacts(key, licenseTexts[e.id] ?? '', e.osiApproved, familyFromEntry(e, extra), terms);
+    return {
+      facts,
+      curated: e.source === 'spdx' ? LICENSE_BY_ID[e.id] : undefined,
+      groups: buildTermGroups(lookupTerms(terms, key), derived, facts.nonOpen),
+    };
+  });
 
-  // 与对比矩阵共用同一份维度定义，两处口径不会打架
-  const dims = compareDimensions(lang);
+  // 卡片宽度跟着数量走：两个就各占一半，避免四列里空着两张
+  const cols =
+    entries.length >= 4 ? 'xl:grid-cols-4' : entries.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2';
 
   return (
-    <section className="rounded-xl border border-ink-900/15 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-ink-900/10 bg-ink-900/[0.015] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">
-          {zh ? `对比工作台（${rows.length}/4）` : `Comparison board (${rows.length}/4)`}
+          {zh ? `对比工作台（${cards.length}/4）` : `Comparison board (${cards.length}/4)`}
         </h2>
         <button
           type="button"
           onClick={onClear}
-          className="ml-auto rounded border border-ink-900/20 px-2 py-1 text-xs hover:border-ink-900"
+          className="ml-auto rounded-lg border border-ink-900/20 px-2 py-1 text-xs hover:border-ink-900"
         >
           {zh ? '清空' : 'Clear'}
         </button>
       </div>
       <p className="mt-1 text-xs text-ink-400">
         {zh
-          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。「结论怎么来的」一列会如实区分"上游标注过"与"机器猜的"——两者的可信度不同，不该看起来一样。'
-          : 'Any entry can be compared, including the long tail and ScanCode-only licenses. The "Terms from" row distinguishes upstream-labelled from inferred — they do not deserve to look alike.'}
+          ? '任何条目都能加入对比（含长尾与 ScanCode 独有）。每张卡的条款框与详情面板一致；框底会如实标注"上游标注过"还是"机器猜的"——两者可信度不同，不该看起来一样。'
+          : 'Any entry can be compared, including the long tail and ScanCode-only licenses. Each card uses the same terms box as the detail panel, and its footer states whether those terms are upstream-labelled or inferred — they do not deserve to look alike.'}
       </p>
 
-      <div className="table-scroll mt-3">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-ink-900/10">
-              <th className="sticky left-0 z-10 bg-white p-2 text-left text-xs font-medium text-ink-400">
-                {zh ? '维度' : 'Dimension'}
-              </th>
-              {rows.map((r) => (
-                <th key={r.id} className="min-w-[10rem] p-2 text-left align-top">
-                  <span className="flex flex-wrap items-center gap-1">
-                    <code className="mono text-[11px]">{r.displayId}</code>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(r.id)}
-                      className="rounded px-1 text-[10px] text-ink-400 hover:bg-ink-900/[0.06] hover:text-ink-900"
-                      aria-label={zh ? '移出对比' : 'Remove from comparison'}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                  <span className="mt-0.5 block text-xs font-normal text-ink-600">{r.name}</span>
-                  {r.nonOpen ? (
-                    <span className="mt-0.5 inline-block rounded-full bg-mandatory/10 px-1.5 text-[10px] text-mandatory">
-                      {zh ? '非开源' : 'not OSS'}
-                    </span>
-                  ) : null}
-                  {r.deprecated ? (
-                    <span className="mt-0.5 inline-block rounded-full bg-advisory/10 px-1.5 text-[10px] text-advisory">
-                      {zh ? '废弃' : 'deprecated'}
-                    </span>
-                  ) : null}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dims.map((d) => (
-              <tr key={d.label} className="border-b border-ink-900/[0.06] last:border-0">
-                <th
-                  scope="row"
-                  className="sticky left-0 z-10 bg-white p-2 text-left text-xs font-normal text-ink-600"
-                  title={d.hint}
-                >
-                  {d.label}
-                </th>
-                {rows.map((r) => (
-                  <td key={r.id} className="p-2 text-xs">
-                    {renderCell(d, r, lang)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className={['mt-4 grid gap-4 sm:grid-cols-2', cols].join(' ')}>
+        {cards.map(({ facts, curated, groups }) => (
+          <article key={facts.id} className="flex flex-col rounded-2xl border border-ink-900/10 bg-white p-4">
+            <div className="flex items-start gap-2">
+              <h3 className="min-w-0 text-sm font-semibold">{facts.name}</h3>
+              <button
+                type="button"
+                onClick={() => onRemove(facts.id)}
+                className="ml-auto inline-flex shrink-0 items-center rounded p-1 text-ink-400 hover:bg-ink-900/[0.06] hover:text-ink-900"
+                aria-label={zh ? '移出对比' : 'Remove from comparison'}
+              >
+                <X size={12} />
+              </button>
+            </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {rows.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            onClick={() => onPick(r.id)}
-            className={[
-              'rounded border px-2 py-1 text-xs',
-              pickedId === r.id ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/20 hover:border-ink-900',
-            ].join(' ')}
-          >
-            {pickedId === r.id ? (zh ? '已选用' : 'Selected') : zh ? `用 ${r.displayId}` : `Use ${r.displayId}`}
-          </button>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="mono rounded bg-ink-900/[0.06] px-2 py-1 text-[11px]">{facts.displayId}</code>
+              {facts.nonOpen ? (
+                <span className="rounded-md bg-mandatory/10 px-2 py-1 text-[10px] text-mandatory">
+                  {zh ? '非开源' : 'not OSS'}
+                </span>
+              ) : null}
+              {facts.deprecated ? (
+                <span className="rounded-md bg-advisory/10 px-2 py-1 text-[10px] text-advisory">
+                  {zh ? '废弃' : 'deprecated'}
+                </span>
+              ) : null}
+            </div>
+
+            {/* 简介与详情面板同一套：精校的用手写定位语，其余按已核实字段生成 */}
+            <p className="mt-3 border-l-2 border-ink-900/20 pl-3 text-xs leading-relaxed">
+              {curated ? (
+                <>
+                  <span className="mr-2 rounded-md bg-ok/10 px-2 py-1 text-[10px] text-ok">
+                    {zh ? '精校' : 'curated'}
+                  </span>
+                  {curated.tagline[lang]}
+                </>
+              ) : (
+                <>
+                  <span className="mr-2 rounded-md bg-ink-900/[0.06] px-2 py-1 text-[10px] text-ink-600">
+                    {zh ? '按已有信息生成' : 'generated from metadata'}
+                  </span>
+                  {generatedIntro(facts, lang)}
+                </>
+              )}
+            </p>
+
+            <div className="mt-4">
+              <TermsBox lang={lang} groups={groups} termsSource={facts.termsSource} />
+            </div>
+
+            <div className="mt-auto pt-4">
+              <button
+                type="button"
+                onClick={() => onPick(facts.id)}
+                className={[
+                  'w-full rounded-lg border px-3 py-2 text-sm font-medium transition',
+                  pickedId === facts.id
+                    ? 'border-ink-900 bg-ink-900 text-white'
+                    : 'border-ink-900/20 hover:border-ink-900',
+                ].join(' ')}
+              >
+                {pickedId === facts.id
+                  ? zh ? '已选用' : 'Selected'
+                  : zh ? `用 ${facts.displayId}` : `Use ${facts.displayId}`}
+              </button>
+            </div>
+          </article>
         ))}
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * GitHub 式条款框
+ *
+ * GitHub 在每个仓库页展示的许可证框（Permissions / Limitations /
+ * Conditions 三组，绿勾、红叉、蓝色 i）用的词表就是 ChooseALicense 的
+ * vocabulary。本站对 47 个主流许可证有同一份上游标注，所以能原样呈现；
+ * 不在标注范围内的长尾条目，则从已推断出的条款事实映射回同一套标签，
+ * 并在框底如实标注"机器猜的"。
+ *
+ * 用户要求三组**纵向排列**（GitHub 是横向三列，窄屏放不下，纵向更稳）。
+ * ------------------------------------------------------------------ */
+
+/** 词表标签的双语文案：label 是条目名，desc 是"这对我意味着什么" */
+const TERM_TAGS: Record<string, { zh: { label: string; desc: string }; en: { label: string; desc: string } }> = {
+  'commercial-use': {
+    zh: { label: '商用', desc: '可以用在商业项目里：卖钱、闭源产品都不违反这份许可。' },
+    en: { label: 'Commercial use', desc: 'You may use it in commercial products, including closed-source ones.' },
+  },
+  modifications: {
+    zh: { label: '修改', desc: '可以直接改它的源码。' },
+    en: { label: 'Modification', desc: 'You may modify the source code.' },
+  },
+  distribution: {
+    zh: { label: '分发', desc: '可以把原始版本或你改过的版本发布给别人。' },
+    en: { label: 'Distribution', desc: 'You may share the original or your modified version.' },
+  },
+  'private-use': {
+    zh: { label: '私用', desc: '自己或公司内部使用，不必公开任何改动。' },
+    en: { label: 'Private use', desc: 'You may use and modify it privately without releasing anything.' },
+  },
+  'patent-use': {
+    zh: { label: '专利授权', desc: '作者明确授予你使用其相关专利的权利。' },
+    en: { label: 'Patent use', desc: 'The license explicitly grants rights to the contributors’ patents.' },
+  },
+  'include-copyright': {
+    zh: { label: '保留版权与许可声明', desc: '分发时必须带上版权声明和许可证全文。' },
+    en: { label: 'License and copyright notice', desc: 'Include the copyright notice and the license text when you distribute.' },
+  },
+  'include-copyright--source': {
+    zh: { label: '源码内保留声明', desc: '以源码形式分发时要带上声明，纯二进制分发可豁免。' },
+    en: { label: 'License and copyright notice for source', desc: 'The notice is required in source form; binaries are exempt.' },
+  },
+  'document-changes': {
+    zh: { label: '说明变更', desc: '改过的文件里要注明你做了修改。' },
+    en: { label: 'State changes', desc: 'Modified files must document the changes you made.' },
+  },
+  'disclose-source': {
+    zh: { label: '公开源码', desc: '分发时（包括你改过的版本）必须把源码一并给到接收方。' },
+    en: { label: 'Disclose source', desc: 'When you distribute, you must make the source code available.' },
+  },
+  'network-use-disclose': {
+    zh: { label: '做成网站也要公开源码', desc: '把它跑成在线服务给别人用，同样触发开源义务——这是它区别于普通 GPL 的地方。' },
+    en: { label: 'Network use is distribution', desc: 'Running it as a service for others also triggers the source-disclosure duty.' },
+  },
+  'same-license': {
+    zh: { label: '整体同许可', desc: '基于它的衍生作品，整个项目都必须用同一份许可发布。' },
+    en: { label: 'Same license (work)', desc: 'Derivative works as a whole must be released under the same license.' },
+  },
+  'same-license--file': {
+    zh: { label: '文件级同许可', desc: '只有被修改的那些文件要保持同许可，你新写的其余代码可以另作安排。' },
+    en: { label: 'Same license (file)', desc: 'Only the modified files stay under the same license; new code need not.' },
+  },
+  'same-license--library': {
+    zh: { label: '库级同许可', desc: '闭源程序可以链接使用它，但库本身的修改必须回馈。' },
+    en: { label: 'Same license (library)', desc: 'Proprietary programs may link to it; changes to the library itself must be shared back.' },
+  },
+  'trademark-use': {
+    zh: { label: '不含商标授权', desc: '不授予商标权：不能借它的名字或 logo 为你的产品增信。' },
+    en: { label: 'Trademark use', desc: 'No trademark rights are granted — its name and logo stay off-limits for promotion.' },
+  },
+  liability: {
+    zh: { label: '责任限制', desc: '使用它造成损失时，作者和贡献者不承担赔偿责任。' },
+    en: { label: 'Liability', desc: 'The authors are not liable for damages arising from use.' },
+  },
+  warranty: {
+    zh: { label: '无担保', desc: '按"现状"提供，没有任何质量或适用性担保。' },
+    en: { label: 'Warranty', desc: 'Provided "as is", with no warranty of any kind.' },
+  },
+};
+
+/** 三组的展示顺序与图标配色：与 GitHub 的框一致（绿勾 / 红叉 / 蓝 i） */
+const TERM_GROUPS: {
+  key: 'permissions' | 'limitations' | 'conditions';
+  zh: string;
+  en: string;
+  tone: string;
+  Icon: (props: { className?: string }) => React.ReactNode;
+}[] = [
+  { key: 'permissions', zh: '权限', en: 'Permissions', tone: 'text-ok', Icon: Check },
+  { key: 'limitations', zh: '限制', en: 'Limitations', tone: 'text-mandatory', Icon: X },
+  { key: 'conditions', zh: '条件', en: 'Conditions', tone: 'text-info', Icon: Info },
+];
+
+/**
+ * `patent-use` 在上游词表里同名反义：出现在 permissions 表示"授予专利"，
+ * 出现在 limitations 表示"明确不授予"。渲染时必须按所在组区分文案，
+ * 否则限制组里会出现一句"作者明确授予你……"，自相矛盾。
+ */
+function termMeta(tag: string, group: 'permissions' | 'limitations' | 'conditions', zh: boolean) {
+  if (group === 'limitations' && tag === 'patent-use') {
+    return zh
+      ? { label: '不含专利授权', desc: '正文明确不授予任何专利使用权——想保留专利主张时这一条要紧。' }
+      : { label: 'Patent use', desc: 'The license explicitly grants no patent rights.' };
+  }
+  return TERM_TAGS[tag]?.[zh ? 'zh' : 'en'];
+}
+
+/** 把条目解析成三组标签：有上游标注直接照抄，没有就从推断出的条款事实映射 */
+function buildTermGroups(
+  cal: { permissions: string[]; conditions: string[]; limitations: string[] } | null,
+  facts: DerivedFactsLike,
+  nonOpen: boolean,
+): Record<'permissions' | 'limitations' | 'conditions', string[]> {
+  if (cal) return { permissions: cal.permissions, limitations: cal.limitations, conditions: cal.conditions };
+
+  const permissions: string[] = [];
+  if (!nonOpen) permissions.push('commercial-use', 'modifications', 'distribution', 'private-use');
+  if (facts.patentGrant === 'explicit') permissions.push('patent-use');
+
+  const conditions: string[] = [];
+  if (facts.includeCopyright === 'required') conditions.push('include-copyright');
+  else if (facts.includeCopyright === 'source-only') conditions.push('include-copyright--source');
+  if (facts.stateChanges) conditions.push('document-changes');
+  if (facts.sameLicenseWholeWork) conditions.push('disclose-source', 'same-license');
+  if (facts.sameLicensePerFile) conditions.push('disclose-source', 'same-license--file');
+  if (facts.networkTrigger) conditions.push('network-use-disclose');
+
+  const limitations = ['trademark-use', 'liability', 'warranty'];
+  if (facts.patentGrant === 'none') limitations.push('patent-use');
+
+  return { permissions, limitations, conditions };
+}
+
+/** buildTermGroups 需要的最小事实集合（deriveFacts 的返回值天然满足） */
+interface DerivedFactsLike {
+  patentGrant: 'explicit' | 'none' | 'silent';
+  stateChanges: boolean;
+  sameLicenseWholeWork: boolean;
+  sameLicensePerFile: boolean;
+  networkTrigger: boolean;
+  includeCopyright: 'required' | 'source-only' | 'not-required' | 'silent';
+}
+
+/**
+ * GitHub 式条款框本体。
+ *
+ * 详情面板与对比工作台共用同一个组件：两边各写一份的话，
+ * 改一处文案另一处就会悄悄落后，用户看到的"同一份许可"会有两套说法。
+ */
+function TermsBox({
+  lang,
+  groups,
+  termsSource,
+}: {
+  lang: Lang;
+  groups: Record<'permissions' | 'limitations' | 'conditions', string[]>;
+  termsSource: 'choosealicense' | 'text';
+}) {
+  const zh = lang === 'zh';
+  return (
+    <div className="overflow-hidden rounded-2xl border border-ink-900/10 bg-ink-900/[0.02]">
+      {TERM_GROUPS.map((g) => {
+        const tags = groups[g.key].filter((t) => termMeta(t, g.key, zh));
+        if (!tags.length) return null;
+        return (
+          <div key={g.key} className="border-t border-ink-900/[0.08] first:border-t-0">
+            <h4 className="px-4 pb-2 pt-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+              {zh ? g.zh : g.en}
+            </h4>
+            <ul className="space-y-2 px-4 pb-4">
+              {tags.map((t) => {
+                const m = termMeta(t, g.key, zh)!;
+                return (
+                  <li key={t} className="flex gap-2">
+                    <g.Icon className={`mt-0.5 shrink-0 ${g.tone}`} />
+                    <span>
+                      <span className="text-sm font-medium">{m.label}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-ink-600">{m.desc}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap items-center gap-2 border-t border-ink-900/[0.08] px-4 py-3 text-xs text-ink-400">
+        <span
+          className={[
+            'rounded-md border px-2 py-1 text-[10px]',
+            termsSource === 'choosealicense'
+              ? 'border-ok/40 bg-ok/5 text-ok'
+              : 'border-advisory/40 bg-advisory/5 text-advisory',
+          ].join(' ')}
+        >
+          {termsSource === 'choosealicense'
+            ? zh
+              ? '上游逐条标注过'
+              : 'upstream-labelled'
+            : zh
+              ? '机器从正文猜的，别当定论'
+              : 'inferred from the text — not authoritative'}
+        </span>
+        <span>
+          {zh
+            ? '以上内容不构成法律意见，正式判断请以许可证原文为准。'
+            : 'This is not legal advice — for a real decision, read the license text.'}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -1271,6 +1467,7 @@ function InferredTerms({
   osiApproved,
   categoryFamily,
   terms,
+  nonOpen,
 }: {
   lang: Lang;
   id: string;
@@ -1278,6 +1475,7 @@ function InferredTerms({
   osiApproved: boolean;
   categoryFamily?: string;
   terms: ChooseALicenseTerms | null;
+  nonOpen: boolean;
 }) {
   const zh = lang === 'zh';
   const facts = useMemo(
@@ -1387,34 +1585,26 @@ function InferredTerms({
     },
   ];
 
+  // GitHub 式条款框的数据：47 个上游标注过的直接照抄，其余从推断出的事实映射
+  const groups = buildTermGroups(lookupTerms(terms, id), facts, nonOpen);
+
   return (
-    <section>
-      <h3 className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
-        {zh ? '这份许可的几条关键规定' : 'What this license actually requires'}
-        <span
-          className={[
-            'rounded-full border px-2 py-0.5 text-[10px] normal-case tracking-normal',
-            facts.termsSource === 'choosealicense'
-              ? 'border-ok/40 bg-ok/5 text-ok'
-              : 'border-advisory/40 bg-advisory/5 text-advisory',
-          ].join(' ')}
-        >
-          {facts.termsSource === 'choosealicense'
-            ? zh
-              ? '上游逐条标注过'
-              : 'upstream-labelled'
-            : zh
-              ? '机器从正文猜的，别当定论'
-              : 'inferred from the text — not authoritative'}
-        </span>
-      </h3>
-      <dl className="mt-2 space-y-2">
+    <section className="space-y-4">
+      {/* GitHub 式条款框：三组纵向堆叠（GitHub 横向三列，这里窄屏放不下，改纵向） */}
+      <TermsBox lang={lang} groups={groups} termsSource={facts.termsSource} />
+
+      {/* 白话逐条解释收进折叠区：条款框负责"一眼看懂有什么权利"，这里负责"细看每一项的边界" */}
+      <details className="rounded-lg border border-ink-900/10 bg-white p-3 text-sm">
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-ink-400">
+          {zh ? '这份许可的几条关键规定（逐条白话）' : 'What this license actually requires, line by line'}
+        </summary>
+        <dl className="mt-2 space-y-2">
         {rows.map((r) => (
-          <div key={r.label} className="border-b border-ink-900/[0.06] pb-1.5 text-sm last:border-0">
+          <div key={r.label} className="border-b border-ink-900/[0.06] pb-2 text-sm last:border-0">
             <dt className="text-ink-600">{r.label}</dt>
             <dd
               className={[
-                'mt-0.5',
+                'mt-1',
                 r.tone === 'yes' ? 'text-ok' : r.tone === 'no' ? 'text-ink-400' : r.tone === 'warn' ? 'text-advisory' : '',
               ].join(' ')}
             >
@@ -1432,9 +1622,9 @@ function InferredTerms({
             ? '以上几条是机器读正文猜的，只能当参考。要下正式判断请打开许可证原文。'
             : 'These were inferred by machine from the text — treat them as a hint only. For a real decision, read the license itself.'}
       </p>
-      <details className="mt-2 rounded-lg border border-ink-900/10 p-2.5 text-xs text-ink-600">
+      <details className="mt-2 rounded-lg border border-ink-900/10 p-3 text-xs text-ink-600">
         <summary className="cursor-pointer text-ink-400">{zh ? '这些结论是怎么来的' : 'Where these conclusions come from'}</summary>
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-2 space-y-2">
           <p>
             {zh
               ? `许可类型来自：${familySourceNote}。`
@@ -1450,6 +1640,7 @@ function InferredTerms({
                 : 'The rest come from keyword matching over the license text, because this license is outside ChooseALicense’s 47 labelled entries. We label the uncertainty rather than show a confident answer we cannot back.'}
           </p>
         </div>
+      </details>
       </details>
     </section>
   );

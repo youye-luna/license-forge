@@ -806,8 +806,8 @@ export interface DerivedFacts {
    * 与 `promote` 是两种不同性质的行为，条款里也常分开写：
    *   背书 = 意见表达（"XX 官方推荐本产品"）——借别人的信誉为你增信
    *   促销 = 市场行为（"本产品基于 XX 的技术"）——借别人的知名度吸引流量
-   * BSD-3-Clause 把两者并列禁掉，但实测有 53 个许可**只禁背书**、
-   * 4 个**只禁促销**，所以必须是两个独立的维度，不能合成一个。
+   * BSD-3-Clause 把两者并列禁掉，但实测有 3 个许可**只禁背书**、
+   * 22 个**只禁促销**，所以必须是两个独立的维度，不能合成一个。
    *
    *  - `prohibited` 明确禁止
    *  - `silent`     正文没写。没写不等于可以——拿别人名义宣传通常要另行取得同意。
@@ -904,8 +904,8 @@ const STATE_CHANGE_MARKERS = [
  * 这是 BSD-3-Clause 第 3 条那一类，而且**两个动词要分开判**：
  *  - 背书（endorse）：拿别人的名义表示"他认可/推荐你的产品"
  *  - 促销（promote）：拿别人的名义为你的产品吸引流量
- * 实测 234 个许可两者都禁、7 个只禁背书、106 个只禁促销——
- * 合成一个值会让这 113 个的结论失真。
+ * 实测 443 个许可两者都禁、3 个只禁背书、22 个只禁促销——
+ * 合成一个值会让这 25 个的结论失真。
  *
  * **判据以"名字 + 动词"同现为准，而不是只数动词出现次数**：
  * 正文里出现 `promote` 字样未必是在禁这件事（可能是"promotes the progress of…"
@@ -1057,7 +1057,7 @@ export function deriveFacts(
     familySource = 'text';
   }
 
-  // 网络触发：先看上游标注（ChooseALicense 覆盖的 47 个里只有 4 个是真网络条款），
+  // 网络触发：先看上游标注（ChooseALicense 覆盖的 47 个里只有 5 个标了 network-use：AGPL-3.0、CECILL-2.1、EUPL-1.1、EUPL-1.2、OSL-3.0），
   // 再退到正文匹配。分类里没有这个维度，而 AGPL 与 GPL 在 ScanCode 里同属 copyleft 大类。
   const cal = lookupTerms(chooseALicense, id);
   const networkTrigger = cal ? cal.derived.networkTrigger : NETWORK_MARKERS.some((re) => re.test(t));

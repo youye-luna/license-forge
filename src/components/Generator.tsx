@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Wizard from './Wizard';
 import ProPicker from './ProPicker';
 import Outputs, { defaultGenState } from './Outputs';
+import { AlertTriangle, Lock } from './Icons';
 import type { GenState } from '../lib/genstate.ts';
 import { LICENSE_BY_ID, LICENSES, FAMILY_LABEL } from '../lib/licenses.ts';
 import { coverageStats } from '../lib/matrix.ts';
@@ -62,7 +63,8 @@ export default function Generator() {
   }, [tab]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+    // 宽屏（≥1280）用得更满一些：容器上限放宽到 1400，长页面的两栏才有伸展空间
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:py-8">
       <header className="no-print">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
@@ -72,13 +74,6 @@ export default function Generator() {
                 {lang === 'zh' ? 'LicenseForge' : '许可证锻造台'}
               </span>
             </h1>
-            <p className="mt-2 max-w-2xl text-ink-600">{UI.tagline[lang]}</p>
-            {/* AI 项目声明：显眼但不喧宾夺主，颜色用 advisory 与站内警示体系一致 */}
-            <p className="mt-3 max-w-2xl rounded-lg border border-advisory/30 bg-advisory/[0.06] px-3 py-2 text-xs leading-relaxed text-advisory">
-              {lang === 'zh'
-                ? '⚠️ 这是一个 AI 项目，仅供学习参考：代码与条款解读基本由 AI 完成，未经人类逐条审校，不构成法律意见；正式判断请以许可证原文为准。发现问题欢迎提 Issue 指出。'
-                : '⚠️ This is an AI project, for learning reference only: the code and clause commentary were produced by AI without human line-by-line review, and are not legal advice. For a formal decision, go by the license text itself. Issues are welcome if you spot problems.'}
-            </p>
           </div>
           <button
             type="button"
@@ -90,8 +85,24 @@ export default function Generator() {
           </button>
         </div>
 
-        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-400">
-          <span>🔒 {UI.privacy[lang]}</span>
+        {/* 标题、说明、声明、统计都铺满同一列宽：只跟语言按钮同行的是标题，
+            其余三块限宽的话右边缘会参差不齐 */}
+        <p className="mt-2 text-ink-600">{UI.tagline[lang]}</p>
+        {/* AI 项目声明：显眼但不喧宾夺主，颜色用 advisory 与站内警示体系一致 */}
+        <p className="mt-3 flex gap-2 rounded-lg border border-advisory/30 bg-advisory/[0.06] px-3 py-2 text-sm leading-relaxed text-advisory">
+          <AlertTriangle className="mt-0.5 shrink-0" />
+          <span>
+            {lang === 'zh'
+              ? '这是一个 AI 项目，仅供学习参考：代码与条款解读基本由 AI 完成，未经人类逐条审校，不构成法律意见；正式判断请以许可证原文为准。发现问题欢迎提 Issue 指出。'
+              : 'This is an AI project, for learning reference only: the code and clause commentary were produced by AI without human line-by-line review, and are not legal advice. For a formal decision, go by the license text itself. Issues are welcome if you spot problems.'}
+          </span>
+        </p>
+
+        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-400">
+          <span className="inline-flex items-center gap-1">
+            <Lock />
+            {UI.privacy[lang]}
+          </span>
           <span>
             {tr.stats}
             {lang === 'zh' ? '：' : ': '}
@@ -124,14 +135,14 @@ export default function Generator() {
             onClick={() => setTab(tb.id)}
             aria-current={tab === tb.id ? 'step' : undefined}
             className={[
-              'flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition',
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition',
               tab === tb.id ? 'bg-ink-900 text-white' : 'text-ink-600 hover:bg-ink-900/[0.05]',
             ].join(' ')}
           >
             <span
               aria-hidden
               className={[
-                'mono flex size-5 items-center justify-center rounded-full text-[10px]',
+                'mono flex size-5 items-center justify-center rounded-md text-[10px]',
                 tab === tb.id ? 'bg-white/25' : 'bg-ink-900/[0.08]',
               ].join(' ')}
             >
@@ -164,21 +175,21 @@ export default function Generator() {
       </main>
 
       {entry && tab !== 'generate' ? (
-        <aside className="no-print mt-8 rounded-xl border border-ink-900/10 bg-white p-4 text-sm">
+        <aside className="no-print mt-8 rounded-2xl border border-ink-900/10 bg-white p-4 text-sm">
           <span className="text-ink-600">{lang === 'zh' ? '当前选择：' : 'Currently selected: '}</span>
           <strong>{entry.name}</strong>{' '}
-          <code className="mono rounded bg-ink-900/[0.06] px-1.5 py-0.5 text-xs">{entry.id}</code>
+          <code className="mono rounded bg-ink-900/[0.06] px-2 py-1 text-xs">{entry.id}</code>
           <button
             type="button"
             onClick={() => setTab('generate')}
-            className="ml-3 rounded border border-ink-900/20 px-2.5 py-1 text-xs hover:border-ink-900"
+            className="ml-3 rounded border border-ink-900/20 px-3 py-1 text-xs hover:border-ink-900"
           >
             {lang === 'zh' ? '去生成' : 'Generate'}
           </button>
         </aside>
       ) : null}
 
-      <footer className="no-print mt-12 border-t border-ink-900/10 pt-6 text-xs leading-relaxed text-ink-400">
+      <footer className="no-print mt-8 border-t border-ink-900/10 pt-6 text-sm leading-relaxed text-ink-400">
         <p>
           {lang === 'zh'
             ? '许可证正文逐字来自 SPDX License List（通过 spdx-license-list 数据包），生成过程不做任何改写；GPL 家族的示例段落由你填写的信息替换，其余字符保持原样。'
@@ -217,7 +228,7 @@ function Docs({ lang }: { lang: Lang }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '流程是一条线，不是两个模式' : 'One linear flow, not two modes'}</h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
@@ -229,23 +240,23 @@ function Docs({ lang }: { lang: Lang }) {
             ? [
                 ['1', '问卷选许可', '8 个问题，每题都说明"为什么问这个"与背后的条款差异；结果是一组候选与各自的代价，不是"唯一正确答案"。'],
                 ['2', '选择与对比', '收录 2400+ 个许可证，可按类别、来源或搜索定位；选中即摊开全部条款事实，并最多把 4 个放进对比工作台横向比较。'],
-                ['3', '生成产物', '一次产出许可证全文、源文件头、NOTICE（可选）、README 段与包管理器字段，打包下载。'],
+                ['3', '生成产物', '一次产出许可证全文、源文件头、NOTICE（可选）、README 段与包管理器字段，打包下载；单个文件可另存为无后缀 / .md / .txt。'],
                 ['4', '关于', '数据从哪来、遵守哪几条硬规则、有哪些已知限制，也包括我们查过但没拿到的数据。'],
               ]
             : [
                 ['1', 'Questionnaire', 'Eight questions, each explaining why it is asked and which clause it maps to. The result is a candidate set with each one’s cost, not a single "correct" answer.'],
                 ['2', 'Pick and compare', '2400+ licenses searchable by category, source or name. Selecting one lays out every term, and up to four can be lined up side by side.'],
-                ['3', 'Generate', 'Produces the license text, source header, optional NOTICE, a README section and manifest fields — downloadable as a bundle.'],
+                ['3', 'Generate', 'Produces the license text, source header, optional NOTICE, a README section and manifest fields — downloadable as a bundle; any single file can be saved with no extension, .md or .txt.'],
                 ['4', 'About', 'Where the data comes from, the rules this site holds to, its known limits, and the data we looked for but could not get.'],
               ]
           ).map(([n, title, body]) => (
             <li key={n} className="flex gap-3">
-              <span aria-hidden className="mono mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-ink-900/[0.08] text-[10px]">
+              <span aria-hidden className="mono mt-1 flex size-5 shrink-0 items-center justify-center rounded-md bg-ink-900/[0.08] text-[10px]">
                 {n}
               </span>
               <span>
                 <strong className="block text-sm">{title}</strong>
-                <span className="mt-0.5 block text-sm text-ink-600">{body}</span>
+                <span className="mt-1 block text-sm text-ink-600">{body}</span>
               </span>
             </li>
           ))}
@@ -257,7 +268,7 @@ function Docs({ lang }: { lang: Lang }) {
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '本站的几条硬规则' : 'The rules this site will not break'}</h2>
         <ol className="mt-4 space-y-3 text-sm">
           {[
@@ -305,10 +316,10 @@ function Docs({ lang }: { lang: Lang }) {
             },
           ].map((item, i) => (
             <li key={item.t} className="flex gap-3">
-              <span className="mono mt-0.5 text-ink-400">{String(i + 1).padStart(2, '0')}</span>
+              <span className="mono mt-1 text-ink-400">{String(i + 1).padStart(2, '0')}</span>
               <span>
                 <strong className="block">{item.t}</strong>
-                <span className="mt-0.5 block text-ink-600">{item.d}</span>
+                <span className="mt-1 block text-ink-600">{item.d}</span>
               </span>
             </li>
           ))}
@@ -317,7 +328,7 @@ function Docs({ lang }: { lang: Lang }) {
 
       {/* 关键规定解释：详情面板里那 9 条的通俗说明。
           条目与 ProPicker 的 rows 一一对应，改那边时这里要跟着改。 */}
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">
           {zh ? '许可证详情里那几条规定，到底是什么意思' : 'What the rules in the license detail actually mean'}
         </h2>
@@ -327,7 +338,7 @@ function Docs({ lang }: { lang: Lang }) {
             : 'Opening a license under "Pick and compare" shows a set of key rules. Those are the things that actually matter when choosing, but the labels are terse. Here is what each one asks, what the possible answers mean, and what to do about them.'}
         </p>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-4">
           {(zh
             ? [
                 {
@@ -510,7 +521,7 @@ function Docs({ lang }: { lang: Lang }) {
           ).map((row) => (
             <div key={row.k} className="rounded-lg border border-ink-900/10 p-4">
               <strong className="block text-sm">{row.k}</strong>
-              <dl className="mt-2 space-y-1.5 text-sm text-ink-600">
+              <dl className="mt-2 space-y-2 text-sm text-ink-600">
                 <div className="flex gap-2">
                   <dt className="shrink-0 text-ink-400">{zh ? '问的是' : 'Asks'}</dt>
                   <dd>{row.q}</dd>
@@ -521,7 +532,7 @@ function Docs({ lang }: { lang: Lang }) {
                   <dd>
                     <ul className="space-y-1">
                       {row.a.map((line) => (
-                        <li key={line} className="flex gap-1.5">
+                        <li key={line} className="flex gap-2">
                           <span aria-hidden className="text-ink-400">
                             ·
                           </span>
@@ -547,7 +558,7 @@ function Docs({ lang }: { lang: Lang }) {
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">
           {zh
             ? `精校的 ${LICENSES.length} 个许可证（另有长尾条目由正文推断）`
@@ -578,7 +589,7 @@ function Docs({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '数据从哪来（多家数据源混合）' : 'Where the data comes from (several sources combined)'}</h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
@@ -673,7 +684,7 @@ function Docs({ lang }: { lang: Lang }) {
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '查过但拿不到的数据' : 'Data we looked for but could not get'}</h2>
         <ul className="mt-3 space-y-2 text-sm text-ink-600">
           {[
@@ -700,7 +711,7 @@ function Docs({ lang }: { lang: Lang }) {
         </ul>
       </section>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 text-sm shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 text-sm shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '参考资料' : 'References'}</h2>
         <p className="mt-2 text-xs text-ink-400">
           {zh
@@ -731,10 +742,10 @@ function Docs({ lang }: { lang: Lang }) {
       </section>
 
       {/* 开源信息：仓库、许可证、作者。放在最后，作为整页的落款 */}
-      <section className="rounded-xl border border-ink-900/15 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/15 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">{zh ? '开源信息' : 'Open source'}</h2>
         <dl className="mt-4 divide-y divide-ink-900/[0.07] text-sm">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
             <dt className="w-28 shrink-0 text-ink-400">{zh ? '仓库' : 'Repository'}</dt>
             <dd>
               <a
@@ -747,10 +758,10 @@ function Docs({ lang }: { lang: Lang }) {
               </a>
             </dd>
           </div>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
             <dt className="w-28 shrink-0 text-ink-400">{zh ? '许可证' : 'License'}</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <span className="rounded border border-ink-900/20 px-1.5 py-0.5 font-medium">{PROJECT.license}</span>
+              <span className="rounded border border-ink-900/20 px-2 py-1 font-medium">{PROJECT.license}</span>
               <a
                 className="underline decoration-dotted hover:text-ink-900"
                 href={PROJECT.licenseUrl}
@@ -764,7 +775,7 @@ function Docs({ lang }: { lang: Lang }) {
               </span>
             </dd>
           </div>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
             <dt className="w-28 shrink-0 text-ink-400">{zh ? '作者' : 'Author'}</dt>
             <dd>
               <a
@@ -778,7 +789,7 @@ function Docs({ lang }: { lang: Lang }) {
               <span className="ml-2 text-ink-600">{PROJECT.authorNick}</span>
             </dd>
           </div>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
             <dt className="w-28 shrink-0 text-ink-400">{zh ? '发行版' : 'Releases'}</dt>
             <dd className="flex flex-wrap items-center gap-2">
               <a

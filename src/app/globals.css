@@ -20,6 +20,22 @@
   --color-mandatory: #b42318;
   --color-advisory: #b54708;
   --color-ok: #067647;
+  /* 条款框「条件」一组的中性提示色：既不是许可（绿）也不是风险（红/橙），
+     只是"你要照做的义务"。对齐 GitHub 许可证框的蓝色 info 图标。 */
+  --color-info: #0550ae;
+
+  /*
+   * 圆角只允许 6 / 10 / 16 三档。把 utility 名字统一映射到这三档，写代码时不必记像素值：
+   *   rounded / rounded-md → 6px（按钮、输入框、标签这类小控件）
+   *   rounded-lg / rounded-xl → 10px（卡片内部的次级面板）
+   *   rounded-2xl → 16px（卡片、区块这类外层容器）
+   * 嵌套规则：外圆角 = 内圆角 + 内边距（内 6 + 边距 4 = 外 10）。
+   */
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-2xl: 16px;
 }
 
 html {

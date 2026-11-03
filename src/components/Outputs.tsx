@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
+import { Square } from './Icons';
 import { LANGUAGES, type CopyrightInput } from '../lib/fill.ts';
 import { complianceChecklist, generate, readmeSection, type GeneratorOptions } from '../lib/generate.ts';
 import { expressionOf, fromScancodeEntry, resolveSpec } from '../lib/spec.ts';
@@ -49,6 +50,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   /** 复制失败（浏览器不给权限、或非安全上下文下两种方式都不可用） */
   const [copyFailed, setCopyFailed] = useState(false);
   const [zipping, setZipping] = useState(false);
+  // 单个文件另存时的后缀。默认不带后缀（LICENSE、LICENSES/MIT 这类文件按惯例就是无后缀），
+  // 但 GitHub 会渲染 LICENSE.md、有些系统只认 .txt，所以让人自己挑。
+  const [suffix, setSuffix] = useState<'' | '.md' | '.txt'>('');
   const [snapshot, setSnapshot] = useState<SpdxSnapshot | null>(null);
   const [texts, setTexts] = useState<SpdxTexts | null>(null);
   const [enrichment, setEnrichment] = useState<Enrichment | null>(null);
@@ -231,11 +235,14 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   };
 
   const download = (path: string, content: string) => {
+    // 先去掉已有的 .md / .txt，再按选择的后缀重命名——否则 `LICENSE-SECTION.md`
+    // 选 .md 会变成 `.md.md`。
+    const base = (path.split('/').pop() ?? 'LICENSE').replace(/\.(md|txt)$/i, '');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = path.split('/').pop() ?? 'LICENSE';
+    a.download = `${base}${suffix}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -286,7 +293,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
 
   if (!licenseId) {
     return (
-      <div className="rounded-xl border border-dashed border-ink-900/20 bg-white p-8 text-center">
+      <div className="rounded-2xl border border-dashed border-ink-900/20 bg-white p-8 text-center">
         <p className="text-ink-600">
           {lang === 'zh'
             ? '还没有选择许可证。回到「问卷选许可」回答几个问题，或直接在「选择与对比」里挑一个。'
@@ -309,7 +316,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   // 说明文案按数据源区分：SPDX 与 ScanCode 正文是两份不同的文件
   if (!spec) {
     return (
-      <div className="rounded-xl border border-ink-900/10 bg-white p-8 text-center text-sm text-ink-600">
+      <div className="rounded-2xl border border-ink-900/10 bg-white p-8 text-center text-sm text-ink-600">
         {lang === 'zh'
           ? pickingScancode
             ? '正在加载 ScanCode LicenseDB 正文（首次约 13 MB，之后走浏览器缓存）…'
@@ -324,20 +331,20 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   return (
     <div className="space-y-6">
       {/* ---------- 当前许可证摘要 ---------- */}
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-baseline gap-2">
           <h2 className="text-lg font-semibold">{spec.name}</h2>
-          <code className="mono rounded bg-ink-900/[0.06] px-1.5 py-0.5 text-xs">{expressionOf(spec)}</code>
+          <code className="mono rounded bg-ink-900/[0.06] px-2 py-1 text-xs">{expressionOf(spec)}</code>
           {spec.deprecated ? (
-            <span className="rounded-full border border-advisory/40 bg-advisory/5 px-2 py-0.5 text-xs text-advisory">
+            <span className="rounded-md border border-advisory/40 bg-advisory/5 px-2 py-1 text-xs text-advisory">
               {lang === 'zh' ? 'SPDX 已废弃' : 'deprecated'}
             </span>
           ) : null}
           {spec.osiApproved ? (
-            <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-xs text-ink-600">OSI</span>
+            <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">OSI</span>
           ) : null}
           {spec.fsfLibre ? (
-            <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-xs text-ink-600">FSF Libre</span>
+            <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">FSF Libre</span>
           ) : null}
           <a
             className="ml-auto text-xs text-ink-600 underline decoration-dotted"
@@ -361,9 +368,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
       </section>
 
       {/* ---------- 版权信息 ---------- */}
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold">{tr.editInputs}</h2>
-        <p className="mt-1.5 text-sm text-ink-600">
+        <p className="mt-2 text-sm text-ink-600">
           {lang === 'zh'
             ? '其实只有两项是必须的：版权人（写你的名字或公司名）与项目名称。其余留空也能生成完整可用的文件。版权人会同时写入 LICENSE、NOTICE、源文件头与清单字段；多版权人各占一行，年份区间按原样保留。'
             : 'Only two things are really required: the copyright holder (your name or company) and the project name. Everything else can stay blank and you still get complete, usable files. The holder is written into LICENSE, NOTICE, source headers and manifest fields; multiple holders get one line each and year ranges are preserved verbatim.'}
@@ -393,7 +400,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           </label>
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-6 space-y-3">
           {state.copyright.holders.map((h, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-[1fr_7rem_7rem_auto]">
               <label className="block">
@@ -473,7 +480,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
       </section>
 
       {/* ---------- 产物选项 ---------- */}
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold">{tr.outputOptions}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block">
@@ -596,7 +603,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             </section>
           ) : null}
 
-          <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-lg font-semibold">{tr.files}</h2>
               <button
@@ -610,7 +617,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             </div>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[18rem_1fr]">
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {result.files.map((f) => {
                   const isActive = active?.path === f.path;
                   return (
@@ -630,7 +637,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                         <span className="mono block break-all">{f.path}</span>
                         <span
                           className={[
-                            'mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wide',
+                            'mt-1 inline-block rounded-md px-2 py-1 text-[10px] uppercase tracking-wide',
                             f.mandatory ? 'bg-mandatory/10 text-mandatory' : 'bg-ink-900/[0.06] text-ink-600',
                           ].join(' ')}
                         >
@@ -650,7 +657,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                       type="button"
                       onClick={() => copy(active.path, active.content)}
                       className={[
-                        'rounded border px-2.5 py-1 text-xs',
+                        'rounded border px-3 py-1 text-xs',
                         copyFailed ? 'border-mandatory/50 text-mandatory' : 'border-ink-900/20 hover:border-ink-900',
                       ].join(' ')}
                       title={
@@ -669,10 +676,20 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                           ? tr.copied
                           : tr.copy}
                     </button>
+                    <select
+                      value={suffix}
+                      onChange={(e) => setSuffix(e.target.value as '' | '.md' | '.txt')}
+                      aria-label={lang === 'zh' ? '下载文件的后缀' : 'Filename extension for the download'}
+                      className="rounded border border-ink-900/20 bg-white px-2 py-1 text-xs hover:border-ink-900"
+                    >
+                      <option value="">{lang === 'zh' ? '无后缀' : 'no extension'}</option>
+                      <option value=".md">.md</option>
+                      <option value=".txt">.txt</option>
+                    </select>
                     <button
                       type="button"
                       onClick={() => download(active.path, active.content)}
-                      className="rounded border border-ink-900/20 px-2.5 py-1 text-xs hover:border-ink-900"
+                      className="rounded border border-ink-900/20 px-3 py-1 text-xs hover:border-ink-900"
                     >
                       {lang === 'zh' ? '下载' : 'Download'}
                     </button>
@@ -693,14 +710,12 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             </div>
           </section>
 
-          <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold">{tr.checklist}</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {complianceChecklist(spec, options, lang).map((c, i) => (
                 <li key={i} className="flex gap-2">
-                  <span aria-hidden className="mt-0.5 text-ink-400">
-                    ☐
-                  </span>
+                  <Square className="mt-0.5 shrink-0 text-ink-400" />
                   <span>{c}</span>
                 </li>
               ))}
@@ -743,7 +758,7 @@ function AdvancedSettings({
             type="button"
             onClick={() => updateCopyright({ symbolStyle: value })}
             className={[
-              'mono rounded-lg border px-3 py-1.5 text-xs',
+              'mono rounded-lg border px-3 py-2 text-xs',
               state.copyright.symbolStyle === value
                 ? 'border-ink-900 bg-ink-900 text-white'
                 : 'border-ink-900/15 hover:border-ink-900',
@@ -783,7 +798,7 @@ function AdvancedSettings({
   );
 
   return (
-    <details className="mt-5 rounded-lg border border-ink-900/10 p-3">
+    <details className="mt-6 rounded-lg border border-ink-900/10 p-3">
       <summary className="cursor-pointer text-sm">
         {lang === 'zh'
           ? '更多设置（版权行写法、联系邮箱、仓库地址）'
@@ -817,7 +832,7 @@ function Toggle({
         checked={checked}
         disabled={locked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 size-4 accent-ink-900"
+        className="mt-1 size-4 accent-ink-900"
       />
       <span>
         <span className="block text-sm">{label}</span>

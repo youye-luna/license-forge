@@ -438,7 +438,7 @@ test('详情面板用大白话讲条款，不堆术语', () => {  // 面板的�
     assert.ok(src.includes(n), `详情面板应当使用白话说法「${n}」`);
   }
   // 背书与促销必须分成两条：条款里两者常分开写，
-  // 实测 344 个许可两者都禁、3 个只禁背书、30 个只禁促销。
+  // 实测 443 个许可两者都禁、3 个只禁背书、22 个只禁促销。
   assert.ok(src.includes('用作者名义背书'), '应当有独立的背书一条');
   assert.ok(src.includes('用作者名义促销'), '应当有独立的促销一条');
   assert.ok(src.includes('不能说"作者认可/推荐本产品"'), '背书的禁止要说清是什么行为');
@@ -683,8 +683,8 @@ test('对比矩阵已删除，页面不再有它', () => {
   for (const gone of ['CompareMatrix', 'matrixRows', 'scopeLabel', 'setView', "useState<'list' | 'matrix'>"]) {
     assert.ok(!src.includes(gone), `对比矩阵的残留：${gone}`);
   }
-  // 顶层的对比维度定义还在——「对比工作台」仍然用它
-  assert.ok(src.includes('compareDimensions'), '对比工作台的维度定义应当保留');
+  // 对比工作台与详情面板共用同一个条款框，两处的说法不会漂移
+  assert.ok(src.includes('function TermsBox'), '条款框应当抽成共用组件');
   assert.ok(src.includes('function CompareBoard'), '对比工作台应当保留');
 });
 

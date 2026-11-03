@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ArrowRight } from './Icons';
 import { FAMILY_LABEL } from '../lib/licenses.ts';
 import { QUESTIONS, recommend, summarizeAnswers, type Answers } from '../lib/wizard.ts';
 import { t } from '../lib/ui.ts';
@@ -40,7 +41,7 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
   return (
     <div className="space-y-6">
       {/* 流程起点说明：这里就是网站打开后的第一屏，先把"接下来会发生什么"讲清楚 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-900/10 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-900/10 bg-white p-4">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">{lang === 'zh' ? '从问卷开始' : 'Start with the questionnaire'}</h2>
           <p className="mt-1 text-xs text-ink-600">
@@ -52,9 +53,10 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
         <button
           type="button"
           onClick={() => onFinish(true)}
-          className="shrink-0 rounded-lg border border-ink-900/20 px-3 py-2 text-sm hover:border-ink-900"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-ink-900/20 px-3 py-2 text-sm hover:border-ink-900"
         >
-          {lang === 'zh' ? '跳过问卷，直接选许可证 →' : 'Skip — pick a license directly →'}
+          {lang === 'zh' ? '跳过问卷，直接选许可证' : 'Skip — pick a license directly'}
+          <ArrowRight />
         </button>
       </div>
 
@@ -82,14 +84,14 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
         </button>
       </div>
 
-      <section className="rounded-xl border border-ink-900/10 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold sm:text-2xl">{q.title[lang]}</h2>
         {/* "为什么问这个"是本项目的核心差异：竞品只给问题，不给理由 */}
         <p className="mt-3 border-l-2 border-ink-900/20 pl-3 text-sm leading-relaxed text-ink-600">
           {q.why[lang]}
         </p>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {q.options.map((opt) => {
             const active = answers[q.id] === opt.value;
             return (
@@ -151,9 +153,10 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
             onClick={() => onFinish(false)}
             disabled={!allAnswered}
             title={allAnswered ? undefined : lang === 'zh' ? '先答完必答项' : 'Answer the required questions first'}
-            className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
-            {lang === 'zh' ? '去选择与对比挑定 →' : 'Go pick one →'}
+            {lang === 'zh' ? '去选择与对比挑定' : 'Go pick one'}
+            <ArrowRight />
           </button>
         </div>
       </section>
@@ -212,14 +215,14 @@ function RecCard({
   return (
     <article
       className={[
-        'rounded-xl border bg-white p-5 shadow-sm',
+        'rounded-2xl border bg-white p-6 shadow-sm',
         active ? 'border-ink-900 ring-1 ring-ink-900/20' : 'border-ink-900/10',
       ].join(' ')}
     >
       <header className="flex flex-wrap items-center gap-2">
         <h3 className="text-lg font-semibold">{entry.name}</h3>
-        <code className="mono rounded bg-ink-900/[0.06] px-1.5 py-0.5 text-xs">{entry.id}</code>
-        <span className="rounded-full border border-ink-900/15 px-2 py-0.5 text-xs text-ink-600">
+        <code className="mono rounded bg-ink-900/[0.06] px-2 py-1 text-xs">{entry.id}</code>
+        <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">
           {FAMILY_LABEL[entry.family][lang]}
         </span>
       </header>
@@ -229,7 +232,7 @@ function RecCard({
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-ok">{tr.reasons}</h4>
-          <ul className="mt-2 space-y-1.5 text-sm">
+          <ul className="mt-2 space-y-2 text-sm">
             {reasons.map((r, i) => (
               <li key={i} className="flex gap-2">
                 <span aria-hidden className="text-ok">
@@ -242,7 +245,7 @@ function RecCard({
         </div>
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-advisory">{tr.cautions}</h4>
-          <ul className="mt-2 space-y-1.5 text-sm">
+          <ul className="mt-2 space-y-2 text-sm">
             {cautions.map((c, i) => (
               <li key={i} className="flex gap-2">
                 <span aria-hidden className="text-advisory">

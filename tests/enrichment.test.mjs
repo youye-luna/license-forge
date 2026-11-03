@@ -143,14 +143,17 @@ test('精校值与正文推导值的分歧只能来自这份白名单', () => {
   // 其余 2400 多个用 deriveFacts 的正文推导。它们**必然会**在某些条目上不一致，
   // 但分歧不能悄悄变多——每一条都要有理由，写在这里。
   //
-  // 这次优化把分歧从 14 条降到 4 条：其中 9 条是精校值**过时**了
+  // 历次校准把分歧收敛到下面 3 条：其余各条要么是精校值**过时**了
   // （endorse/promote 的判定当时还没修好，CC 与 OFL 被误判成"没写"），
-  // 已按推导值更正；另 1 条是重复计数（BSD-3 的名字限制已由 endorse 表达）。
+  // 已按推导值更正；要么是重复计数（BSD-3 的名字限制已由 endorse 表达）。
   const JUSTIFIED = {
-    // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依，以精校值为准。
-    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：CDDL 未被 ChooseALicense 覆盖，无权威词表，以精校值为准',
-    // 这两个许可对专利只字未提。精校值写成 none（"明确不授予"）会让人以为正文有这句声明。
-    Unlicense: 'patentGrant：正文未提专利，推导的 silent 比精校的 none 更准确，但精校值已作为产品口径固定',
+    // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依。2026-11 校准逐句核对过正文：
+    // §2.1(b) 有明确的专利授权；正文没有"不授予商标"的条款（推导命中的是 notices 里的字样）；
+    // §3.3 要求每个修改件带声明（推导漏判）。三项精校值都对，推导值是正则的误报/漏报。
+    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：无权威词表可依，逐句核对后以精校值为准（推导为正则误报/漏报）',
+    // 这两个许可对专利只字未提。产品口径经用户确认（2026-11 校准）保留 none——
+    // 弃权/玩笑许可实际不授予任何专利；推导的 silent 更贴合文本，分歧留档在此。
+    Unlicense: 'patentGrant：正文未提专利，推导的 silent 更贴合文本，但产品口径经用户确认（2026-11）保留 none',
     WTFPL: 'patentGrant：同上',
   };
   const KEYS = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
@@ -170,6 +173,17 @@ test('精校值与正文推导值的分歧只能来自这份白名单', () => {
   // 白名单里也不该有已经不再分歧的条目（否则它会掩盖将来新出现的分歧）
   const stale = Object.keys(JUSTIFIED).filter((id) => !found.includes(id));
   assert.deepEqual(stale, [], `这些白名单条目已不再分歧，应当删掉：${stale.join(', ')}`);
+});
+
+test('精校的 OSI 认证状态必须与 SPDX 快照一致', () => {
+  // 这个字段是纯事实（SPDX 官方数据），没有产品口径可言。
+  // P() 的默认值是 true，曾让 BSD-3-Clause-Clear、CC-BY-4.0、CC-BY-SA-4.0
+  // 三个从未获 OSI 认证的许可被默认成"已认证"——加这条守门防复发。
+  for (const l of LICENSES) {
+    const item = SNAPSHOT.licenses.find((x) => x.id === l.id);
+    if (!item) continue;
+    assert.equal(l.facts.osiApproved, item.osiApproved, `${l.id} 的 OSI 认证状态应当与 SPDX 快照一致`);
+  }
 });
 
 test('「保留版权声明与许可证」在精校与推导两侧都不低于 30 个', () => {
@@ -366,8 +380,8 @@ test('背书/促销不能与商标混为一谈：Apache-2.0 有商标条款但�
 
 test('背书与促销是两个维度：分开判，不能用同一个值', () => {
   // 这两件事性质不同：背书是"作者认可你"，促销是"你借作者的名气"。
-  // 实测 344 个许可两者都禁、3 个只禁背书、30 个只禁促销，
-  // 合成一条会让这 33 个的结论失真。
+  // 实测 443 个许可两者都禁、3 个只禁背书、22 个只禁促销，
+  // 合成一条会让这 25 个的结论失真。
   const both = deriveFacts('BSD-3-Clause', TEXTS.licenses['BSD-3-Clause'].licenseText, true, 'permissive', TERMS);
   assert.equal(both.endorse, 'prohibited');
   assert.equal(both.promote, 'prohibited');

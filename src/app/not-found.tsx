@@ -14,8 +14,8 @@
  */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-ink-950 px-6 text-white">
-      <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-9">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-ink-950 px-6 text-white">
+      <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
         <p className="text-[5.5rem] font-black italic leading-[0.8] tracking-tighter sm:text-[9rem]">
           404
         </p>
@@ -27,7 +27,7 @@ export default function NotFound() {
 
       <a
         href="./"
-        className="rounded-full border border-white/25 px-4 py-2 text-sm text-white/70 transition hover:border-white/60 hover:text-white"
+        className="rounded-md border border-white/25 px-4 py-2 text-sm text-white/70 transition hover:border-white/60 hover:text-white"
       >
         返回首页 · Back to home
       </a>

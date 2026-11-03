@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 
-import { allowsClosedSource, compareDimensions, factsOf, generatedIntro } from '../src/lib/compare.ts';
+import { factsOf, generatedIntro } from '../src/lib/compare.ts';
 import { loadUnifiedCatalog } from '../src/lib/spdx.ts';
 
 const SPDX = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
@@ -31,72 +30,10 @@ function factsFor(id, withText = true) {
 }
 
 /* ------------------------------------------------------------------ *
- * 矩阵与工作台必须共用同一份定义
- * ------------------------------------------------------------------ */
-
-test('维度定义同时服务矩阵与工作台（只有一份，不会各写一套）', () => {
-  const zh = compareDimensions('zh');
-  const en = compareDimensions('en');
-  assert.equal(zh.length, en.length, '中英维度数量必须一致');
-  assert.ok(zh.length >= 12, `维度太少：${zh.length}`);
-  for (let i = 0; i < zh.length; i++) {
-    assert.equal(zh[i].label.length > 0, true);
-    assert.equal(typeof zh[i].cell, 'function', `第 ${i} 个维度缺少 cell`);
-    assert.ok(zh[i].kind, `第 ${i} 个维度缺少 kind`);
-  }
-});
-
-test('关键维度都在，且顺序稳定（宽松程度 → 义务 → 认证）', () => {
-  // 断言稳定的 key，而不是给人看的 label——文案会改，key 不该改
-  const dims = compareDimensions('zh');
-  const keys = dims.map((d) => d.key);
-  for (const need of [
-    'source',
-    'family',
-    'conclusion-source',
-    'patent',
-    'closed-source',
-    'network',
-    'state-changes',
-    'trademark',
-    'notice',
-    'osi',
-  ]) {
-    assert.ok(keys.includes(need), `缺少维度 key：${need}`);
-  }
-  // 顺序直接决定扫读体验，钉住它避免被无意打乱
-  assert.equal(keys[0], 'source');
-  assert.ok(keys.indexOf('closed-source') < keys.indexOf('network'));
-  // key 必须唯一，否则渲染分支会打架
-  assert.equal(new Set(keys).size, keys.length, 'key 出现重复');
-});
-
-test('维度 key 与 label 分离：改文案不会改坏渲染', () => {
-  // 这条守的是一个踩过的坑：早先 renderCell 按 label 判断该显示勾还是文字，
-  // 于是把"专利授权"改成"专利"就静默改坏了样式。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-  assert.match(src, /switch \(d\.key\)/, 'renderCell 应按 key 分支');
-  assert.ok(!/d\.label === '/.test(src), 'renderCell 不应再按 label 分支');
-  // 每个维度都要有 key 与中英文案
-  for (const lang of ['zh', 'en']) {
-    for (const d of compareDimensions(lang)) {
-      assert.ok(d.key, `${lang} 下有一个维度缺 key`);
-      assert.ok(d.label && d.label.length > 0, `${d.key} 在 ${lang} 下缺 label`);
-    }
-  }
-  // 中英两份的 key 顺序必须一致，否则表格列会错位
-  assert.deepEqual(
-    compareDimensions('zh').map((d) => d.key),
-    compareDimensions('en').map((d) => d.key),
-    '中英维度的 key 顺序必须一致',
-  );
-});
-
-/* ------------------------------------------------------------------ *
  * factsOf：从条目解析事实
  * ------------------------------------------------------------------ */
 
-test('上游标注的条目不需要正文也能得出条款（矩阵因此能先渲染后补数据）', () => {
+test('上游标注的条目不需要正文也能得出条款（对比卡因此能先渲染后补数据）', () => {
   // Apache-2.0 在 ChooseALicense 的 47 个标注范围内，无需正文
   const withText = factsFor('Apache-2.0', true);
   const withoutText = factsFor('Apache-2.0', false);
@@ -119,20 +56,11 @@ test('非 SPDX 条目也能进对比，来源与标识符都如实标注', () =>
   assert.ok(r.category, '应当带上 ScanCode 分类');
 });
 
-test('允许闭源衍生的判定：宽松型允许，强著佐权不允许', () => {
-  assert.equal(allowsClosedSource(factsFor('MIT', false)), true);
-  assert.equal(allowsClosedSource(factsFor('Apache-2.0', false)), true);
-  assert.equal(allowsClosedSource(factsFor('CC0-1.0', false)), true);
-  assert.equal(allowsClosedSource(factsFor('GPL-3.0-only', false)), false);
-  assert.equal(allowsClosedSource(factsFor('AGPL-3.0-only', false)), false);
-});
-
-test('MPL-2.0 这类文件级著佐权：允许闭源衍生，但被改的文件要回馈', () => {
+test('MPL-2.0 这类文件级著佐权：被改的文件要回馈，整个作品仍可闭源', () => {
   const mpl = factsFor('MPL-2.0', false);
   assert.equal(mpl.family, 'weak-copyleft');
   assert.equal(mpl.facts.sameLicensePerFile, true, 'MPL 是文件级著佐权');
-  // 文件级著佐权不阻止闭源的大作品使用它——这正是矩阵要区分的
-  assert.equal(allowsClosedSource(mpl), true);
+  assert.equal(mpl.facts.sameLicenseWholeWork, false, 'MPL 不要求整个作品同许可');
 });
 
 test('条款来源如实区分上游标注与正文推断', () => {
@@ -151,10 +79,10 @@ test('NOTICE 义务只对明确要求它的许可证为真', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * 矩阵的数据规模
+ * 短名单与家族判定
  * ------------------------------------------------------------------ */
 
-test('「最常用」范围的矩阵行数与短名单一致，且每行都能解析出事实', () => {
+test('「最常用」短名单里的每个条目都能解析出可渲染的事实', () => {
   const FEATURED_IDS = [
     'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'EPL-2.0',
     'LGPL-2.1-only', 'LGPL-2.1-or-later', 'LGPL-3.0-only', 'LGPL-3.0-or-later',
@@ -168,30 +96,21 @@ test('「最常用」范围的矩阵行数与短名单一致，且每行都能�
     const f = factsFor(e.id, false);
     assert.ok(f.family, `${e.id} 缺家族`);
     assert.ok(f.facts.patentGrant, `${e.id} 缺专利判定`);
-    // 每个维度都能渲染出值或明确的"—"（null），不允许抛错
-    for (const d of compareDimensions('zh')) {
-      const v = d.cell(f);
-      assert.ok(v === null || typeof v === 'string' || typeof v === 'boolean', `${e.id} 的维度 ${d.label} 渲染值异常`);
+    // 条款框要用到的每个字段都得有确定值，否则卡片上会出现空白
+    for (const k of ['stateChanges', 'networkTrigger', 'sameLicenseWholeWork', 'sameLicensePerFile', 'osiApproved', 'requiresNotice']) {
+      assert.equal(typeof f.facts[k], 'boolean', `${e.id} 的 ${k} 应当是布尔值`);
     }
+    assert.ok(f.termsSource === 'choosealicense' || f.termsSource === 'text', `${e.id} 的条款来源不明`);
   }
 });
 
-test('放宽到某个分类时，矩阵行数可控（不超过 80 行）', () => {
-  // 与 ProPicker 里的上限保持一致：再多就不叫"一眼看全"了
-  const gpl = UNIFIED.filter((e) => /^(A|L)?GPL-/.test(e.id));
-  assert.ok(gpl.length >= 10, 'GPL 家族条目应当足够多');
-  assert.ok(gpl.slice(0, 80).length <= 80);
-});
-
-test('木兰族的两个许可证在矩阵里被区分开', () => {
+test('木兰族的两个许可证在对比卡里被区分开', () => {
   const psl = factsFor('MulanPSL-2.0', false);
   const publ = factsFor('scancode:mulanpubl-2.0', false);
   assert.equal(psl.source, 'spdx');
   assert.equal(psl.family, 'permissive', '木兰宽松型应判为宽松');
-  assert.equal(allowsClosedSource(psl), true);
   assert.equal(publ.source, 'scancode');
   assert.notEqual(publ.family, 'permissive', '木兰公共型不应被判为宽松');
-  assert.equal(allowsClosedSource(publ), false);
 });
 
 /* ------------------------------------------------------------------ *
