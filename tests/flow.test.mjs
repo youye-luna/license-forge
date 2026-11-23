@@ -1,17 +1,23 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import test from 'node:test';
 import { LANGUAGES, renderComment } from '../src/lib/fill.ts';
+import { pickerSource, pickerSources } from './picker-source.mjs';
 
-test('README 的测试表要覆盖 package.json 里列出的每个测试文件', () => {
+test('README 的测试表要覆盖 tests/ 下的每个测试文件', () => {
   // 这条防的是文档漂移：README 里那张表一度写着「共 123 项」，
   // 而实际已经是 202 项，还漏列了 subject 与 sort 两个文件——
   // 因为加了测试文件却没人回去改表。项数没法自动核对（测试数不出自己），
   // 但"有没有列全文件"是可以的。
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  const files = [...pkg.scripts.test.matchAll(/tests\/([\w.-]+)\.test\.mjs/g)].map((m) => `${m[1]}.test.mjs`);
-  assert.ok(files.length >= 5, `应当从 test 脚本里解析出测试文件，实际 ${files.length}`);
+  //
+  // 以前是解析 package.json 的 test 脚本，脚本改成 `node --test tests/` 后
+  // 就解析不出来了；直接扫目录，新增测试文件也不会漏。
+  const files = readdirSync(new URL('../tests/', import.meta.url))
+    .filter((f) => f.endsWith('.test.mjs'))
+    .sort();
+  assert.ok(files.length >= 5, `应当扫到测试文件，实际 ${files.length}`);
 
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
   const missing = files.filter((f) => !readme.includes(f));
@@ -106,7 +112,10 @@ test('复制按钮要能应付非安全上下文（navigator.clipboard 不存在
   assert.ok(src.includes('copyFailed'), '复制失败要给出可见状态，不能静默无反应');
   assert.ok(src.includes('复制失败'), '失败文案要说清怎么办');
   // 切文件时要清掉失败状态，否则会挂在新文件上误导人
-  assert.ok(/setActivePath\(f\.path\);[\s\S]{0,120}setCopyFailed\(false\)/.test(src), '切换文件应重置失败状态');
+  assert.ok(
+    /setActivePath\(f\.path\);[\s\S]{0,120}setCopyFailed\(false\)/.test(src),
+    '切换文件应重置失败状态',
+  );
 });
 
 test('注释语言下拉要覆盖常见项目语言，CSS 不能漏', () => {
@@ -123,12 +132,12 @@ test('注释语言下拉要覆盖常见项目语言，CSS 不能漏', () => {
   assert.ok(!out.trimStart().startsWith('//'), '不得生成 // 行注释');
 });
 
-test('发行版不含启动脚本（已按要求移除），只放文档与 IIS 配置', () => {
+test('发行版不含启动脚本（已按要求移除），只放文档、数据署名与 IIS 配置', () => {
   // 曾经放过的 `启动网站.cmd` 与 `server.mjs` 已按要求删除。
-  // 这条守住它们不会被误加回包里：发行版只带纯静态产物 + 部署文档 + web.config。
+  // 这条守住它们不会被误加回包里：发行版只带纯静态产物 + 部署文档 + 数据署名 + web.config。
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.ok(pkg.scripts.package, '应当有 npm run package 脚本，打包才可复现');
-  for (const f of ['DEPLOY.md', 'web.config']) {
+  for (const f of ['DEPLOY.md', 'NOTICE-DATA.md', 'web.config']) {
     assert.ok(existsSync(new URL(`../release/${f}`, import.meta.url)), `release/${f} 应当存在`);
   }
   for (const gone of ['启动网站.cmd', 'server.mjs']) {
@@ -141,13 +150,25 @@ test('发行版不含启动脚本（已按要求移除），只放文档与 IIS 
   const pack = readFileSync(new URL('../scripts/package.mjs', import.meta.url), 'utf8');
   assert.ok(pack.includes('split(sep).join'), '打包脚本应当把 Windows 反斜杠转成正斜杠');
   assert.ok(pack.includes('BACKSLASH='), '打包脚本应当自检有没有反斜杠路径');
-  // 直接断言清单本身：只放 DEPLOY.md 与 web.config
-  assert.ok(
-    pack.includes("for (const name of ['DEPLOY.md', 'web.config'])"),
-    `打包清单只应包含 DEPLOY.md 与 web.config，实际：${
-      /for \(const name of \[[^\]]*\]/.exec(pack)?.[0] ?? '未找到'
-    }`,
+  // 直接断言清单本身：文档、数据署名与 web.config，一个都不能少
+  const list = /for \(const name of \[([^\]]*)\]/.exec(pack)?.[1] ?? '';
+  const names = [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(
+    names,
+    ['DEPLOY.md', 'NOTICE-DATA.md', 'web.config'],
+    `打包清单不应变化：${list || '未找到'}`,
   );
+});
+
+test('发行包里有独立的数据署名文件，且覆盖所有要求署名的上游', () => {
+  // ScanCode / OSADL 是 CC-BY-4.0、ChooseALicense 是 CC-BY-3.0：
+  // 只写在 README 里不够——分发的是 zip，README 不一定跟包走。
+  const notice = readFileSync(new URL('../release/NOTICE-DATA.md', import.meta.url), 'utf8');
+  for (const upstream of ['ScanCode', 'OSADL', 'ChooseALicense', 'SPDX']) {
+    assert.ok(notice.includes(upstream), `NOTICE-DATA.md 应当提到 ${upstream}`);
+  }
+  assert.ok(notice.includes('CC-BY-4.0'), 'CC-BY-4.0 的上游必须写明许可');
+  assert.ok(notice.includes('CC-BY-3.0'), 'CC-BY-3.0 的上游必须写明许可');
 });
 
 test('IIS 的 web.config 只用默认就有的配置节（否则整个站点 500）', () => {
@@ -198,27 +219,22 @@ test('打包源文件在仓库里，不落在被忽略的 dist/', () => {
 test('中文文本没有出处时要如实标注，不能什么都不显示', () => {
   // 19 个精校的许可（ISC、BSD-2、Zlib、OFL、CERN-OHL 系列…）既没有官方中文正文，
   // 也没有评审译稿。原先这里什么都不显示，用户会以为有中文、只是没找到入口。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-  assert.ok(
-    src.includes('本站未收录该许可的中文文本'),
-    '没有中文出处时应当显示一条说明',
-  );
+  const src = pickerSource();
+  assert.ok(src.includes('本站未收录该许可的中文文本'), '没有中文出处时应当显示一条说明');
   // 措辞只能讲"本站没有"，不能断言"世上没有"——数据源里没有 ≠ 不存在
-  assert.ok(
-    src.includes('不代表世上不存在中文译本'),
-    '应当说明这只是本站收录范围内没有',
-  );
+  assert.ok(src.includes('不代表世上不存在中文译本'), '应当说明这只是本站收录范围内没有');
   assert.ok(!src.includes('该许可没有中文版本'), '不得断言该许可没有中文版本');
 });
 
-test('详情页的中文文本要同时查两个来源，否则 ScanCode 独有条目不显示', () => {  // enrichment 只为 SPDX 名录生成记录，所以：
+test('详情页的中文文本要同时查两个来源，否则 ScanCode 独有条目不显示', () => {
+  // enrichment 只为 SPDX 名录生成记录，所以：
   //   · SPDX 条目      → enrichment.licenses[id].chinese
   //   · ScanCode 独有条目 → enrichment.chinese[key]（顶层那张按 ScanCode 键分键的表）
   // 木兰公共许可证**不在 SPDX 名录里**，早先只看前者，于是它的「中文文本」
   // 区块整块不显示——用户报的"中文版本缺失"就是这个。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   assert.ok(
-    src.includes("extra?.chinese ?? enrichment?.chinese?."),
+    src.includes('extra?.chinese ?? enrichment?.chinese?.'),
     '中文文本应当在 extra.chinese 取不到时回退查 enrichment.chinese',
   );
   // 渲染处必须用统一后的变量，不能再用 extra.chinese（那会把回退绕过去）
@@ -229,13 +245,86 @@ test('详情页的中文文本要同时查两个来源，否则 ScanCode 独有�
   assert.ok(!section.includes('extra?.chinese ?'), '区块判断不应再只看 extra.chinese');
 });
 
-import { defaultGenState } from '../src/lib/genstate.ts';
-import { TABS, TAB_LABEL, PROJECT } from '../src/lib/ui.ts';
-import * as ui from '../src/lib/ui.ts';
-import { LICENSES } from '../src/lib/licenses.ts';
-import { FAMILY_LABEL } from '../src/lib/licenses.ts';
-import { FAMILY_ORDER, QUESTIONS, recommend } from '../src/lib/wizard.ts';
 import { fillLicenseText } from '../src/lib/fill.ts';
+import { defaultGenState, thirdPartyText } from '../src/lib/genstate.ts';
+import { FAMILY_LABEL, LICENSES } from '../src/lib/licenses.ts';
+import { catalogStats, isNonOpenCategory, loadUnifiedCatalog } from '../src/lib/spdx.ts';
+import * as ui from '../src/lib/ui.ts';
+import { PROJECT, TAB_LABEL, TABS } from '../src/lib/ui.ts';
+import { FAMILY_ORDER, QUESTIONS, recommend } from '../src/lib/wizard.ts';
+
+/* ------------------------------------------------------------------ *
+ * 文档里的数字必须由数据算出来，不能手写后忘了改
+ * ------------------------------------------------------------------ */
+
+const SNAPSHOT = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
+const SCANCODE_INDEX = (await import('../public/data/scancode-index.json', { with: { type: 'json' } }))
+  .default;
+const UNIFIED = loadUnifiedCatalog(SNAPSHOT, SCANCODE_INDEX);
+
+test('README 与发行说明里的收录数字必须与数据快照一致', () => {
+  // 真实漂移：发行说明写着「精校 34 个」，而精校集合实际是 32 个；
+  // 收录量、独有量、非开源数也全是手写的，数据一更新就没人回去改。
+  // 这里只核对"写了就必须写对"，至于写不写由文档作者决定。
+  const stats = catalogStats(SNAPSHOT);
+  const unique = UNIFIED.filter((e) => e.source === 'scancode').length;
+  const total = stats.licenses + unique;
+  const nonOpen = UNIFIED.filter((e) => e.source === 'scancode' && isNonOpenCategory(e.category)).length;
+
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  const notes = readFileSync(new URL('../release/RELEASE_NOTES_v0.1.0.md', import.meta.url), 'utf8');
+
+  for (const [label, text] of [
+    ['README', readme],
+    ['发行说明', notes],
+  ]) {
+    assert.ok(text.includes(String(total)), `${label} 应当写明合计 ${total} 个许可证`);
+    assert.ok(text.includes(String(stats.licenses)), `${label} 应当写明 SPDX 收录 ${stats.licenses} 个`);
+    assert.ok(text.includes(String(unique)), `${label} 应当写明 ScanCode 独有 ${unique} 个`);
+    assert.ok(text.includes(String(LICENSES.length)), `${label} 应当写明精校 ${LICENSES.length} 个`);
+  }
+  assert.ok(readme.includes(`**${nonOpen} 个**被判定为非开源`), `README 的非开源数应当是 ${nonOpen}`);
+  assert.ok(notes.includes(`${nonOpen} 个标注为非开源`), `发行说明的非开源数应当是 ${nonOpen}`);
+  // "废弃标识符仍可生成"说的是快照里 deprecated 的条目，不是 DEPRECATED_IDS 那张改写表
+  assert.ok(
+    readme.includes(`${stats.deprecated} 个废弃标识符`),
+    `README 的废弃标识符数应当是 ${stats.deprecated}`,
+  );
+
+  // 反向兜底：曾经写错的那个数字不能再出现在"精校"语境里
+  assert.ok(
+    !/精校 \d+ 个/.test(notes) || notes.includes(`精校 ${LICENSES.length} 个`),
+    '发行说明的精校数量写错了',
+  );
+});
+
+test('数据快照有可核对的溯源清单（MANIFEST.json）', () => {
+  // README 说「任何人可以重跑抓取脚本核对快照」，但以前没有锚点：
+  // 不知道每个文件何时、从哪抓的，也不知道手上这份有没有被改过。
+  const dir = new URL('../public/data/', import.meta.url);
+  const manifest = JSON.parse(readFileSync(new URL('./MANIFEST.json', dir), 'utf8'));
+  const names = readdirSync(dir)
+    .filter((f) => f.endsWith('.json') && f !== 'MANIFEST.json')
+    .sort();
+  assert.deepEqual(Object.keys(manifest.files).sort(), names, '清单必须覆盖每个数据文件');
+
+  for (const name of names) {
+    const raw = readFileSync(new URL(`./${name}`, dir));
+    const rec = manifest.files[name];
+    assert.equal(rec.bytes, raw.length, `${name} 的字节数与清单不符`);
+    assert.equal(
+      rec.sha256,
+      createHash('sha256').update(raw).digest('hex'),
+      `${name} 的哈希与清单不符——数据变了就要重跑 npm run data:manifest`,
+    );
+    assert.ok(rec.upstream?.length > 0, `${name} 应当写明上游地址`);
+    assert.ok(rec.license, `${name} 应当写明上游许可`);
+    assert.ok(!Number.isNaN(Date.parse(rec.fetchedAt)), `${name} 的抓取时间不可解析`);
+  }
+  // 索引类文件还应当能看出收录规模，方便与 README 的数字对照
+  assert.ok(manifest.files['license-index.json'].counts.licenses > 0, '清单应记录许可证总数');
+  assert.ok(manifest.files['scancode-index.json'].counts.entries > 0, '清单应记录 ScanCode 条目数');
+});
 
 /* ------------------------------------------------------------------ *
  * 关于页的开源信息：仓库 / 许可证 / 作者
@@ -250,7 +339,7 @@ test('开源信息齐全，且指向正确的仓库与账号', () => {
   // 真正要守的是"是个真实存在的 SPDX 标识符"，与 package.json 的一致性由下一条测。
   assert.match(PROJECT.license, /^[A-Za-z0-9.+-]+$/, '许可证应当是 SPDX 标识符');
   assert.ok(PROJECT.licenseUrl.endsWith('/blob/main/LICENSE'), '许可证应链接到仓库里的 LICENSE');
-  assert.ok(PROJECT.releases.startsWith(PROJECT.repo + '/releases'));
+  assert.ok(PROJECT.releases.startsWith(`${PROJECT.repo}/releases`));
 });
 
 test('页面标注的许可证与 package.json 一致（不允许两处不一致）', () => {
@@ -264,7 +353,7 @@ test('发行版版本号必须与 package.json 同步', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(
     PROJECT.releasesLabel,
-    'v' + pkg.version,
+    `v${pkg.version}`,
     `关于页写的发行版是 ${PROJECT.releasesLabel}，但 package.json 是 ${pkg.version}——发版时两处要一起改`,
   );
 });
@@ -294,7 +383,7 @@ test('关于页解释了详情面板里的每一条关键规定', () => {
   // 关于页逐条解释"问的是什么 / 答案有哪几种 / 该怎么用"。
   // 这条测试守住两边的条目不会脱节——加了新维度却忘了写解释，会在这里失败。
   const about = readFileSync(new URL('../src/components/Generator.tsx', import.meta.url), 'utf8');
-  const picker = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const picker = pickerSource();
 
   // 从详情面板的 rows 里取出全部标签
   const rowsStart = picker.indexOf('const rows: { label: string');
@@ -308,18 +397,11 @@ test('关于页解释了详情面板里的每一条关键规定', () => {
   const kBody = about.slice(kStart, about.indexOf('</section>', kStart + 2000));
   const explained = [...kBody.matchAll(/\n\s+k: '([^']+)'/g)].map((m) => m[1]);
   for (const label of labels) {
-    assert.ok(
-      explained.includes(label),
-      `关于页没有解释「${label}」这条关键规定`,
-    );
+    assert.ok(explained.includes(label), `关于页没有解释「${label}」这条关键规定`);
   }
   // 也要有对应的英文条目，否则英文界面会缺解释
   const enExplained = explained.filter((k) => !labels.includes(k));
-  assert.equal(
-    enExplained.length,
-    labels.length,
-    '关于页的英文解释条目数应当与中文一致（每个字段一份）',
-  );
+  assert.equal(enExplained.length, labels.length, '关于页的英文解释条目数应当与中文一致（每个字段一份）');
 
   // 每条解释都要有"问的是 / 答案 / 怎么用"三段
   assert.ok(kBody.includes("zh ? '问的是' : 'Asks'"), '解释要有"问的是"一段');
@@ -344,11 +426,12 @@ test('关于页解释了详情面板里的每一条关键规定', () => {
 test('「分类」下拉与详情面板的「许可类型」共用同一套文案', () => {
   // 两边各写一份文案必然会走偏（"弱著佐权" vs "著作权型" 就出过这种不一致）。
   // 现在下拉直接从 FAMILY_LABEL 取值，这条测试守住它不被改回硬编码。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   const filtersStart = src.indexOf('const FILTERS');
   const filtersBody = src.slice(filtersStart, src.indexOf('];', filtersStart));
   // 八个分类都应当引用 FAMILY_LABEL，而不是写死字面量
-  const refs = (filtersBody.match(/FAMILY_LABEL\./g) ?? []).length + (filtersBody.match(/FAMILY_LABEL\[/g) ?? []).length;
+  const refs =
+    (filtersBody.match(/FAMILY_LABEL\./g) ?? []).length + (filtersBody.match(/FAMILY_LABEL\[/g) ?? []).length;
   assert.ok(refs >= 8, `八个分类都应当引用 FAMILY_LABEL，实际 ${refs} 处`);
   // 不应再出现硬编码的家族名
   for (const hard of ["zh: '宽松型'", "zh: '公共领域型'", "zh: '内容与数据型'"]) {
@@ -362,18 +445,14 @@ test('「分类」下拉与详情面板的「许可类型」共用同一套文�
 test('左栏四组筛选统一用下拉菜单', () => {
   // 之前"用来授权"是下拉、其余三组是胶囊，摆在一起像是两个人做的界面。
   // 现在统一成下拉：四组的标签定宽，下拉左边缘对齐成一条线。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   const groups = (src.match(/<FilterRow /g) ?? []).length;
   const selects = (src.match(/<select/g) ?? []).length;
   assert.ok(groups >= 4, `四组筛选都应当用 FilterRow，实际 ${groups} 组`);
   assert.equal(selects, groups, `每组都应是一个下拉，实际 ${selects} 个下拉 / ${groups} 组`);
 
   // 下拉样式只应定义一处，四组复用
-  assert.equal(
-    (src.match(/function selectClass\(/g) ?? []).length,
-    1,
-    '下拉样式只应定义一处（selectClass）',
-  );
+  assert.equal((src.match(/function selectClass\(/g) ?? []).length, 1, '下拉样式只应定义一处（selectClass）');
   assert.ok((src.match(/selectClass\(/g) ?? []).length >= 5, '四组都应使用 selectClass');
 
   // 胶囊写法不应再用于筛选（附加例外那一组仍是胶囊——它有 86 个候选，
@@ -381,10 +460,7 @@ test('左栏四组筛选统一用下拉菜单', () => {
   assert.ok(!src.includes('chipClass'), '筛选的胶囊样式应当已删除');
   assert.ok(!src.includes('SUBJECT_SHORT'), '下拉里用全称，短标签表应当已删除');
   const filterRegion = src.slice(src.indexOf('<FilterRow '), src.indexOf('{needsLicenseText(sortKey)'));
-  assert.ok(
-    !filterRegion.includes('rounded-full'),
-    '筛选区域里不应再有胶囊按钮',
-  );
+  assert.ok(!filterRegion.includes('rounded-full'), '筛选区域里不应再有胶囊按钮');
 
   // 标签定宽，四组才能对齐
   assert.match(src, /className="w-14 shrink-0 text-right text-xs text-ink-400"/, '标签应当定宽右对齐');
@@ -394,7 +470,7 @@ test('左栏四组筛选统一用下拉菜单', () => {
 });
 
 test('详情面板有「保留版权声明与许可证」这一条，且四种情况都有文案', () => {
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   assert.ok(src.includes('保留版权声明与许可证'), '详情面板应当有这一条');
   assert.ok(src.includes('facts.includeCopyright'), '文案应当由 includeCopyright 驱动');
   for (const state of ["'required'", "'source-only'", "'not-required'", "'silent'"]) {
@@ -404,10 +480,11 @@ test('详情面板有「保留版权声明与许可证」这一条，且四种�
   assert.match(src, /不等于没义务/, '「正文没写」要讲清不等于没有义务');
 });
 
-test('详情面板用大白话讲条款，不堆术语', () => {  // 面板的读者是"正在发第一个开源项目的人"。术语本身保留（搜索与对照资料要用），
+test('详情面板用大白话讲条款，不堆术语', () => {
+  // 面板的读者是"正在发第一个开源项目的人"。术语本身保留（搜索与对照资料要用），
   // 但每个术语旁边必须有一句"这意味着我该怎么做"，否则看到"弱著佐权"四个字
   // 仍然不知道要不要开源。这条测试守住那些只会让新手卡住的旧说法不再回来。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   const banned = [
     '条款字段',
     '家族判定',
@@ -447,14 +524,13 @@ test('详情面板用大白话讲条款，不堆术语', () => {  // 面板的�
   // 这一条的选项要说清新项目能不能闭源，而不是只给"有/没有要求"
   assert.ok(src.includes('不用：新项目可以闭源'), '宽松许可要说清新项目可以闭源');
   assert.ok(src.includes('要：整个项目都得用同一许可开源'), '强著佐权要说清整个项目都得开源');
-  assert.ok(src.includes('只有改过的那几个文件要开源，新写的代码可以不开源'), '文件级著佐权要说清新写的代码不受影响');
+  assert.ok(
+    src.includes('只有改过的那几个文件要开源，新写的代码可以不开源'),
+    '文件级著佐权要说清新写的代码不受影响',
+  );
   // 术语要配一句解释：许可类型不能只给"弱著佐权"四个字
   assert.ok(src.includes('FAMILY_PLAIN'), '许可类型必须附一句白话解释');
-  assert.match(
-    src,
-    /'weak-copyleft': \{ zh: '[^']*改过[^']*'/,
-    '弱著佐权应解释成"改过的文件要不要开源"',
-  );
+  assert.match(src, /'weak-copyleft': \{\s*zh: '[^']*改过[^']*'/, '弱著佐权应解释成"改过的文件要不要开源"');
 });
 
 test('关于页宣称"本站 LICENSE 由本工具生成"——这句话必须是真的', () => {
@@ -465,7 +541,9 @@ test('关于页宣称"本站 LICENSE 由本工具生成"——这句话必须是
   // 写死的那个值让这条测试红了——但真正要守的不是"它必须是 MIT"，
   // 而是"我们宣称哪个许可，LICENSE 就必须是那个许可经工具生成的结果"。
   const LICENSE = readFileSync(new URL('../LICENSE', import.meta.url), 'utf8');
-  const TEXTS = JSON.parse(readFileSync(new URL('../public/data/license-texts.json', import.meta.url), 'utf8'));
+  const TEXTS = JSON.parse(
+    readFileSync(new URL('../public/data/license-texts.json', import.meta.url), 'utf8'),
+  );
   const text = TEXTS.licenses[PROJECT.license];
   assert.ok(text, `许可证正文数据里应当有 ${PROJECT.license}`);
 
@@ -530,7 +608,10 @@ test('页签都有中英双语文案，且能按 id 查到', () => {
 test('选择与对比合并为一页，没有独立的对比页签', () => {
   // 这两件事本来就在同一个决策流程里，分两页只会让人来回切换。
   assert.ok(!TABS.some((t) => t.id === 'compare'), '不应再有独立的对比页签');
-  assert.ok(TABS.some((t) => t.id === 'picker'), '应当保留选择与对比页');
+  assert.ok(
+    TABS.some((t) => t.id === 'picker'),
+    '应当保留选择与对比页',
+  );
 });
 
 test('第四页叫「关于」，名字直白不带立场', () => {
@@ -577,14 +658,33 @@ test('默认产出一致：必须含源文件头与 README 段', () => {
   assert.match(s.copyright.holders[0].from ?? '', /^\d{4}$/, '应预填当前年份');
 });
 
+test('第三方归属：默认两行空行，空行不进 NOTICE 文本', () => {
+  const s = defaultGenState();
+  assert.equal(s.thirdParty.length, 2, '应预置两行第三方归属输入');
+  assert.deepEqual(s.thirdParty[0], { name: '', copyright: '', license: '' });
+  // 默认两行空行序列化后必须是空串，否则会污染 NOTICE
+  assert.equal(thirdPartyText(s.thirdParty), '', '全空的行不应出现在文本里');
+
+  const filled = [
+    { name: 'lodash', copyright: 'John-David Dalton', license: 'MIT' },
+    { name: '', copyright: '', license: '' },
+    { name: 'react', copyright: 'Meta', license: 'MIT' },
+  ];
+  assert.equal(
+    thirdPartyText(filled),
+    'lodash — John-David Dalton — MIT\nreact — Meta — MIT',
+    '每行「组件名 — 版权人 — 许可证」，空行跳过',
+  );
+  // 只填一部分字段也不该出现孤零零的分隔符
+  assert.equal(thirdPartyText([{ name: 'vue', copyright: '', license: '' }]), 'vue');
+});
+
 test('问卷里"跳过"只改一个默认值，不换一套逻辑', () => {
   // Generator 的 finishQuestionnaire 对跳过者只做一件事：把 REUSE 默认打开。
   // 这里模拟那一步，确认除该字段外没有别的差异。
   const walked = defaultGenState();
   const skipped = { ...defaultGenState(), includeReuseLayout: true };
-  const diff = Object.keys(walked).filter(
-    (k) => JSON.stringify(walked[k]) !== JSON.stringify(skipped[k]),
-  );
+  const diff = Object.keys(walked).filter((k) => JSON.stringify(walked[k]) !== JSON.stringify(skipped[k]));
   assert.deepEqual(diff, ['includeReuseLayout'], '跳过问卷不应带来其他默认值差异');
 });
 
@@ -630,10 +730,18 @@ test('署名题的中间选项，用小字解释背书与促销，且两者各�
   }
 });
 
-test('署名题选中间那一项，推荐结果与另外两个选项都不同', () => {  // 这一项的意义就在于"保留署名 + 不许拿我名义宣传"这个组合，
+test('署名题选中间那一项，推荐结果与另外两个选项都不同', () => {
+  // 这一项的意义就在于"保留署名 + 不许拿我名义宣传"这个组合，
   // 而它正是 BSD-3-Clause 相对 MIT 多出来的那一条。
   // 若它给出的候选与"必须保留署名"完全一样，这个选项等于没作用。
-  const base = { kind: 'software', closedSource: 'yes', patent: 'na', audience: 'either', network: 'no', gplVersion: 'or-later' };
+  const base = {
+    kind: 'software',
+    closedSource: 'yes',
+    patent: 'na',
+    audience: 'either',
+    network: 'no',
+    gplVersion: 'or-later',
+  };
   const ids = (v) => recommend({ ...base, attribution: v }).map((r) => r.license.id);
   const plain = ids('yes');
   const noPromo = ids('notice-and-no-promotion');
@@ -644,7 +752,9 @@ test('署名题选中间那一项，推荐结果与另外两个选项都不同',
   // BSD-3-Clause 是这一组合的唯一现成答案，应当排在最前
   assert.equal(noPromo[0], 'BSD-3-Clause', '中间选项应当首推 BSD-3-Clause');
   // 而且要说清它与 MIT 的差别在哪
-  const bsd = recommend({ ...base, attribution: 'notice-and-no-promotion' }).find((r) => r.license.id === 'BSD-3-Clause');
+  const bsd = recommend({ ...base, attribution: 'notice-and-no-promotion' }).find(
+    (r) => r.license.id === 'BSD-3-Clause',
+  );
   const text = bsd.reasons.map((r) => r.zh).join(' ');
   assert.match(text, /背书或促销/, '理由里要讲明禁止背书与促销');
 });
@@ -652,11 +762,18 @@ test('署名题选中间那一项，推荐结果与另外两个选项都不同',
 test('署名题的推荐不会变成唯一答案：仍给出取舍', () => {
   // 只给一个候选等于替用户做了决定。选了中间那一项之后，
   // 仍要把 "MIT 不禁宣传" 与 "Apache-2.0 有专利但不含此条款" 讲清楚。
-  const base = { kind: 'software', closedSource: 'yes', patent: 'na', audience: 'either', network: 'no', gplVersion: 'or-later' };
+  const base = {
+    kind: 'software',
+    closedSource: 'yes',
+    patent: 'na',
+    audience: 'either',
+    network: 'no',
+    gplVersion: 'or-later',
+  };
   const list = recommend({ ...base, attribution: 'notice-and-no-promotion' });
   assert.ok(list.length >= 3, '应当给出多个候选而不是一个');
   const byId = Object.fromEntries(list.map((r) => [r.license.id, r.reasons.map((x) => x.zh).join(' ')]));
-  assert.match(byId['MIT'] ?? '', /不禁/, '要说清 MIT 不禁止用你的名义宣传');
+  assert.match(byId.MIT ?? '', /不禁/, '要说清 MIT 不禁止用你的名义宣传');
   assert.match(byId['Apache-2.0'] ?? '', /商标/, '要说清 Apache-2.0 只有商标条款、不含这一条');
 });
 
@@ -679,8 +796,14 @@ test('分类导航覆盖全部精校的许可证，且每个类别都有双语�
 test('对比矩阵已删除，页面不再有它', () => {
   // 矩阵与列表在做同一件事（列出许可证、摊开维度），留着只会让人在两套界面之间选。
   // 这条断言守住它不被无意间加回来。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-  for (const gone of ['CompareMatrix', 'matrixRows', 'scopeLabel', 'setView', "useState<'list' | 'matrix'>"]) {
+  const src = pickerSource();
+  for (const gone of [
+    'CompareMatrix',
+    'matrixRows',
+    'scopeLabel',
+    'setView',
+    "useState<'list' | 'matrix'>",
+  ]) {
     assert.ok(!src.includes(gone), `对比矩阵的残留：${gone}`);
   }
   // 对比工作台与详情面板共用同一个条款框，两处的说法不会漂移
@@ -690,21 +813,20 @@ test('对比矩阵已删除，页面不再有它', () => {
 
 test('列表的点击行为：单击看详情、双击直接选用', () => {
   // 这里出过一次真 bug（当时矩阵的行只接了"看详情"的回调）。
-  // 现在只剩列表，但这套语义仍要钉住。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
-  const a = src.indexOf('function ProPicker');
-  const b = src.indexOf('function CatalogDetail', a);
-  assert.ok(a > 0 && b > a, '找不到 ProPicker 组件体');
-  const list = src.slice(a, b);
+  // 现在只剩列表，但这套语义仍要钉住。列表已拆到 pro/ProList.tsx，
+  // 所以在组件目录里定位列表组件本体，而不是按 ProPicker→CatalogDetail 切片。
+  const list = pickerSources().find((f) => f.text.includes('function LicenseList'));
+  assert.ok(list, '应当能找到列表组件 LicenseList');
+  const body = list.text.slice(list.text.indexOf('function LicenseList'));
 
-  assert.match(list, /onClick=\{\(\) => setFocus\(/, '列表单击应展示详情');
-  assert.match(list, /onDoubleClick=\{\(\) => onPick\(/, '列表双击应选用');
+  assert.match(body, /onClick=\{\(\) => setFocus\(/, '列表单击应展示详情');
+  assert.match(body, /onDoubleClick=\{\(\) => onPick\(/, '列表双击应选用');
   // 键盘可达性：条目本身是 button
-  assert.match(list, /title=\{zh \? '单击看详情，双击直接选用'/, '应提示两种点击方式');
+  assert.match(body, /title=\{zh \? '单击看详情，双击直接选用'/, '应提示两种点击方式');
 });
 
 test('列表项的状态样式集中定义，且在行上被真正使用', () => {
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   assert.ok(src.includes('const ROW_TINT'), '应有一份行底色定义');
   assert.ok(src.includes('function rowEdgeClass'), '应有一份状态边框定义');
   assert.ok(src.includes('const ROW_TRANSITION'), '应有一份过渡时长');
@@ -718,13 +840,9 @@ test('列表项的状态样式集中定义，且在行上被真正使用', () =>
 test('不拼接触发器类名：Tailwind 只认完整字面量，拼接会静默失效', () => {
   // Tailwind 扫描源码里的字符串来生成样式。`hover:${X}` 这类拼出来的类名
   // 既不会生成、也不会报错——页面看起来"就是没效果"，很难查。
-  const raw = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const raw = pickerSource();
   // 去掉注释：说明文字里会引用这个坏写法作为反例
   const code = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const bad = code.match(/(?:hover|focus|active|group-hover|disabled|peer-checked):\s*\$\{/g);
-  assert.equal(
-    bad,
-    null,
-    `发现拼接出的触发器类名（Tailwind 不会生成）：${bad ? bad.join(', ') : ''}`,
-  );
+  assert.equal(bad, null, `发现拼接出的触发器类名（Tailwind 不会生成）：${bad ? bad.join(', ') : ''}`);
 });

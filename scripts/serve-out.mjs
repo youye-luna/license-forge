@@ -4,8 +4,9 @@
  * 用途仅限于开发期自检：`node scripts/serve-out.mjs [port]`
  * 生产部署不需要它——out/ 目录可直接交给任意静态托管。
  */
-import { createServer } from 'node:http';
+
 import { readFile, stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 
 const root = resolve(process.cwd(), 'out');

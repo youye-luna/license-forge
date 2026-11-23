@@ -77,7 +77,7 @@ const CURATED: Record<string, { subjects: Subject[]; note?: { zh: string; en: st
   },
   WTFPL: { subjects: ['any'] },
   // 明确写给软件、且社区就是这么用的
-  'MIT': { subjects: ['code'] },
+  MIT: { subjects: ['code'] },
   'MIT-0': { subjects: ['code'] },
   '0BSD': { subjects: ['code'] },
   ISC: { subjects: ['code'] },
@@ -117,7 +117,11 @@ const CURATED: Record<string, { subjects: Subject[]; note?: { zh: string; en: st
  */
 const RULES: { re: RegExp; subjects: Subject[]; note?: { zh: string; en: string } }[] = [
   // 字体：OFL/UFL 与 LPPL 是专门写给字体与排版资源的
-  { re: /^(?:ofl|ufl)-\d|^lppl-|^bitstream-|^adobe-glyph$|^lucida-bitmap-fonts$|^ubuntu-font|^ipa-font/i, subjects: ['font'], note: FONT_NOTE },
+  {
+    re: /^(?:ofl|ufl)-\d|^lppl-|^bitstream-|^adobe-glyph$|^lucida-bitmap-fonts$|^ubuntu-font|^ipa-font/i,
+    subjects: ['font'],
+    note: FONT_NOTE,
+  },
   // 硬件
   { re: /^cern-ohl|^tapr-ohl|^solderpad|^bohl-|^openhardware/i, subjects: ['hardware'], note: HW_NOTE },
   // 数据与数据库（ODC 家族与 ODbL 是明确为数据库写的）
@@ -127,7 +131,10 @@ const RULES: { re: RegExp; subjects: Subject[]; note?: { zh: string; en: string 
   // 规范与标准文本
   { re: /^w3c|^unicode-|^iso-permission$|^community-spec-|^open-group|^ietf|^rfc-/i, subjects: ['spec'] },
   // AI 模型与权重（这一类近年才出现，条款与传统软件许可差别很大）
-  { re: /-model(?:-|$)|^bigscience-|^openrail|^llama|^fair-ai-|model-license|model-tou/i, subjects: ['model'] },
+  {
+    re: /-model(?:-|$)|^bigscience-|^openrail|^llama|^fair-ai-|model-license|model-tou/i,
+    subjects: ['model'],
+  },
   // Creative Commons：内容与媒体
   { re: /^cc0-|^cc-by(?:-|$)/i, subjects: ['media', 'data'], note: CC_NOTE },
 ];

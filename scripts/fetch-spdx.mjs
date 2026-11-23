@@ -23,7 +23,7 @@
  *   node scripts/fetch-spdx.mjs --refresh  忽略缓存，全部重新抓取
  *   node scripts/fetch-spdx.mjs --concurrency=12
  */
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,7 +39,7 @@ const GITHUB_JSON = 'https://raw.githubusercontent.com/spdx/license-list-data/ma
  * 例外没有详情版 standardLicenseHeader，因此例外的文件头由本站按 SPDX 语法组装
  * （`SPDX-License-Identifier: <ID> WITH <exception>`），而不是伪造声明措辞。
  */
-const SPDX_DETAIL = 'https://spdx.org/licenses';
+const _SPDX_DETAIL = 'https://spdx.org/licenses';
 const GH_DETAIL = `${GITHUB_JSON}/details`;
 const GH_EXCEPTION = `${GITHUB_JSON}/exceptions`;
 
@@ -229,10 +229,16 @@ const withHeader = Object.values(texts).filter((t) => t.standardLicenseHeader).l
 const totalChars = Object.values(texts).reduce((n, t) => n + t.licenseText.length, 0);
 const exceptionChars = Object.values(exceptionTexts).reduce((n, t) => n + t.licenseText.length, 0);
 console.log('');
-console.log(`许可证索引：${index.licenses.length} 条（含正文 ${index.licenses.filter((l) => l.hasText).length}）`);
-console.log(`例外索引：${index.exceptions.length} 条（含正文 ${index.exceptions.filter((e) => e.hasText).length}）`);
+console.log(
+  `许可证索引：${index.licenses.length} 条（含正文 ${index.licenses.filter((l) => l.hasText).length}）`,
+);
+console.log(
+  `例外索引：${index.exceptions.length} 条（含正文 ${index.exceptions.filter((e) => e.hasText).length}）`,
+);
 console.log(`官方文件头模板：${withHeader} 个许可证自带`);
-console.log(`正文总字符：许可证 ${(totalChars / 1024).toFixed(0)} KB + 例外 ${(exceptionChars / 1024).toFixed(0)} KB`);
+console.log(
+  `正文总字符：许可证 ${(totalChars / 1024).toFixed(0)} KB + 例外 ${(exceptionChars / 1024).toFixed(0)} KB`,
+);
 if (missingText) console.log(`注意：${missingText} 个许可证没有取到正文`);
 if (missingExceptionText) console.log(`注意：${missingExceptionText} 个例外没有取到正文`);
 console.log('');

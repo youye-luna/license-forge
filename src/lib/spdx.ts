@@ -1,9 +1,11 @@
-import type { Family } from './types.ts';
+import { resolveLicenseAlias } from './aliases.ts';
+import { BASE_PATH } from './base.ts';
 // licenses.ts 只依赖 types.ts，不会与本文件形成循环
 import { LICENSES } from './licenses.ts';
+import type { Family } from './types.ts';
 
 /**
- * 逐条精校过的家族判定。这 32 个的结论**优先于任何上游分类与正则推导**——
+ * 逐条精校过的家族判定。这 34 个的结论**优先于任何上游分类与正则推导**——
  * 它们是按许可证实际条款逐条看过定下来的，上游的粗分类与推导都只是近似。
  *
  * 必须在这里生效而不是只放在 licenses.ts：`familyFromEntry` 读的是 enrichment
@@ -142,7 +144,10 @@ export interface SpdxTexts {
 }
 
 /** 上游索引 → 本站目录条目 */
-export function fromSpdxLicenseList(list: SpdxLicenseList, details?: Record<string, SpdxLicenseDetail>): CatalogLicense[] {
+export function fromSpdxLicenseList(
+  list: SpdxLicenseList,
+  details?: Record<string, SpdxLicenseDetail>,
+): CatalogLicense[] {
   return list.licenses.map((l) => {
     const detail = details?.[l.licenseId];
     return {
@@ -203,8 +208,8 @@ let catalogPromise: Promise<SpdxSnapshot> | null = null;
 let textsPromise: Promise<SpdxTexts> | null = null;
 
 /** 加载全量目录（约 220KB，首屏就要，用于搜索与筛选） */
-export function loadCatalog(basePath = ''): Promise<SpdxSnapshot> {
-  catalogPromise ??= fetch(`${basePath}/data/license-index.json`)
+export function loadCatalog(): Promise<SpdxSnapshot> {
+  catalogPromise ??= fetch(`${BASE_PATH}/data/license-index.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载许可证目录（HTTP ${r.status}）`);
       return r.json() as Promise<SpdxSnapshot>;
@@ -224,8 +229,8 @@ export function loadCatalog(basePath = ''): Promise<SpdxSnapshot> {
  * 逐个请求会让每次切换都等一个网络往返；而 5MB 在生成页打开时下载一次、
  * 之后完全离线可用，整体体验更好。首屏不受影响——它只加载上面的目录。
  */
-export function loadTexts(basePath = ''): Promise<SpdxTexts> {
-  textsPromise ??= fetch(`${basePath}/data/license-texts.json`)
+export function loadTexts(): Promise<SpdxTexts> {
+  textsPromise ??= fetch(`${BASE_PATH}/data/license-texts.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载许可证正文（HTTP ${r.status}）`);
       return r.json() as Promise<SpdxTexts>;
@@ -304,19 +309,20 @@ export interface Enrichment {
  * 判定值来自 matrix.json，原文是英文单词，这里给出中英说明，
  * 并且**不把它包装成法律结论**——矩阵本身是合规指引，带自己的免责声明。
  */
-export const COMPATIBILITY_VERDICT: Record<string, { zh: string; en: string; tone: 'yes' | 'no' | 'warn' }> = {
-  Yes: { zh: '可以组合', en: 'may be combined', tone: 'yes' },
-  Same: { zh: '同一许可证', en: 'same license', tone: 'yes' },
-  No: { zh: '不可组合', en: 'may not be combined', tone: 'no' },
-  Unknown: { zh: 'OSADL 未给出判定', en: 'no verdict from OSADL', tone: 'warn' },
-  'Check dependency': { zh: '取决于依赖的具体情况', en: 'depends on the dependency', tone: 'warn' },
-};
+export const COMPATIBILITY_VERDICT: Record<string, { zh: string; en: string; tone: 'yes' | 'no' | 'warn' }> =
+  {
+    Yes: { zh: '可以组合', en: 'may be combined', tone: 'yes' },
+    Same: { zh: '同一许可证', en: 'same license', tone: 'yes' },
+    No: { zh: '不可组合', en: 'may not be combined', tone: 'no' },
+    Unknown: { zh: 'OSADL 未给出判定', en: 'no verdict from OSADL', tone: 'warn' },
+    'Check dependency': { zh: '取决于依赖的具体情况', en: 'depends on the dependency', tone: 'warn' },
+  };
 
 let enrichmentPromise: Promise<Enrichment> | null = null;
 
 /** 加载第三方补充数据（约 60KB，与目录一起在首屏取） */
-export function loadEnrichment(basePath = ''): Promise<Enrichment> {
-  enrichmentPromise ??= fetch(`${basePath}/data/license-enrichment.json`)
+export function loadEnrichment(): Promise<Enrichment> {
+  enrichmentPromise ??= fetch(`${BASE_PATH}/data/license-enrichment.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载许可证补充数据（HTTP ${r.status}）`);
       return r.json() as Promise<Enrichment>;
@@ -399,8 +405,8 @@ let scancodeIndexPromise: Promise<ScancodeCatalog> | null = null;
 let scancodeTextsPromise: Promise<Record<string, string>> | null = null;
 
 /** 加载非 SPDX 许可证目录（约 370KB） */
-export function loadScancodeCatalog(basePath = ''): Promise<ScancodeCatalog> {
-  scancodeIndexPromise ??= fetch(`${basePath}/data/scancode-index.json`)
+export function loadScancodeCatalog(): Promise<ScancodeCatalog> {
+  scancodeIndexPromise ??= fetch(`${BASE_PATH}/data/scancode-index.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载 ScanCode 目录（HTTP ${r.status}）`);
       return r.json() as Promise<ScancodeCatalog>;
@@ -413,8 +419,8 @@ export function loadScancodeCatalog(basePath = ''): Promise<ScancodeCatalog> {
 }
 
 /** 加载非 SPDX 许可证正文（约 13MB，只在真正需要时取一次） */
-export function loadScancodeTexts(basePath = ''): Promise<Record<string, string>> {
-  scancodeTextsPromise ??= fetch(`${basePath}/data/scancode-texts.json`)
+export function loadScancodeTexts(): Promise<Record<string, string>> {
+  scancodeTextsPromise ??= fetch(`${BASE_PATH}/data/scancode-texts.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载 ScanCode 正文（HTTP ${r.status}）`);
       return r.json() as Promise<Record<string, string>>;
@@ -527,8 +533,8 @@ export function loadUnifiedCatalog(spdx: SpdxSnapshot, scancode: ScancodeCatalog
 
 /** 带缓存的合并目录 */
 export function getUnifiedCatalog(): Promise<UnifiedEntry[]> {
-  unifiedPromise ??= Promise.all([loadCatalog(), loadScancodeCatalog().catch(() => null)]).then(([spdx, scancode]) =>
-    loadUnifiedCatalog(spdx, scancode),
+  unifiedPromise ??= Promise.all([loadCatalog(), loadScancodeCatalog().catch(() => null)]).then(
+    ([spdx, scancode]) => loadUnifiedCatalog(spdx, scancode),
   );
   return unifiedPromise;
 }
@@ -537,6 +543,9 @@ export function getUnifiedCatalog(): Promise<UnifiedEntry[]> {
 export function searchUnified(entries: UnifiedEntry[], query: string, limit = 400): UnifiedEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return entries.slice(0, limit);
+  // 口语写法（GPLv3 / Apache 2.0 / MPL2）先归一到 SPDX 标识符，再按标识符命中排在最前
+  const alias = resolveLicenseAlias(q)?.toLowerCase();
+  const aliasHits: UnifiedEntry[] = [];
   const exact: UnifiedEntry[] = [];
   const starts: UnifiedEntry[] = [];
   const contains: UnifiedEntry[] = [];
@@ -544,11 +553,12 @@ export function searchUnified(entries: UnifiedEntry[], query: string, limit = 40
     const id = e.id.toLowerCase();
     const name = e.name.toLowerCase();
     const key = (e.scancodeKey ?? '').toLowerCase();
-    if (id === q || key === q) exact.push(e);
+    if (alias && id === alias) aliasHits.push(e);
+    else if (id === q || key === q) exact.push(e);
     else if (id.startsWith(q) || key.startsWith(q)) starts.push(e);
     else if (id.includes(q) || name.includes(q)) contains.push(e);
   }
-  return [...exact, ...starts, ...contains].slice(0, limit);
+  return [...aliasHits, ...exact, ...starts, ...contains].slice(0, limit);
 }
 
 /** ScanCode 目录的统计 */
@@ -613,8 +623,8 @@ export interface ChooseALicenseTerms {
 
 let termsPromise: Promise<ChooseALicenseTerms> | null = null;
 
-export function loadTerms(basePath = ''): Promise<ChooseALicenseTerms> {
-  termsPromise ??= fetch(`${basePath}/data/terms.json`)
+export function loadTerms(): Promise<ChooseALicenseTerms> {
+  termsPromise ??= fetch(`${BASE_PATH}/data/terms.json`)
     .then((r) => {
       if (!r.ok) throw new Error(`无法加载条款标签数据（HTTP ${r.status}）`);
       return r.json() as Promise<ChooseALicenseTerms>;
@@ -942,8 +952,7 @@ const NAME_THEN = (verb: string) => [
  *   `promote, endorse`（其它变体）
  * 早期只认第一种，于是 OFL-1.1 只被判成"禁促销"而漏掉"禁背书"。
  */
-const VERBS_TOGETHER =
-  /(?:endorse|promote|advertise)\s*[,/]?\s*(?:or|and)?\s*(?:endorse|promote|advertise)/i;
+const VERBS_TOGETHER = /(?:endorse|promote|advertise)\s*[,/]?\s*(?:or|and)?\s*(?:endorse|promote|advertise)/i;
 
 /**
  * 「不得用于背书/促销」的其它常见写法。
@@ -986,7 +995,10 @@ const INCLUDE_COPYRIGHT_VERBS =
   'retain|reproduce|include|keep|display|attach|provide|accompany|furnish|give|be\\s+included|be\\s+reproduced|be\\s+kept';
 
 const INCLUDE_COPYRIGHT_MARKERS = [
-  new RegExp(`must\\s+(?:[a-z]+ly\\s+)?(?:${INCLUDE_COPYRIGHT_VERBS})[^.]{0,90}(?:copyright|notice|licen[cs]e)`, 'i'),
+  new RegExp(
+    `must\\s+(?:[a-z]+ly\\s+)?(?:${INCLUDE_COPYRIGHT_VERBS})[^.]{0,90}(?:copyright|notice|licen[cs]e)`,
+    'i',
+  ),
   new RegExp(`shall\\s+(?:be\\s+)?(?:${INCLUDE_COPYRIGHT_VERBS})[^.]{0,90}(?:copyright|notice)`, 'i'),
   /(?:retain|reproduce|include|keep|display)\s+the\s+above\s+copyright/i,
   /(?:copyright|notice|licen[cs]e)[^.]{0,70}must\s+be\s+included/i,
@@ -1022,7 +1034,7 @@ function familyFromId(id: string): Family | null {
 export function deriveFacts(
   id: string,
   licenseText: string,
-  osiApproved: boolean,
+  _osiApproved: boolean,
   categoryFamily?: string,
   chooseALicense?: ChooseALicenseTerms | null,
 ): DerivedFacts {
@@ -1180,10 +1192,16 @@ export const ID_PREFIX_GROUPS: { label: { zh: string; en: string }; test: (id: s
   { label: { zh: 'Apache 家族', en: 'Apache family' }, test: (id) => /^Apache/.test(id) },
   { label: { zh: 'BSD 家族', en: 'BSD family' }, test: (id) => /^BSD|^0BSD/.test(id) },
   { label: { zh: 'GNU GPL 家族', en: 'GNU GPL family' }, test: (id) => /^(A|L)?GPL/.test(id) },
-  { label: { zh: 'Mozilla / Eclipse / CDDL', en: 'Mozilla, Eclipse, CDDL' }, test: (id) => /^(MPL|EPL|CDDL|CPL)/.test(id) },
+  {
+    label: { zh: 'Mozilla / Eclipse / CDDL', en: 'Mozilla, Eclipse, CDDL' },
+    test: (id) => /^(MPL|EPL|CDDL|CPL)/.test(id),
+  },
   { label: { zh: 'Creative Commons', en: 'Creative Commons' }, test: (id) => /^CC/.test(id) },
   { label: { zh: '欧盟 / 法国政府', en: 'EU and French public' }, test: (id) => /^(EUPL|CECILL)/.test(id) },
   { label: { zh: '开源硬件', en: 'Open hardware' }, test: (id) => /OHL|^TAPR|Solderpad/.test(id) },
-  { label: { zh: '字体', en: 'Fonts' }, test: (id) => /^(OFL|Ubuntu-font|Bitstream|Arphic|Baekmuk|IPA|LPPL)/.test(id) },
+  {
+    label: { zh: '字体', en: 'Fonts' },
+    test: (id) => /^(OFL|Ubuntu-font|Bitstream|Arphic|Baekmuk|IPA|LPPL)/.test(id),
+  },
   { label: { zh: '中国主导', en: 'China-led' }, test: (id) => /^Mulan/.test(id) },
 ];

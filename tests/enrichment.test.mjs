@@ -1,7 +1,8 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-
+import test from 'node:test';
+import { generate } from '../src/lib/generate.ts';
+import { LICENSES } from '../src/lib/licenses.ts';
 import {
   compatibilityOf,
   deriveFacts,
@@ -12,16 +13,18 @@ import {
   NON_OPEN_CATEGORIES,
 } from '../src/lib/spdx.ts';
 import { resolveSpec } from '../src/lib/spec.ts';
-import { generate } from '../src/lib/generate.ts';
-import { LICENSES } from '../src/lib/licenses.ts';
+import { pickerSource } from './picker-source.mjs';
 
 /** 多源补充数据（由 scripts/fetch-enrichment.mjs 生成） */
-const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
+const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } }))
+  .default;
 const SNAPSHOT = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
 const TEXTS = (await import('../public/data/license-texts.json', { with: { type: 'json' } })).default;
 const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
-const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } })).default;
-const SCANCODE_INDEX = (await import('../public/data/scancode-index.json', { with: { type: 'json' } })).default;
+const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } }))
+  .default;
+const SCANCODE_INDEX = (await import('../public/data/scancode-index.json', { with: { type: 'json' } }))
+  .default;
 /** 全量目录：SPDX 740 + ScanCode 独有，合计 2469 */
 const UNIFIED = loadUnifiedCatalog(SNAPSHOT, SCANCODE_INDEX);
 
@@ -92,11 +95,7 @@ test('许可类型：逐条精校过的 32 个一律以核对结果为准', () =
     const e = U.find((x) => x.id === l.id || x.scancodeKey === l.id);
     if (!e) continue;
     const key = e.source === 'spdx' ? e.id : (e.scancodeKey ?? '');
-    assert.equal(
-      familyFromEntry(e, ENRICHMENT.licenses[key]),
-      l.family,
-      `${l.id} 的判定应当与精校值一致`,
-    );
+    assert.equal(familyFromEntry(e, ENRICHMENT.licenses[key]), l.family, `${l.id} 的判定应当与精校值一致`);
     checked++;
   }
   assert.equal(checked, LICENSES.length, '精校的每一条都应当能在目录里找到');
@@ -129,14 +128,22 @@ test('许可类型：八个分类都要有内容，不能出现空筛选', () =>
     const f = familyFromEntry(e, ENRICHMENT.licenses[key]) ?? 'unknown';
     tally[f] = (tally[f] ?? 0) + 1;
   }
-  for (const f of ['permissive', 'public-domain', 'weak-copyleft', 'strong-copyleft', 'network-copyleft', 'content', 'proprietary', 'unknown']) {
+  for (const f of [
+    'permissive',
+    'public-domain',
+    'weak-copyleft',
+    'strong-copyleft',
+    'network-copyleft',
+    'content',
+    'proprietary',
+    'unknown',
+  ]) {
     assert.ok(tally[f] > 0, `分类 ${f} 是空的（0 个），选中后会看到空白列表`);
   }
   // 合计要等于全量，不能有条目落到分类之外
   const sum = Object.values(tally).reduce((a, b) => a + b, 0);
   assert.equal(sum, U.length, '每个条目都应当落进某个分类');
 });
-
 
 test('精校值与正文推导值的分歧只能来自这份白名单', () => {
   // 两套判定并存：精校的 34 个用逐条核对的值（spec 走这条），
@@ -150,18 +157,36 @@ test('精校值与正文推导值的分歧只能来自这份白名单', () => {
     // CDDL 不在 ChooseALicense 覆盖范围内，没有权威词表可依。2026-11 校准逐句核对过正文：
     // §2.1(b) 有明确的专利授权；正文没有"不授予商标"的条款（推导命中的是 notices 里的字样）；
     // §3.3 要求每个修改件带声明（推导漏判）。三项精校值都对，推导值是正则的误报/漏报。
-    'CDDL-1.0': 'patentGrant/trademarkClause/stateChanges 三项：无权威词表可依，逐句核对后以精校值为准（推导为正则误报/漏报）',
+    'CDDL-1.0':
+      'patentGrant/trademarkClause/stateChanges 三项：无权威词表可依，逐句核对后以精校值为准（推导为正则误报/漏报）',
     // 这两个许可对专利只字未提。产品口径经用户确认（2026-11 校准）保留 none——
     // 弃权/玩笑许可实际不授予任何专利；推导的 silent 更贴合文本，分歧留档在此。
-    Unlicense: 'patentGrant：正文未提专利，推导的 silent 更贴合文本，但产品口径经用户确认（2026-11）保留 none',
+    Unlicense:
+      'patentGrant：正文未提专利，推导的 silent 更贴合文本，但产品口径经用户确认（2026-11）保留 none',
     WTFPL: 'patentGrant：同上',
   };
-  const KEYS = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
+  const KEYS = [
+    'patentGrant',
+    'trademarkClause',
+    'stateChanges',
+    'sameLicenseWholeWork',
+    'sameLicensePerFile',
+    'networkTrigger',
+    'includeCopyright',
+    'endorse',
+    'promote',
+  ];
   const found = [];
   for (const l of LICENSES) {
     const item = SNAPSHOT.licenses.find((x) => x.id === l.id);
     if (!item) continue;
-    const d = deriveFacts(l.id, TEXTS.licenses[l.id]?.licenseText ?? '', item.osiApproved, ENRICHMENT.licenses[l.id]?.family, TERMS);
+    const d = deriveFacts(
+      l.id,
+      TEXTS.licenses[l.id]?.licenseText ?? '',
+      item.osiApproved,
+      ENRICHMENT.licenses[l.id]?.family,
+      TERMS,
+    );
     if (KEYS.some((k) => l.facts[k] !== d[k])) found.push(l.id);
   }
   const unexpected = found.filter((id) => !JUSTIFIED[id]);
@@ -196,7 +221,6 @@ test('「保留版权声明与许可证」在精校与推导两侧都不低于 3
   assert.ok(byValue.required >= 25, `required 应当占绝大多数，实际 ${byValue.required}`);
 });
 
-
 test('合并目录去掉 ScanCode 的英文单语副本', () => {
   // ScanCode 给"中英双语正文"的许可证另建了一个 `-en` 键，存纯英文版。
   // 抓取脚本按 key 精确去重，这类后缀变体会漏网，于是同一个许可在列表里出现两次，
@@ -206,7 +230,11 @@ test('合并目录去掉 ScanCode 的英文单语副本', () => {
     const base = (e.scancodeKey ?? '').slice(0, -3);
     return UNIFIED.some((x) => x.source === 'spdx' && x.id.toLowerCase() === base);
   });
-  assert.deepEqual(stillDuplicated.map((e) => e.scancodeKey), [], '英文副本不应当出现在列表里');
+  assert.deepEqual(
+    stillDuplicated.map((e) => e.scancodeKey),
+    [],
+    '英文副本不应当出现在列表里',
+  );
   for (const key of ['mulanpsl-1.0-en', 'mulanpsl-2.0-en']) {
     assert.ok(!UNIFIED.some((e) => e.scancodeKey === key), `${key} 是 SPDX 条目的英文副本，应当去掉`);
   }
@@ -219,7 +247,10 @@ test('木兰：宽松型只剩官方双语条目，公共型有官方中文入�
   //  · 公共型（MulanPubL）**不在 SPDX 名录里**，只能从 ScanCode 拿到纯英文副本，
   //    官方双语正文在构建期取不到（官方站点当时返回 502），所以只能给出官方地址。
   const mulan = UNIFIED.filter((e) => /mulan/i.test(e.id));
-  const spdxMulan = mulan.filter((e) => e.source === 'spdx').map((e) => e.id).sort();
+  const spdxMulan = mulan
+    .filter((e) => e.source === 'spdx')
+    .map((e) => e.id)
+    .sort();
   assert.deepEqual(spdxMulan, ['MulanPSL-1.0', 'MulanPSL-2.0'], 'SPDX 侧应当只有宽松型两个版本');
 
   // 宽松型的中文确实在正文里（不是只存在于被删掉的那份副本里）
@@ -231,7 +262,10 @@ test('木兰：宽松型只剩官方双语条目，公共型有官方中文入�
 
   // 公共型：ScanCode 独有，且必须带官方中文入口
   for (const key of ['mulanpubl-1.0', 'mulanpubl-2.0']) {
-    assert.ok(UNIFIED.some((e) => e.scancodeKey === key), `${key} 应当在列表里（它是 ScanCode 独有条目）`);
+    assert.ok(
+      UNIFIED.some((e) => e.scancodeKey === key),
+      `${key} 应当在列表里（它是 ScanCode 独有条目）`,
+    );
     const chinese = ENRICHMENT.chinese?.[key];
     assert.ok(chinese, `${key} 应当有中文文本入口——它只有英文副本，没入口界面整块不会显示`);
     assert.match(chinese.url, /coscl\.org\.cn/, `${key} 的中文入口应当指向官方站点`);
@@ -295,7 +329,17 @@ test('facts 的字段不许在传递链上丢失', () => {
   assert.equal(spec.curated, null, '这条路径应当是长尾推断');
 
   // deriveFacts 的每项结论都必须出现在 spec.facts 上，一个都不能丢
-  const carried = ['patentGrant', 'trademarkClause', 'stateChanges', 'sameLicenseWholeWork', 'sameLicensePerFile', 'networkTrigger', 'includeCopyright', 'endorse', 'promote'];
+  const carried = [
+    'patentGrant',
+    'trademarkClause',
+    'stateChanges',
+    'sameLicenseWholeWork',
+    'sameLicensePerFile',
+    'networkTrigger',
+    'includeCopyright',
+    'endorse',
+    'promote',
+  ];
   for (const k of carried) {
     assert.equal(spec.facts[k], direct[k], `spec.facts 丢了 ${k}（deriveFacts 的值是 ${direct[k]}）`);
   }
@@ -313,8 +357,6 @@ test('字段传递：精校的条目优先用逐条核对的值，而不是正�
   // BSD-3-Clause 的第 3 条讲的是**用名字背书**，不是商标权，所以是 false。
   assert.equal(spec.facts.trademarkClause, false, '名字限制不该重复计入商标条款');
 });
-
-
 
 test('精校的 32 个许可证不含 undefined 字段', () => {
   // P() 的默认值要覆盖 LicenseFacts 的**每一个**字段，否则精校与
@@ -342,8 +384,6 @@ test('精校的 32 个许可证不含 undefined 字段', () => {
   assert.equal(byId['BSD-2-Clause'].endorse, 'silent', 'BSD-2-Clause 没有背书条款');
   assert.equal(byId['BSD-2-Clause'].promote, 'silent', 'BSD-2-Clause 没有促销条款');
 });
-
-
 
 /** 用真实正文推一个许可证的背书 / 促销判定 */
 function endorseOf(id) {
@@ -382,11 +422,23 @@ test('背书与促销是两个维度：分开判，不能用同一个值', () =>
   // 这两件事性质不同：背书是"作者认可你"，促销是"你借作者的名气"。
   // 实测 443 个许可两者都禁、3 个只禁背书、22 个只禁促销，
   // 合成一条会让这 25 个的结论失真。
-  const both = deriveFacts('BSD-3-Clause', TEXTS.licenses['BSD-3-Clause'].licenseText, true, 'permissive', TERMS);
+  const both = deriveFacts(
+    'BSD-3-Clause',
+    TEXTS.licenses['BSD-3-Clause'].licenseText,
+    true,
+    'permissive',
+    TERMS,
+  );
   assert.equal(both.endorse, 'prohibited');
   assert.equal(both.promote, 'prohibited');
   // 只禁背书：Brian-Gladman-3-Clause 写的是 "the copyright holder's name is not used to endorse products"
-  const endorseOnly = deriveFacts('Brian-Gladman-3-Clause', SCANCODE_TEXTS['Brian-Gladman-3-Clause'] ?? TEXTS.licenses['Brian-Gladman-3-Clause']?.licenseText ?? '', false, undefined, TERMS);
+  const endorseOnly = deriveFacts(
+    'Brian-Gladman-3-Clause',
+    SCANCODE_TEXTS['Brian-Gladman-3-Clause'] ?? TEXTS.licenses['Brian-Gladman-3-Clause']?.licenseText ?? '',
+    false,
+    undefined,
+    TERMS,
+  );
   if (endorseOnly.endorse === 'prohibited') {
     assert.equal(endorseOnly.promote, 'silent', '只禁背书的许可不应被判成也禁促销');
   }
@@ -443,8 +495,6 @@ test('背书/促销：命中就是真的禁这条款，抽查原句', () => {
   }
 });
 
-
-
 test('商标一律不授权：没写明的也照样不授权，不能写成"没提到"', () => {
   // ChooseALicense 对 trademark-use 的说明明确写着：
   //   "This license explicitly states that it does NOT grant trademark rights,
@@ -452,7 +502,7 @@ test('商标一律不授权：没写明的也照样不授权，不能写成"没�
   //    implicit trademark rights."
   // 所以 MIT / BSD / GPL 这些没写商标条款的，实质上与 Apache-2.0 一样不授权。
   // 文案若写成"没提到"，会让人以为 MIT 的商标情况更宽松——那是误导。
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   const i = src.indexOf("label: zh ? '商标'");
   assert.ok(i > 0, '详情面板应当有商标一条');
   const block = src.slice(i, i + 900);
@@ -530,8 +580,17 @@ test('ScanCode 分类覆盖率达标，且每条映射都落在已知分类里',
   const ratio = c.scancodeMatched / c.spdxLicenses;
   assert.ok(ratio > 0.95, `分类覆盖率过低：${(ratio * 100).toFixed(1)}%`);
   const knownCategories = new Set([
-    'CLA', 'Commercial', 'Non-Commercial', 'Copyleft', 'Copyleft Limited', 'Free Restricted',
-    'Patent License', 'Permissive', 'Proprietary Free', 'Public Domain', 'Source-available',
+    'CLA',
+    'Commercial',
+    'Non-Commercial',
+    'Copyleft',
+    'Copyleft Limited',
+    'Free Restricted',
+    'Patent License',
+    'Permissive',
+    'Proprietary Free',
+    'Public Domain',
+    'Source-available',
     'Unstated License',
   ]);
   const unknown = Object.entries(ENRICHMENT.licenses)
@@ -565,10 +624,17 @@ test('兼容矩阵的判定值都在已知集合内', () => {
 });
 
 test('中文文本来源覆盖审定稿与官方正文两类', () => {
-  const kinds = new Set(Object.values(ENRICHMENT.licenses).map((r) => r.chinese?.kind).filter(Boolean));
+  const kinds = new Set(
+    Object.values(ENRICHMENT.licenses)
+      .map((r) => r.chinese?.kind)
+      .filter(Boolean),
+  );
   assert.ok(kinds.has('reviewed-translation'), '应有开放原子审定稿');
   assert.ok(kinds.has('official-text'), '应有官方中文正文');
-  assert.ok(ENRICHMENT.coverage.chineseTranslations >= 14, `中文来源过少：${ENRICHMENT.coverage.chineseTranslations}`);
+  assert.ok(
+    ENRICHMENT.coverage.chineseTranslations >= 14,
+    `中文来源过少：${ENRICHMENT.coverage.chineseTranslations}`,
+  );
   // 木兰的中文具有优先效力，这条必须标出来
   const mulan = ENRICHMENT.licenses['MulanPSL-2.0'];
   assert.equal(mulan?.chinese?.kind, 'official-text');
@@ -585,7 +651,12 @@ test('家族判定优先使用 ScanCode 分类，并标注来源', () => {
     (l) => !l.deprecated && ENRICHMENT.licenses[l.id]?.family && ENRICHMENT.licenses[l.id]?.category,
   );
   assert.ok(longTail);
-  const facts = deriveFacts(longTail.id, TEXTS.licenses[longTail.id].licenseText, longTail.osiApproved, ENRICHMENT.licenses[longTail.id].family);
+  const facts = deriveFacts(
+    longTail.id,
+    TEXTS.licenses[longTail.id].licenseText,
+    longTail.osiApproved,
+    ENRICHMENT.licenses[longTail.id].family,
+  );
   assert.equal(facts.familySource, 'scancode-category', '有分类时不应退回文本推断');
   assert.equal(facts.family, ENRICHMENT.licenses[longTail.id].family);
 });
@@ -603,15 +674,27 @@ test('没有第三方分类时才退回 SPDX 标识符，再退回文本', () =>
 });
 
 test('分类不会覆盖"网络触发"这个维度（AGPL 与 GPL 同属 copyleft 大类）', () => {
-  const agpl = deriveFacts('AGPL-3.0-only', TEXTS.licenses['AGPL-3.0-only'].licenseText, true, 'strong-copyleft');
+  const agpl = deriveFacts(
+    'AGPL-3.0-only',
+    TEXTS.licenses['AGPL-3.0-only'].licenseText,
+    true,
+    'strong-copyleft',
+  );
   assert.equal(agpl.networkTrigger, true, 'AGPL 必须保持网络触发');
   assert.equal(agpl.family, 'network-copyleft', '网络触发应把家族升级为 network-copyleft');
-  const gpl = deriveFacts('GPL-3.0-only', TEXTS.licenses['GPL-3.0-only'].licenseText, true, 'strong-copyleft');
+  const gpl = deriveFacts(
+    'GPL-3.0-only',
+    TEXTS.licenses['GPL-3.0-only'].licenseText,
+    true,
+    'strong-copyleft',
+  );
   assert.equal(gpl.networkTrigger, false);
 });
 
 test('非开源分类被正确识别，并触发错误级提示', () => {
-  const nonOpenId = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.category && NON_OPEN_CATEGORIES.has(r.category))?.[0];
+  const nonOpenId = Object.entries(ENRICHMENT.licenses).find(
+    ([, r]) => r.category && NON_OPEN_CATEGORIES.has(r.category),
+  )?.[0];
   assert.ok(nonOpenId, '补充数据里应当存在非开源分类的条目');
   assert.equal(isNonOpenCategory(ENRICHMENT.licenses[nonOpenId].category), true);
   const { spec, result } = build(nonOpenId);
@@ -624,7 +707,9 @@ test('非开源分类被正确识别，并触发错误级提示', () => {
 });
 
 test('被 OSI 标记 superseded 的许可证会收到警告', () => {
-  const supersededId = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.osiKeywords?.includes('superseded'))?.[0];
+  const supersededId = Object.entries(ENRICHMENT.licenses).find(([, r]) =>
+    r.osiKeywords?.includes('superseded'),
+  )?.[0];
   assert.ok(supersededId, '补充数据里应当存在 superseded 条目');
   const { result } = build(supersededId);
   assert.ok(
@@ -640,7 +725,10 @@ test('被 OSI 标记 superseded 的许可证会收到警告', () => {
 test('兼容性查询：双向都能取到判定', () => {
   const forward = compatibilityOf(ENRICHMENT, 'MIT', 'Apache-2.0');
   assert.ok(forward, 'MIT × Apache-2.0 应当有判定');
-  assert.ok(['Yes', 'Same'].includes(forward.verdict), `MIT × Apache-2.0 应为可组合，实际 ${forward.verdict}`);
+  assert.ok(
+    ['Yes', 'Same'].includes(forward.verdict),
+    `MIT × Apache-2.0 应为可组合，实际 ${forward.verdict}`,
+  );
   // 反向至少有一个方向能取到
   const reverse = compatibilityOf(ENRICHMENT, 'Apache-2.0', 'MIT');
   assert.ok(reverse);
@@ -681,7 +769,9 @@ test('没有矩阵数据时查询返回 null，而不是编造结论', () => {
  * ------------------------------------------------------------------ */
 
 test('源码披露义务会被写进生成提示（用大白话）', () => {
-  const withObligation = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.sourceDisclosure && r.sourceDisclosure !== 'No')?.[0];
+  const withObligation = Object.entries(ENRICHMENT.licenses).find(
+    ([, r]) => r.sourceDisclosure && r.sourceDisclosure !== 'No',
+  )?.[0];
   assert.ok(withObligation, '应当存在有源码披露义务的许可证');
   const { result } = build(withObligation);
   assert.ok(
@@ -691,7 +781,9 @@ test('源码披露义务会被写进生成提示（用大白话）', () => {
 });
 
 test('copyleft 判定为非 No 时会提示"你开源我也开源"', () => {
-  const copyleftId = Object.entries(ENRICHMENT.licenses).find(([, r]) => r.copyleft && r.copyleft !== 'No')?.[0];
+  const copyleftId = Object.entries(ENRICHMENT.licenses).find(
+    ([, r]) => r.copyleft && r.copyleft !== 'No',
+  )?.[0];
   assert.ok(copyleftId, '应当存在 copyleft 判定');
   const { result } = build(copyleftId);
   assert.ok(result.notices.some((n) => n.zh.includes('你开源我也开源')));

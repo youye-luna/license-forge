@@ -16,9 +16,7 @@ export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-ink-950 px-6 text-white">
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
-        <p className="text-[5.5rem] font-black italic leading-[0.8] tracking-tighter sm:text-[9rem]">
-          404
-        </p>
+        <p className="text-[5.5rem] font-black italic leading-[0.8] tracking-tighter sm:text-[9rem]">404</p>
         <div className="text-center sm:text-left">
           <p className="text-2xl font-bold leading-snug sm:text-3xl">Page not found!</p>
           <p className="text-2xl font-bold leading-snug sm:text-3xl">未找到此页面！</p>

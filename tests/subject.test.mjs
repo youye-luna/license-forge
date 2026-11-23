@@ -1,14 +1,18 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-
-import { SUBJECT_LABEL, matchesSubject, subjectsOf } from '../src/lib/subject.ts';
+import test from 'node:test';
 import { LICENSES } from '../src/lib/licenses.ts';
-import { loadUnifiedCatalog, familyFromEntry } from '../src/lib/spdx.ts';
+import { familyFromEntry, loadUnifiedCatalog } from '../src/lib/spdx.ts';
+import { matchesSubject, SUBJECT_LABEL, subjectsOf } from '../src/lib/subject.ts';
+import { pickerSource } from './picker-source.mjs';
 
 const SPDX = JSON.parse(readFileSync(new URL('../public/data/license-index.json', import.meta.url), 'utf8'));
-const SCANCODE = JSON.parse(readFileSync(new URL('../public/data/scancode-index.json', import.meta.url), 'utf8'));
-const ENRICHMENT = JSON.parse(readFileSync(new URL('../public/data/license-enrichment.json', import.meta.url), 'utf8'));
+const SCANCODE = JSON.parse(
+  readFileSync(new URL('../public/data/scancode-index.json', import.meta.url), 'utf8'),
+);
+const ENRICHMENT = JSON.parse(
+  readFileSync(new URL('../public/data/license-enrichment.json', import.meta.url), 'utf8'),
+);
 const UNIFIED = loadUnifiedCatalog(SPDX, SCANCODE);
 
 const forEntry = (e) => {
@@ -82,7 +86,10 @@ test('长尾条目靠明确的标识符规则判定', () => {
   ];
   for (const [id, expect] of cases) {
     const v = subjectsOf(id);
-    assert.ok(v.subjects.includes(expect), `${id} 应含 ${expect}，实际 ${v.subjects.join('+')}（来源 ${v.source}）`);
+    assert.ok(
+      v.subjects.includes(expect),
+      `${id} 应含 ${expect}，实际 ${v.subjects.join('+')}（来源 ${v.source}）`,
+    );
     assert.equal(v.source, 'rule', `${id} 应当由规则判定`);
   }
 });
@@ -171,7 +178,8 @@ test('判为非纯代码的条目数量在合理范围，没有大规模误判',
  * 「用来授权」筛选项
  * ------------------------------------------------------------------ */
 
-const famOf = (e) => familyFromEntry(e, ENRICHMENT.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')]);
+const famOf = (e) =>
+  familyFromEntry(e, ENRICHMENT.licenses[e.source === 'spdx' ? e.id : (e.scancodeKey ?? '')]);
 
 test('筛选项：不限时全部通过，选定类型时只留该类型', () => {
   for (const e of UNIFIED) {
@@ -180,7 +188,9 @@ test('筛选项：不限时全部通过，选定类型时只留该类型', () =>
   const fonts = UNIFIED.filter((e) => matchesSubject(e, 'font', famOf(e)));
   assert.ok(fonts.length > 0, '应当能筛出字体许可');
   for (const e of fonts) {
-    assert.ok(subjectsOf(e.source === 'spdx' ? e.id : (e.scancodeKey ?? ''), famOf(e)).subjects.includes('font'));
+    assert.ok(
+      subjectsOf(e.source === 'spdx' ? e.id : (e.scancodeKey ?? ''), famOf(e)).subjects.includes('font'),
+    );
   }
   // 字体筛选里不应混进 MIT 这类纯代码许可
   assert.ok(!fonts.some((e) => e.id === 'MIT'), 'MIT 不该出现在字体筛选里');
@@ -213,7 +223,7 @@ test('一个许可可以同时属于多种类型：CC-BY-SA-4.0 同时是媒体�
 
 test('筛选项覆盖全部作品类型，每个都有中英文案', () => {
   // 界面下拉里的顺序与这里保持一致
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   assert.ok(src.includes('SUBJECT_FILTERS'), '界面应当有「用来授权」筛选项');
   assert.ok(src.includes('matchesSubject'), '筛选项必须复用 lib/subject.ts 的判定');
   assert.ok(src.includes("zh ? '用来授权' : 'Used for'"), '筛选项的标签应当是「用来授权」');

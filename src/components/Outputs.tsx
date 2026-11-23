@@ -1,30 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
-import { Square } from './Icons';
-import { LANGUAGES, type CopyrightInput } from '../lib/fill.ts';
-import { complianceChecklist, generate, readmeSection, type GeneratorOptions } from '../lib/generate.ts';
-import { expressionOf, fromScancodeEntry, resolveSpec } from '../lib/spec.ts';
+import { useEffect, useMemo, useState } from 'react';
+import { type CopyrightInput, LANGUAGES } from '../lib/fill.ts';
+import { complianceChecklist, type GeneratorOptions, generate, readmeSection } from '../lib/generate.ts';
+import { type GenState, thirdPartyText } from '../lib/genstate.ts';
 import {
+  type ChooseALicenseTerms,
+  type Enrichment,
   loadCatalog,
   loadEnrichment,
   loadScancodeCatalog,
   loadScancodeTexts,
   loadTerms,
   loadTexts,
-  type ChooseALicenseTerms,
-  type Enrichment,
   type ScancodeCatalog,
   type SpdxSnapshot,
   type SpdxTexts,
 } from '../lib/spdx.ts';
-import { ECOSYSTEM_MANIFESTS, t } from '../lib/ui.ts';
-import type { GenState } from '../lib/genstate.ts';
+import { expressionOf, fromScancodeEntry, resolveSpec } from '../lib/spec.ts';
 import type { Lang } from '../lib/types.ts';
+import { ECOSYSTEM_MANIFESTS, t } from '../lib/ui.ts';
+import { Square } from './Icons';
 
-export type { GenState };
 export { defaultGenState } from '../lib/genstate.ts';
+export type { GenState };
 
 /** 界面选中的可能是一个 SPDX 标识符，也可能是 `scancode:<key>` */
 function isScancodeId(id: string | null): boolean {
@@ -141,7 +141,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
       includeFileHeader: state.includeFileHeader,
       includeReadme: state.includeReadme,
       includeReuseLayout: state.includeReuseLayout,
-      thirdParty: state.thirdParty,
+      thirdParty: thirdPartyText(state.thirdParty),
       contactEmail: state.contactEmail,
       repoUrl: state.repoUrl,
     };
@@ -179,7 +179,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
 
   const source = specText ?? null;
   const active =
-    result && !('error' in result) ? (result.files.find((f) => f.path === activePath) ?? result.files[0]) : null;
+    result && !('error' in result)
+      ? (result.files.find((f) => f.path === activePath) ?? result.files[0])
+      : null;
 
   const update = (patch: Partial<GenState>) => onChange({ ...state, ...patch });
   const updateCopyright = (patch: Partial<CopyrightInput>) =>
@@ -228,7 +230,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
   const copy = async (path: string, content: string) => {
     const ok = await writeClipboard(content);
     // 失败时给出状态而不是静默无反应：用户至少知道"没复制成功"
-    setCopyFailed(ok ? false : true);
+    setCopyFailed(!ok);
     if (!ok) return;
     setCopiedPath(path);
     window.setTimeout(() => setCopiedPath((p) => (p === path ? null : p)), 1600);
@@ -263,13 +265,14 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           '',
           readmeSection(spec, options),
           '',
-          '## ' + (lang === 'zh' ? '每个文件为什么存在' : 'Why each file exists'),
+          `## ${lang === 'zh' ? '每个文件为什么存在' : 'Why each file exists'}`,
           '',
           ...result.files.map(
-            (f) => `- \`${f.path}\` — ${f.why[lang]}${f.mandatory ? (lang === 'zh' ? '（必须）' : ' (required)') : ''}`,
+            (f) =>
+              `- \`${f.path}\` — ${f.why[lang]}${f.mandatory ? (lang === 'zh' ? '（必须）' : ' (required)') : ''}`,
           ),
           '',
-          '## ' + (lang === 'zh' ? '生成后仍需你做的事' : 'What you still have to do'),
+          `## ${lang === 'zh' ? '生成后仍需你做的事' : 'What you still have to do'}`,
           '',
           ...complianceChecklist(spec, options, lang).map((c) => `- [ ] ${c}`),
           '',
@@ -344,7 +347,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">OSI</span>
           ) : null}
           {spec.fsfLibre ? (
-            <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">FSF Libre</span>
+            <span className="rounded-md border border-ink-900/15 px-2 py-1 text-xs text-ink-600">
+              FSF Libre
+            </span>
           ) : null}
           <a
             className="ml-auto text-xs text-ink-600 underline decoration-dotted"
@@ -393,7 +398,11 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             <input
               value={state.copyright.projectDescription ?? ''}
               onChange={(e) => updateCopyright({ projectDescription: e.target.value })}
-              placeholder={lang === 'zh' ? '例如 一个把 CSV 转成图表的小工具' : 'e.g. a tiny CLI that turns CSV into charts'}
+              placeholder={
+                lang === 'zh'
+                  ? '例如 一个把 CSV 转成图表的小工具'
+                  : 'e.g. a tiny CLI that turns CSV into charts'
+              }
               className="mt-1 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
             />
             <span className="mt-1 block text-xs text-ink-400">{tr.descriptionHint}</span>
@@ -402,6 +411,7 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
 
         <div className="mt-6 space-y-3">
           {state.copyright.holders.map((h, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 版权人是按位置编辑的行，没有稳定 id；增删只发生在行尾
             <div key={i} className="grid gap-2 sm:grid-cols-[1fr_7rem_7rem_auto]">
               <label className="block">
                 <span className="text-xs text-ink-600">{tr.holderName}</span>
@@ -461,7 +471,11 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
               updateCopyright({
                 holders: [
                   ...state.copyright.holders,
-                  { name: '', from: state.copyright.holders[0]?.from ?? String(new Date().getFullYear()), to: '' },
+                  {
+                    name: '',
+                    from: state.copyright.holders[0]?.from ?? String(new Date().getFullYear()),
+                    to: '',
+                  },
                 ],
               })
             }
@@ -471,12 +485,20 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           </button>
 
           {!state.copyright.holders.some((h) => h.name.trim()) ? (
-            <p className="rounded border border-mandatory/30 bg-mandatory/5 p-2 text-xs text-mandatory">{tr.noHolderYet}</p>
+            <p className="rounded border border-mandatory/30 bg-mandatory/5 p-2 text-xs text-mandatory">
+              {tr.noHolderYet}
+            </p>
           ) : null}
         </div>
 
         {/* 进阶设置默认折叠：版权行写法、联系邮箱、仓库地址都不是必填项 */}
-        <AdvancedSettings lang={lang} state={state} update={update} updateCopyright={updateCopyright} tr={tr} />
+        <AdvancedSettings
+          lang={lang}
+          state={state}
+          update={update}
+          updateCopyright={updateCopyright}
+          tr={tr}
+        />
       </section>
 
       {/* ---------- 产物选项 ---------- */}
@@ -532,7 +554,11 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
             checked={state.includeFileHeader}
             onChange={(v) => update({ includeFileHeader: v })}
           />
-          <Toggle label={tr.optReadme} checked={state.includeReadme} onChange={(v) => update({ includeReadme: v })} />
+          <Toggle
+            label={tr.optReadme}
+            checked={state.includeReadme}
+            onChange={(v) => update({ includeReadme: v })}
+          />
           {/* REUSE 目录对单独一个许可证的项目收益不大，收进"更多设置"，需要的人自己开 */}
           <details className="rounded-lg border border-ink-900/10 p-3">
             <summary className="cursor-pointer text-sm">
@@ -553,31 +579,92 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           </details>
         </div>
 
-        <label className="mt-4 block">
+        {/* 第三方组件归属：每行三个框，默认两行，不够手动加行 */}
+        <div className="mt-4">
           <span className="text-sm font-medium">{tr.thirdParty}</span>
-          <textarea
-            value={state.thirdParty}
-            onChange={(e) => update({ thirdParty: e.target.value })}
-            rows={3}
-            placeholder={'lodash — John-David Dalton — MIT\nfoo — Acme Inc. — Apache-2.0'}
-            className="mono mt-1 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-xs outline-none focus:border-ink-900"
-          />
-          <span className="mt-1 block text-xs text-ink-400">
-            {tr.thirdPartyHint}
-            {!state.thirdParty.trim() ? (
-              <span className="mt-1 block text-ink-400">
-                {lang === 'zh'
-                  ? '留空也没关系：NOTICE 里会写明"尚未登记第三方组件，请在加入依赖后补全"。'
-                  : 'Leaving it blank is fine: NOTICE will state that no third-party components are recorded yet.'}
-              </span>
-            ) : null}
-          </span>
-        </label>
+          <div className="mt-2 space-y-2">
+            {state.thirdParty.map((row, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: 第三方归属是位置行，没有稳定 id；输入框是受控的，重排也不会串值
+              <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                <label className="block">
+                  <span className="text-xs text-ink-600">{tr.thirdPartyName}</span>
+                  <input
+                    value={row.name}
+                    onChange={(e) => {
+                      const rows = [...state.thirdParty];
+                      rows[i] = { ...row, name: e.target.value };
+                      update({ thirdParty: rows });
+                    }}
+                    placeholder={i === 0 ? 'lodash' : undefined}
+                    className="mt-1 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-ink-600">{tr.thirdPartyCopyright}</span>
+                  <input
+                    value={row.copyright}
+                    onChange={(e) => {
+                      const rows = [...state.thirdParty];
+                      rows[i] = { ...row, copyright: e.target.value };
+                      update({ thirdParty: rows });
+                    }}
+                    placeholder={i === 0 ? 'John-David Dalton' : undefined}
+                    className="mt-1 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-ink-600">{tr.thirdPartyLicense}</span>
+                  <input
+                    value={row.license}
+                    onChange={(e) => {
+                      const rows = [...state.thirdParty];
+                      rows[i] = { ...row, license: e.target.value };
+                      update({ thirdParty: rows });
+                    }}
+                    placeholder={i === 0 ? 'MIT' : undefined}
+                    className="mono mt-1 w-full rounded-lg border border-ink-900/15 px-3 py-2 text-sm outline-none focus:border-ink-900"
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    disabled={state.thirdParty.length <= 1}
+                    onClick={() => update({ thirdParty: state.thirdParty.filter((_, idx) => idx !== i) })}
+                    className="rounded-lg border border-ink-900/15 px-3 py-2 text-xs disabled:opacity-40"
+                  >
+                    {tr.thirdPartyRemove}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                update({ thirdParty: [...state.thirdParty, { name: '', copyright: '', license: '' }] })
+              }
+              className="rounded-lg border border-ink-900/20 px-3 py-2 text-sm hover:border-ink-900"
+            >
+              + {tr.thirdPartyAdd}
+            </button>
+            <span className="text-xs text-ink-400">{tr.thirdPartyHint}</span>
+          </div>
+          {!thirdPartyText(state.thirdParty) ? (
+            <p className="mt-2 text-xs text-ink-400">
+              {lang === 'zh'
+                ? '留空也没关系：NOTICE 里会写明"尚未登记第三方组件，请在加入依赖后补全"。'
+                : 'Leaving it blank is fine: NOTICE will state that no third-party components are recorded yet.'}
+            </p>
+          ) : null}
+        </div>
       </section>
 
       {/* ---------- 结果 ---------- */}
       {result && 'error' in result ? (
-        <p className="rounded-lg border border-mandatory/40 bg-mandatory/5 p-4 text-sm text-mandatory">{result.error}</p>
+        <p className="rounded-lg border border-mandatory/40 bg-mandatory/5 p-4 text-sm text-mandatory">
+          {result.error}
+        </p>
       ) : null}
 
       {result && !('error' in result) ? (
@@ -585,9 +672,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           {result.notices.length ? (
             <section className="space-y-2">
               <h2 className="text-lg font-semibold">{tr.notices}</h2>
-              {result.notices.map((n, i) => (
+              {result.notices.map((n) => (
                 <p
-                  key={i}
+                  key={n.zh}
                   className={[
                     'rounded-lg border p-3 text-sm',
                     n.level === 'error'
@@ -631,7 +718,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                         }}
                         className={[
                           'w-full rounded-lg border px-3 py-2 text-left text-sm transition',
-                          isActive ? 'border-ink-900 bg-ink-900/[0.04]' : 'border-ink-900/10 hover:border-ink-900/30',
+                          isActive
+                            ? 'border-ink-900 bg-ink-900/[0.04]'
+                            : 'border-ink-900/10 hover:border-ink-900/30',
                         ].join(' ')}
                       >
                         <span className="mono block break-all">{f.path}</span>
@@ -658,7 +747,9 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
                       onClick={() => copy(active.path, active.content)}
                       className={[
                         'rounded border px-3 py-1 text-xs',
-                        copyFailed ? 'border-mandatory/50 text-mandatory' : 'border-ink-900/20 hover:border-ink-900',
+                        copyFailed
+                          ? 'border-mandatory/50 text-mandatory'
+                          : 'border-ink-900/20 hover:border-ink-900',
                       ].join(' ')}
                       title={
                         copyFailed
@@ -713,8 +804,8 @@ export default function Outputs({ lang, licenseId, exceptionId, state, onChange 
           <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold">{tr.checklist}</h2>
             <ul className="mt-3 space-y-2 text-sm">
-              {complianceChecklist(spec, options, lang).map((c, i) => (
-                <li key={i} className="flex gap-2">
+              {complianceChecklist(spec, options, lang).map((c) => (
+                <li key={c} className="flex gap-2">
                   <Square className="mt-0.5 shrink-0 text-ink-400" />
                   <span>{c}</span>
                 </li>

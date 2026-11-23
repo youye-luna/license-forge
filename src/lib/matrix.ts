@@ -12,7 +12,10 @@ import { LICENSES } from './licenses.ts';
 export function coverageStats() {
   return {
     total: LICENSES.length,
-    gnuVariants: LICENSES.filter((l) => l.needsVersionChoice || l.id.startsWith('GPL') || l.id.startsWith('LGPL') || l.id.startsWith('AGPL')).length,
+    gnuVariants: LICENSES.filter(
+      (l) =>
+        l.needsVersionChoice || l.id.startsWith('GPL') || l.id.startsWith('LGPL') || l.id.startsWith('AGPL'),
+    ).length,
     withNotice: LICENSES.filter((l) => l.requiresNotice).length,
     withOfficialHeader: LICENSES.filter((l) => l.headerStyle === 'official-boilerplate').length,
     chineseNative: LICENSES.filter((l) => l.id === 'MulanPSL-2.0' || l.id === 'EUPL-1.2').length,

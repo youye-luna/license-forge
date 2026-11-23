@@ -35,10 +35,11 @@
  *   node scripts/fetch-enrichment.mjs
  *   node scripts/fetch-enrichment.mjs --refresh
  */
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cacheDir = join(here, '..', '.spdx-cache');
@@ -103,7 +104,10 @@ const OFFICIAL_CHINESE_TEXT = {
   },
   'CC0-1.0': {
     url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode.zh-Hans',
-    note: { zh: 'Creative Commons 官方简体中文译本。', en: 'The official Creative Commons Simplified Chinese translation.' },
+    note: {
+      zh: 'Creative Commons 官方简体中文译本。',
+      en: 'The official Creative Commons Simplified Chinese translation.',
+    },
   },
   'EUPL-1.2': {
     url: 'https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12',
@@ -211,7 +215,9 @@ if (!existsSync(spdxFile)) {
   process.exit(1);
 }
 const spdx = JSON.parse(readFileSync(spdxFile, 'utf8'));
-console.log(`    SPDX ${spdx.licenseListVersion}：${spdx.licenses.length} 个许可证 + ${spdx.exceptions.length} 个例外`);
+console.log(
+  `    SPDX ${spdx.licenseListVersion}：${spdx.licenses.length} 个许可证 + ${spdx.exceptions.length} 个例外`,
+);
 
 console.log('2/4 抓取 ScanCode LicenseDB 索引与 OSI API…');
 const scanIndexRaw = await fetchText(SCANCODE_INDEX, 'scancode-index.json');
@@ -229,21 +235,34 @@ const osadlCopyleft = JSON.parse(osadlCopyleftRaw).copyleft ?? {};
 // 注意键名是 `disclosure` 而不是 `sourcedisclosure`（文件名与内部键名不一致）
 const osadlSource = JSON.parse(osadlSourceRaw).disclosure ?? {};
 // matrix.json 顶层混了时间戳等元数据字段，需要剔除
-const OSADL_META = new Set(['timeformat', 'timestamp', 'title', 'license', 'attribution', 'copyright', 'disclaimer']);
+const OSADL_META = new Set([
+  'timeformat',
+  'timestamp',
+  'title',
+  'license',
+  'attribution',
+  'copyright',
+  'disclaimer',
+]);
 const osadlIds = Object.keys(osadlMatrix).filter((k) => !OSADL_META.has(k));
-console.log(`    矩阵 ${osadlIds.length} 个许可证；copyleft ${Object.keys(osadlCopyleft).length} 条；源码披露 ${Object.keys(osadlSource).length} 条`);
+console.log(
+  `    矩阵 ${osadlIds.length} 个许可证；copyleft ${Object.keys(osadlCopyleft).length} 条；源码披露 ${Object.keys(osadlSource).length} 条`,
+);
 
 console.log('4/4 抓取开源原子中文审定稿清单…');
 let zhTranslations = {};
 try {
   // 注意：GitCode 的 git/trees?recursive=1 只返回顶层，不递归展开子目录，
   // 因此这里直接列审定稿目录的内容。
-  const listRaw = await fetchText(`${GITCODE_CONTENTS}/${encodeURIComponent(ZH_FINAL_DIR)}`, 'gitcode-zh-final.json');
+  const listRaw = await fetchText(
+    `${GITCODE_CONTENTS}/${encodeURIComponent(ZH_FINAL_DIR)}`,
+    'gitcode-zh-final.json',
+  );
   const entries = JSON.parse(listRaw);
   const byName = new Map(entries.map((e) => [e.name, e]));
   for (const [fileName, spdxId] of Object.entries(ZH_TRANSLATION_FILES)) {
     const entry = byName.get(fileName);
-    if (!entry || !entry.path || !entry.sha) {
+    if (!entry?.path || !entry.sha) {
       console.log(`    注意：审定稿清单里没有找到 ${fileName}`);
       continue;
     }
@@ -383,7 +402,8 @@ for (const license of spdx.licenses) {
 /* ---- 例外：ScanCode 用 is_exception 标记，覆盖 SPDX 例外的一部分 ---- */
 for (const exception of spdx.exceptions) {
   const scan = scanIndex.find(
-    (e) => e.is_exception && (e.spdx_license_key === exception.id || e.license_key === exception.id.toLowerCase()),
+    (e) =>
+      e.is_exception && (e.spdx_license_key === exception.id || e.license_key === exception.id.toLowerCase()),
   );
   if (scan) {
     enrichment.exceptions[exception.id] = {
@@ -412,7 +432,11 @@ for (const [key, source] of Object.entries(SCANCODE_CHINESE)) {
  */
 const normHash = (t) =>
   createHash('sha256')
-    .update(String(t ?? '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, ''))
+    .update(
+      String(t ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\u4e00-\u9fff]/g, ''),
+    )
     .digest('hex');
 // 正文文件由上一步 `data:spdx` 产出；缺失时直接跳过继承，不让 enrichment 因此失败
 const licenseTexts = existsSync(join(publicDir, 'license-texts.json'))
@@ -455,7 +479,9 @@ writeFileSync(join(publicDir, 'license-enrichment.json'), JSON.stringify(enrichm
 const c = enrichment.coverage;
 const pct = (n, d) => `${((n / d) * 100).toFixed(1)}%`;
 console.log('');
-console.log(`ScanCode 分类覆盖：${c.scancodeMatched}/${c.spdxLicenses} = ${pct(c.scancodeMatched, c.spdxLicenses)}`);
+console.log(
+  `ScanCode 分类覆盖：${c.scancodeMatched}/${c.spdxLicenses} = ${pct(c.scancodeMatched, c.spdxLicenses)}`,
+);
 console.log(`OSADL 兼容矩阵：${c.osadlMatched} 个许可证、${c.compatibilityEdges} 条判定`);
 console.log(`OSI keywords 覆盖：${c.osiMatched}/${c.spdxLicenses} = ${pct(c.osiMatched, c.spdxLicenses)}`);
 console.log(`中文文本来源：${c.chineseTranslations} 个许可证`);
@@ -463,7 +489,9 @@ console.log(`判定为非开源的分类：${c.nonOpen} 个（生成时须警告
 console.log(`OSI 标记 superseded：${c.superseded} 个`);
 console.log(`例外补充：${Object.keys(enrichment.exceptions).length}/${spdx.exceptions.length}`);
 if (c.unmatched.length) {
-  console.log(`未匹配到任何第三方数据的 ${c.unmatched.length} 个：${c.unmatched.slice(0, 20).join(', ')}${c.unmatched.length > 20 ? ' …' : ''}`);
+  console.log(
+    `未匹配到任何第三方数据的 ${c.unmatched.length} 个：${c.unmatched.slice(0, 20).join(', ')}${c.unmatched.length > 20 ? ' …' : ''}`,
+  );
 }
 console.log('');
 console.log('产出：public/data/license-enrichment.json');

@@ -21,7 +21,10 @@ const TEXTS = JSON.parse(readFileSync('public/data/license-texts.json', 'utf8'))
 /** 各类形态的探测器；顺序即优先级 */
 const PROBES = [
   { name: 'angle-bracket', re: /<(?:year|copyright holders?|owner|COPYRIGHT HOLDER|YEAR)>/i },
-  { name: 'square-bracket', re: /\[(?:yyyy|year|xxxx|name of copyright owner|owner organization|fullname|copyright holder|owner)\]/i },
+  {
+    name: 'square-bracket',
+    re: /\[(?:yyyy|year|xxxx|name of copyright owner|owner organization|fullname|copyright holder|owner)\]/i,
+  },
   { name: 'bare-uppercase', re: /\b(?:YEAR|AUTHOR|FULLNAME|COPYRIGHT HOLDER|OWNER ORGANIZATION)\b/ },
 ];
 
@@ -44,7 +47,9 @@ console.log('=== 命中统计（按形态分组）===');
 for (const [form, items] of [...byForm.entries()].sort((a, b) => b[1].length - a[1].length)) {
   console.log(`${String(items.length).padStart(4)} 个   ${form}`);
 }
-console.log(`\n合计 ${[...byForm.values()].reduce((n, v) => n + v.length, 0)} / ${Object.keys(TEXTS.licenses).length} 个许可证的正文首部含版权占位符`);
+console.log(
+  `\n合计 ${[...byForm.values()].reduce((n, v) => n + v.length, 0)} / ${Object.keys(TEXTS.licenses).length} 个许可证的正文首部含版权占位符`,
+);
 
 console.log('\n=== 含 bare-uppercase 的完整清单（这类最容易漏判）===');
 for (const [form, items] of byForm.entries()) {
@@ -61,7 +66,13 @@ console.log('\n=== 含 square-bracket 的完整清单 ===');
 for (const [form, items] of byForm.entries()) {
   if (!form.includes('square-bracket')) continue;
   for (const it of items) {
-    const line = it.head.split('\n').find((l) => /\[(?:yyyy|year|xxxx|name of copyright owner|owner organization|fullname|copyright holder|owner)\]/i.test(l));
+    const line = it.head
+      .split('\n')
+      .find((l) =>
+        /\[(?:yyyy|year|xxxx|name of copyright owner|owner organization|fullname|copyright holder|owner)\]/i.test(
+          l,
+        ),
+      );
     console.log(`  ${it.id.padEnd(34)} ${JSON.stringify((line ?? '').trim().slice(0, 80))}`);
   }
 }

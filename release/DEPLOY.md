@@ -25,6 +25,11 @@
 这个压缩包是 LicenseForge 的**构建产物**，已经可以直接部署，不需要 Node.js、
 不需要后端服务、不需要构建步骤。解压后把里面的文件原样上传即可。
 
+> **分享卡片（可选）**：页面的 `og:image` 与 canonical 需要绝对地址，
+> 构建时设置 `NEXT_PUBLIC_SITE_URL=https://your.site` 即可写对。
+> 不设置时 Next 会退回 `http://localhost:3000`——只影响社交平台分享卡片的预览，
+> 不影响网站本身。域名固定的话，建议设置后重新 `pnpm run build`。
+
 ```
 index.html           入口
 404.html             404 页
@@ -32,6 +37,7 @@ web.config           IIS 部署配置（补 MIME 与默认文档）
 _next/               JS 与 CSS
 data/                许可证数据（约 20MB，站点运行需要，请一并上传）
 DEPLOY.md            本文件
+NOTICE-DATA.md       数据来源署名（ScanCode / OSADL 等上游要求保留，请勿删除）
 ```
 
 ---
@@ -41,28 +47,25 @@ DEPLOY.md            本文件
 包内的资源引用与数据请求都是**绝对路径**（`/_next/...`、`/data/...`），
 因此只能部署在**域名的根路径**下：
 
-| 部署方式 | 是否可用 |
-|---|---|
-| `https://example.com/`（独立域名或子域名） | ✅ 可用 |
-| `https://example.com/licenses/`（子路径） | ❌ 不可用，页面的 CSS/JS 与数据都会 404 |
+| 部署方式                                   | 是否可用                                |
+| ------------------------------------------ | --------------------------------------- |
+| `https://example.com/`（独立域名或子域名） | ✅ 可用                                 |
+| `https://example.com/licenses/`（子路径）  | ❌ 不可用，页面的 CSS/JS 与数据都会 404 |
 
-**子路径部署怎么办**：不能直接用这个包，需要从源码重新构建并在 `next.config.ts` 里
-设置 `basePath`：
-
-```ts
-// next.config.ts
-const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  basePath: '/licenses',   // 改成你的子路径，不要带结尾斜杠
-  turbopack: { root: __dirname },
-};
-```
+**子路径部署怎么办**：不能直接用这个包，需要从源码重新构建并设置基路径环境变量：
 
 ```bash
+# PowerShell
+$env:NEXT_PUBLIC_BASE_PATH = '/licenses'   # 改成你的子路径，不要带结尾斜杠
 pnpm install
-pnpm run build          # 产物仍在 out/
+pnpm run build                             # 产物仍在 out/
+
+# bash / zsh
+NEXT_PUBLIC_BASE_PATH=/licenses pnpm run build
 ```
+
+这个变量同时决定 `next.config.ts` 的 `basePath` 与所有数据请求的路径，
+不需要再改任何源码。
 
 源码：https://github.com/youye-luna/license-forge
 
@@ -134,7 +137,7 @@ php -S localhost:8080              # 有 PHP
   **不会被发送到任何服务器**，也没有任何埋点或外部请求。
 - 许可证数据是构建期抓好的静态文件，随包分发。运行时不访问 SPDX、ScanCode 或任何
   外部 API，因此不受网络与限流影响，也能完全离线使用。
-- 首次打开只加载约 1.2MB 的元数据；选定某个许可证后才按需加载对应的正文
+- 首次打开只加载约 0.6MB 的元数据；选定某个许可证后才按需加载对应的正文
   （SPDX 全文 5.3MB 或 ScanCode 独有部分 13MB，两者不会同时加载）。
 
 ---
@@ -143,14 +146,14 @@ php -S localhost:8080              # 有 PHP
 
 包内 `data/` 下的数据来自以下上游，**转发或再分发时请保留署名**：
 
-| 来源 | 许可 | 署名要求 |
-|---|---|---|
-| [SPDX License List](https://spdx.org/licenses/) | CC0 | 无强制要求 |
+| 来源                                                                                                       | 许可          | 署名要求   |
+| ---------------------------------------------------------------------------------------------------------- | ------------- | ---------- |
+| [SPDX License List](https://spdx.org/licenses/)                                                            | CC0           | 无强制要求 |
 | [ScanCode LicenseDB](https://scancode-licensedb.aboutcode.org/)（[aboutcode.org](https://aboutcode.org/)） | **CC-BY-4.0** | **需署名** |
-| [OSADL Obligations Checklist](https://www.osadl.org/Checklists) | **CC-BY-4.0** | **需署名** |
-| [ChooseALicense](https://github.com/github/choosealicense.com) | **CC-BY-3.0** | **需署名** |
-| [OSI 官方 API](https://opensource.org/api/licenses) | — | — |
-| [开放原子《源译识》](https://gitcode.com/translation/license-translation) 译文 | CC0 | 无强制要求 |
+| [OSADL Obligations Checklist](https://www.osadl.org/Checklists)                                            | **CC-BY-4.0** | **需署名** |
+| [ChooseALicense](https://github.com/github/choosealicense.com)                                             | **CC-BY-3.0** | **需署名** |
+| [OSI 官方 API](https://opensource.org/api/licenses)                                                        | —             | —          |
+| [开放原子《源译识》](https://gitcode.com/translation/license-translation) 译文                             | CC0           | 无强制要求 |
 
 `data/license-texts.json` 与 `data/scancode-texts.json` 里的许可证正文，
 版权归各许可证的原始发布方所有，此处为逐字引用。

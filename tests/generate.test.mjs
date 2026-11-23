@@ -1,10 +1,17 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-
-import { generate } from '../src/lib/generate.ts';
-import { resolveSpec, expressionOf } from '../src/lib/spec.ts';
+import test from 'node:test';
+import {
+  fileHeader,
+  fillLicenseText,
+  fillTemplatePlaceholders,
+  formatHolderLine,
+  formatYears,
+  hasCopyrightPlaceholder,
+  renderComment,
+  templateLeftovers,
+} from '../src/lib/fill.ts';
+import { complianceChecklist, generate } from '../src/lib/generate.ts';
 import { DEPRECATED_IDS, LICENSES } from '../src/lib/licenses.ts';
-import { formatHolderLine, formatYears, renderComment, fillTemplatePlaceholders, fileHeader, hasCopyrightPlaceholder, fillLicenseText, templateLeftovers } from '../src/lib/fill.ts';
 import {
   catalogStats,
   deriveFacts,
@@ -14,6 +21,7 @@ import {
   fromSpdxLicenseList,
   searchCatalog,
 } from '../src/lib/spdx.ts';
+import { expressionOf, resolveSpec } from '../src/lib/spec.ts';
 
 /**
  * 全量快照与正文数据来自 SPDX 官方 JSON API（见 scripts/fetch-spdx.mjs）。
@@ -73,14 +81,26 @@ test('全量快照来自 SPDX 官方 API，且覆盖完整', () => {
 
 test('每一个许可证都有正文字段（不允许出现空壳条目）', () => {
   const missing = SNAPSHOT.licenses.filter((l) => !l.hasText || l.textLength === 0);
-  assert.deepEqual(missing.map((l) => l.id), [], '存在没有正文的许可证');
+  assert.deepEqual(
+    missing.map((l) => l.id),
+    [],
+    '存在没有正文的许可证',
+  );
   const missingTexts = SNAPSHOT.licenses.filter((l) => !TEXTS.licenses[l.id]?.licenseText);
-  assert.deepEqual(missingTexts.map((l) => l.id), [], '正文文件里缺少对应条目');
+  assert.deepEqual(
+    missingTexts.map((l) => l.id),
+    [],
+    '正文文件里缺少对应条目',
+  );
 });
 
 test('每一个例外都有正文，且字段名映射正确（上游用 licenseExceptionText）', () => {
   const missing = SNAPSHOT.exceptions.filter((e) => !TEXTS.exceptions[e.id]?.licenseText);
-  assert.deepEqual(missing.map((e) => e.id), [], '例外正文缺失');
+  assert.deepEqual(
+    missing.map((e) => e.id),
+    [],
+    '例外正文缺失',
+  );
   const sample = TEXTS.exceptions['Classpath-exception-2.0'];
   assert.ok(sample, 'Classpath-exception-2.0 应当存在');
   // 例外正文里并不出现 "Classpath" 这个词（文件名与正文用词无关），这里按实际内容断言
@@ -287,7 +307,7 @@ test('模板占位符填充覆盖五种实测形态（尖括号/方括号/裸大
   assert.equal(filled('Copyright [YEAR] [NAME] [EMAIL]'), 'Copyright 2024 Acme Inc. Acme Inc.');
   // GFDL 系列：YEAR 与 YOUR NAME 都是裸词占位符。替换值必须用函数形式返回，
   // 否则 `$1` 会被当作捕获组引用，产出 "$12024 Acme Inc." 这种垃圾。
-  assert.equal(filled("Copyright (c) YEAR YOUR NAME"), '2024 Acme Inc.');
+  assert.equal(filled('Copyright (c) YEAR YOUR NAME'), '2024 Acme Inc.');
   assert.doesNotMatch(filled('Copyright (c) YEAR YOUR NAME'), /\$\d/);
   // 裸 yyyy 与下划线占位（GPL-2.0-only / CPAL-1.0 的真实写法）
   assert.equal(filled('Copyright (C) yyyy name of author'), 'Copyright (C) 2024 Acme Inc.');
@@ -390,7 +410,11 @@ test('裸大写与方括号占位符也必须被替换：0BSD 与 Clear BSD', ()
   // Clear BSD 的 `[Owner Organization]` 在正文里出现**两次**：版权行与背书条款。
   // 只替换版权行会给用户留下一个方括号占位符，因此两处都必须填。
   const clear = build('BSD-3-Clause-Clear').get('LICENSE');
-  assert.doesNotMatch(clear.content, /\[xxxx\]|\[Owner Organization\]/, 'Clear BSD 的方括号占位符必须全部被替换');
+  assert.doesNotMatch(
+    clear.content,
+    /\[xxxx\]|\[Owner Organization\]/,
+    'Clear BSD 的方括号占位符必须全部被替换',
+  );
   assert.match(clear.content, /Copyright \(C\) 2020-2024 Acme Inc\./);
   // 背书条款里只填**主体名称**（不带年份），否则会产出读不通的句子
   assert.match(clear.content, /Neither the name of Acme Inc\. nor the names of its/);
@@ -435,8 +459,43 @@ test('REUSE 布局保存逐字原文，与根目录填好的文件不同', () =>
   assert.match(reuse.why.zh, /reuse lint/, 'why 文案应当说明这样会让 reuse lint 报不合规');
 });
 
+test('REUSE 布局同时给出 REUSE.toml（文件级声明，替代已废弃的 dep5）', () => {
+  const toml = build('MIT', options({ includeReuseLayout: true })).get('REUSE.toml');
+  assert.ok(toml, '开了 REUSE 布局就应当产出 REUSE.toml');
+  assert.match(toml.content, /^version = 1$/m);
+  assert.match(toml.content, /path = "\*\*"/);
+  assert.match(toml.content, /precedence = "closest"/);
+  assert.match(toml.content, /SPDX-FileCopyrightText = "2020-2024 Acme Inc\."/);
+  assert.match(toml.content, /SPDX-License-Identifier = "MIT"/);
+  assert.match(toml.why.zh, /dep5/, 'why 文案应当说明它替代 dep5');
+});
+
+test('批量落地命令只给 addlicense 真正支持的三种许可证', () => {
+  const mit = build('MIT').get('MIT.header.txt').content;
+  assert.match(mit, /npx addlicense -c "Acme Inc\." -l mit -s \./);
+  assert.match(mit, /npx addlicense -check -l mit \./);
+
+  const apache = build('Apache-2.0').get('Apache-2.0.header.txt').content;
+  assert.match(apache, /-l apache/);
+
+  // GPL 没有对应的 addlicense 内置模板，不能给一条会写错措辞的命令
+  const gpl = build('GPL-3.0-only').get('GPL-3.0-only.header.txt').content;
+  assert.doesNotMatch(gpl, /addlicense/);
+});
+
+test('生成后的待办清单包含批量写入与 CI 校验', () => {
+  const spec = resolveSpec('MIT', SNAPSHOT, TEXTS);
+  assert.ok(spec);
+  const items = complianceChecklist(spec, options(), 'zh').join('\n');
+  assert.match(items, /npx addlicense -c "Acme Inc\." -l mit -s \./);
+  assert.match(items, /npx addlicense -check -l mit \./);
+});
+
 test('包管理器字段使用完整 SPDX 表达式', () => {
-  const { get } = build('GPL-3.0-or-later', options({ manifests: ['package.json', 'Cargo.toml', 'pyproject.toml', 'pom.xml'] }));
+  const { get } = build(
+    'GPL-3.0-or-later',
+    options({ manifests: ['package.json', 'Cargo.toml', 'pyproject.toml', 'pom.xml'] }),
+  );
   assert.match(get('manifest/package.json.snippet').content, /"license": "GPL-3\.0-or-later"/);
   assert.match(get('manifest/Cargo.toml.snippet').content, /license = "GPL-3\.0-or-later"/);
   assert.match(get('manifest/pom.xml.snippet').content, /spdx\.org\/licenses\/GPL-3\.0-or-later\.html/);
@@ -545,7 +604,7 @@ test('正文不含可填位置时，输出与官方文本逐字一致', () => {
     const { spec, get } = build(id);
     assert.equal(spec.fill, 'metadata-only', `${id} 不应被判定为有可填版权位置`);
     const license = get(spec.fileName);
-    assert.equal(license.content, TEXTS.licenses[id].licenseText.trimEnd() + '\n', `${id} 的正文被改动了`);
+    assert.equal(license.content, `${TEXTS.licenses[id].licenseText.trimEnd()}\n`, `${id} 的正文被改动了`);
   }
 });
 
@@ -553,7 +612,11 @@ test('FTL 的 "Please replace <year>" 说明句不能被当成占位符填掉', 
   // 那句是作者写给读者的指引，不是待填位置；填掉它等于把作者的说明弄坏
   const { spec, get } = build('FTL');
   assert.equal(spec.fill, 'metadata-only');
-  assert.match(get(spec.fileName).content, /Please replace <year> with the value from the FreeType version/, '作者的说明句必须保留');
+  assert.match(
+    get(spec.fileName).content,
+    /Please replace <year> with the value from the FreeType version/,
+    '作者的说明句必须保留',
+  );
 });
 
 test('精校集合里的每个许可证都实际存在于 SPDX 快照中', () => {
@@ -570,7 +633,7 @@ test('精校集合里的每个许可证都实际存在于 SPDX 快照中', () =>
 test('注释语法渲染对各语言都产生合法包裹', () => {
   assert.match(renderComment('a\nb', 'hash'), /^# a\n# b$/);
   assert.match(renderComment('a', 'slash'), /^\/\*\n \* a\n \*\/$/);
-  assert.match(renderComment('a', 'html'), /^<!--\n  a\n-->$/);
+  assert.match(renderComment('a', 'html'), /^<!--\n {2}a\n-->$/);
 });
 
 test('年份格式化：单年、区间与重复年份', () => {
@@ -580,7 +643,10 @@ test('年份格式化：单年、区间与重复年份', () => {
 });
 
 test('版权行格式化：自定义权利说明会替换掉符号', () => {
-  assert.match(formatHolderLine({ name: 'Acme Inc.', from: '2024', right: 'Copyright' }), /^Copyright 2024 Acme Inc\.$/);
+  assert.match(
+    formatHolderLine({ name: 'Acme Inc.', from: '2024', right: 'Copyright' }),
+    /^Copyright 2024 Acme Inc\.$/,
+  );
   assert.match(formatHolderLine({ name: 'Acme Inc.', from: '2024' }), /^Copyright \(C\) 2024 Acme Inc\.$/);
 });
 

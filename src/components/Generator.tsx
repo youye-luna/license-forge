@@ -1,16 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Wizard from './Wizard';
-import ProPicker from './ProPicker';
-import Outputs, { defaultGenState } from './Outputs';
-import { AlertTriangle, Lock } from './Icons';
 import type { GenState } from '../lib/genstate.ts';
-import { LICENSE_BY_ID, LICENSES, FAMILY_LABEL } from '../lib/licenses.ts';
+import { FAMILY_LABEL, LICENSE_BY_ID, LICENSES } from '../lib/licenses.ts';
 import { coverageStats } from '../lib/matrix.ts';
-import { catalogStats, loadCatalog, loadEnrichment, type Enrichment, type SpdxSnapshot } from '../lib/spdx.ts';
-import { PROJECT, TABS, UI, t, type TabId } from '../lib/ui.ts';
+import {
+  catalogStats,
+  type Enrichment,
+  loadCatalog,
+  loadEnrichment,
+  type SpdxSnapshot,
+} from '../lib/spdx.ts';
 import type { Lang } from '../lib/types.ts';
+import { PROJECT, TABS, type TabId, t, UI } from '../lib/ui.ts';
+import { AlertTriangle, Lock } from './Icons';
+import Outputs, { defaultGenState } from './Outputs';
+import ProPicker from './ProPicker';
+import Wizard from './Wizard';
 
 export default function Generator() {
   const [lang, setLang] = useState<Lang>('zh');
@@ -60,7 +66,7 @@ export default function Generator() {
   // 切换标签页时把焦点移回主区域，键盘与读屏用户不会停留在已经消失的按钮上
   useEffect(() => {
     mainRef.current?.focus();
-  }, [tab]);
+  }, []);
 
   return (
     // 宽屏（≥1280）用得更满一些：容器上限放宽到 1400，长页面的两栏才有伸展空间
@@ -110,12 +116,15 @@ export default function Generator() {
               <>
                 {full.licenses} {lang === 'zh' ? '个许可证' : 'licenses'}（{lang === 'zh' ? 'SPDX' : 'SPDX'}{' '}
                 {full.version}，{lang === 'zh' ? '其中' : 'of which '}
-                {full.active} {lang === 'zh' ? '现行' : 'current'} · {full.osiApproved} OSI · {full.deprecated}{' '}
-                {lang === 'zh' ? '废弃' : 'deprecated'}） · {full.exceptions} {lang === 'zh' ? '个例外' : 'exceptions'} ·{' '}
-                {full.withOfficialHeader} {lang === 'zh' ? '个自带官方声明模板' : 'with official templates'}
+                {full.active} {lang === 'zh' ? '现行' : 'current'} · {full.osiApproved} OSI ·{' '}
+                {full.deprecated} {lang === 'zh' ? '废弃' : 'deprecated'}） · {full.exceptions}{' '}
+                {lang === 'zh' ? '个例外' : 'exceptions'} · {full.withOfficialHeader}{' '}
+                {lang === 'zh' ? '个自带官方声明模板' : 'with official templates'}
               </>
+            ) : lang === 'zh' ? (
+              '正在加载 SPDX 许可证目录…'
             ) : (
-              <>{lang === 'zh' ? '正在加载 SPDX 许可证目录…' : 'Loading the SPDX catalog…'}</>
+              'Loading the SPDX catalog…'
             )}
           </span>
           <span>
@@ -127,7 +136,10 @@ export default function Generator() {
       </header>
 
       {/* 步骤导航：单线流程，序号让"现在在哪一步"一眼可见 */}
-      <nav aria-label={lang === 'zh' ? '流程步骤' : 'Steps'} className="no-print mt-6 flex flex-wrap gap-2 border-b border-ink-900/10 pb-3">
+      <nav
+        aria-label={lang === 'zh' ? '流程步骤' : 'Steps'}
+        className="no-print mt-6 flex flex-wrap gap-2 border-b border-ink-900/10 pb-3"
+      >
         {TABS.map((tb, index) => (
           <button
             key={tb.id}
@@ -169,7 +181,13 @@ export default function Generator() {
           <ProPicker lang={lang} pickedId={licenseId} exceptionId={exceptionId} onPick={pick} />
         ) : null}
         {tab === 'generate' ? (
-          <Outputs lang={lang} licenseId={licenseId} exceptionId={exceptionId} state={gen} onChange={setGen} />
+          <Outputs
+            lang={lang}
+            licenseId={licenseId}
+            exceptionId={exceptionId}
+            state={gen}
+            onChange={setGen}
+          />
         ) : null}
         {tab === 'docs' ? <Docs lang={lang} /> : null}
       </main>
@@ -192,8 +210,8 @@ export default function Generator() {
       <footer className="no-print mt-8 border-t border-ink-900/10 pt-6 text-sm leading-relaxed text-ink-400">
         <p>
           {lang === 'zh'
-            ? '许可证正文逐字来自 SPDX License List（通过 spdx-license-list 数据包），生成过程不做任何改写；GPL 家族的示例段落由你填写的信息替换，其余字符保持原样。'
-            : 'License texts come verbatim from the SPDX License List (via the spdx-license-list data package). Nothing is reworded; in the GPL family only the example section is filled with your details, and every other character is untouched.'}
+            ? '许可证正文逐字来自 SPDX 官方 JSON API（spdx.org/licenses 与 spdx/license-list-data），构建期抓取后原样保存，生成过程不做任何改写；GPL 家族的示例段落由你填写的信息替换，其余字符保持原样。'
+            : 'License texts come verbatim from the official SPDX JSON API (spdx.org/licenses and spdx/license-list-data), snapshotted at build time and never reworded; in the GPL family only the example section is filled with your details, and every other character is untouched.'}
         </p>
         <p className="mt-2">
           {lang === 'zh'
@@ -229,7 +247,9 @@ function Docs({ lang }: { lang: Lang }) {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-semibold">{zh ? '流程是一条线，不是两个模式' : 'One linear flow, not two modes'}</h2>
+        <h2 className="text-xl font-semibold">
+          {zh ? '流程是一条线，不是两个模式' : 'One linear flow, not two modes'}
+        </h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
             ? '选许可证这件事对谁都需要，所以这里不做"新手版 / 专业版"的分流——那只是多出来的一步。一进站就是问卷，答完进入「选择与对比」，挑定后生成整套文件。'
@@ -238,20 +258,51 @@ function Docs({ lang }: { lang: Lang }) {
         <ol className="mt-4 space-y-3">
           {(zh
             ? [
-                ['1', '问卷选许可', '8 个问题，每题都说明"为什么问这个"与背后的条款差异；结果是一组候选与各自的代价，不是"唯一正确答案"。'],
-                ['2', '选择与对比', '收录 2400+ 个许可证，可按类别、来源或搜索定位；选中即摊开全部条款事实，并最多把 4 个放进对比工作台横向比较。'],
-                ['3', '生成产物', '一次产出许可证全文、源文件头、NOTICE（可选）、README 段与包管理器字段，打包下载；单个文件可另存为无后缀 / .md / .txt。'],
+                [
+                  '1',
+                  '问卷选许可',
+                  '8 个问题，每题都说明"为什么问这个"与背后的条款差异；结果是一组候选与各自的代价，不是"唯一正确答案"。',
+                ],
+                [
+                  '2',
+                  '选择与对比',
+                  '收录 2400+ 个许可证，可按类别、来源或搜索定位；选中即摊开全部条款事实，并最多把 4 个放进对比工作台横向比较。',
+                ],
+                [
+                  '3',
+                  '生成产物',
+                  '一次产出许可证全文、源文件头、NOTICE（可选）、README 段与包管理器字段，打包下载；单个文件可另存为无后缀 / .md / .txt。',
+                ],
                 ['4', '关于', '数据从哪来、遵守哪几条硬规则、有哪些已知限制，也包括我们查过但没拿到的数据。'],
               ]
             : [
-                ['1', 'Questionnaire', 'Eight questions, each explaining why it is asked and which clause it maps to. The result is a candidate set with each one’s cost, not a single "correct" answer.'],
-                ['2', 'Pick and compare', '2400+ licenses searchable by category, source or name. Selecting one lays out every term, and up to four can be lined up side by side.'],
-                ['3', 'Generate', 'Produces the license text, source header, optional NOTICE, a README section and manifest fields — downloadable as a bundle; any single file can be saved with no extension, .md or .txt.'],
-                ['4', 'About', 'Where the data comes from, the rules this site holds to, its known limits, and the data we looked for but could not get.'],
+                [
+                  '1',
+                  'Questionnaire',
+                  'Eight questions, each explaining why it is asked and which clause it maps to. The result is a candidate set with each one’s cost, not a single "correct" answer.',
+                ],
+                [
+                  '2',
+                  'Pick and compare',
+                  '2400+ licenses searchable by category, source or name. Selecting one lays out every term, and up to four can be lined up side by side.',
+                ],
+                [
+                  '3',
+                  'Generate',
+                  'Produces the license text, source header, optional NOTICE, a README section and manifest fields — downloadable as a bundle; any single file can be saved with no extension, .md or .txt.',
+                ],
+                [
+                  '4',
+                  'About',
+                  'Where the data comes from, the rules this site holds to, its known limits, and the data we looked for but could not get.',
+                ],
               ]
           ).map(([n, title, body]) => (
             <li key={n} className="flex gap-3">
-              <span aria-hidden className="mono mt-1 flex size-5 shrink-0 items-center justify-center rounded-md bg-ink-900/[0.08] text-[10px]">
+              <span
+                aria-hidden
+                className="mono mt-1 flex size-5 shrink-0 items-center justify-center rounded-md bg-ink-900/[0.08] text-[10px]"
+              >
                 {n}
               </span>
               <span>
@@ -269,7 +320,9 @@ function Docs({ lang }: { lang: Lang }) {
       </section>
 
       <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-semibold">{zh ? '本站的几条硬规则' : 'The rules this site will not break'}</h2>
+        <h2 className="text-xl font-semibold">
+          {zh ? '本站的几条硬规则' : 'The rules this site will not break'}
+        </h2>
         <ol className="mt-4 space-y-3 text-sm">
           {[
             {
@@ -330,7 +383,9 @@ function Docs({ lang }: { lang: Lang }) {
           条目与 ProPicker 的 rows 一一对应，改那边时这里要跟着改。 */}
       <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-semibold">
-          {zh ? '许可证详情里那几条规定，到底是什么意思' : 'What the rules in the license detail actually mean'}
+          {zh
+            ? '许可证详情里那几条规定，到底是什么意思'
+            : 'What the rules in the license detail actually mean'}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
@@ -590,7 +645,9 @@ function Docs({ lang }: { lang: Lang }) {
       </section>
 
       <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-semibold">{zh ? '数据从哪来（多家数据源混合）' : 'Where the data comes from (several sources combined)'}</h2>
+        <h2 className="text-xl font-semibold">
+          {zh ? '数据从哪来（多家数据源混合）' : 'Where the data comes from (several sources combined)'}
+        </h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">
           {zh
             ? '许可证正文来自 SPDX 官方名录；许可类型的分类由 ScanCode 数据库补齐；"能不能和别的许可一起用"来自 OSADL 义务清单；条款的上游标注来自 ChooseALicense；OSI 认证标签来自 OSI 官方 API；中文审定稿链接来自开放原子《源译识》。这些都在**构建时**抓一次、作为静态文件随站点分发——运行时不联网，你填的信息也不出浏览器，任何人都可以重跑抓取脚本核对。'
@@ -608,40 +665,74 @@ function Docs({ lang }: { lang: Lang }) {
             <tbody className="[&_td]:p-2 [&_td]:align-top">
               <tr className="border-b border-ink-900/[0.06]">
                 <td>
-                  <a className="underline decoration-dotted" href="https://spdx.org/licenses/" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://spdx.org/licenses/"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     SPDX License List
                   </a>
                 </td>
-                <td>{zh ? '全部正文、93 个官方声明模板、OSI/FSF 状态' : 'All texts, 93 official header templates, OSI/FSF status'}</td>
+                <td>
+                  {zh
+                    ? '全部正文、93 个官方声明模板、OSI/FSF 状态'
+                    : 'All texts, 93 official header templates, OSI/FSF status'}
+                </td>
                 <td className="mono">
                   {full?.licenses ?? 740} + {full?.exceptions ?? 86} · CC0
                 </td>
               </tr>
               <tr className="border-b border-ink-900/[0.06]">
                 <td>
-                  <a className="underline decoration-dotted" href="https://scancode-licensedb.aboutcode.org/" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://scancode-licensedb.aboutcode.org/"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     ScanCode LicenseDB
                   </a>
                 </td>
                 <td>{zh ? '权威分类、归属方、主页' : 'Authoritative category, owner, homepage'}</td>
                 <td className="mono">
-                  {enrichment ? `${enrichment.coverage.scancodeMatched}/${enrichment.coverage.spdxLicenses}` : '726/740'} · CC-BY-4.0
+                  {enrichment
+                    ? `${enrichment.coverage.scancodeMatched}/${enrichment.coverage.spdxLicenses}`
+                    : '726/740'}{' '}
+                  · CC-BY-4.0
                 </td>
               </tr>
               <tr className="border-b border-ink-900/[0.06]">
                 <td>
-                  <a className="underline decoration-dotted" href="https://www.osadl.org/Checklists" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://www.osadl.org/Checklists"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     OSADL Obligations Checklist
                   </a>
                 </td>
-                <td>{zh ? '"能不能和别的许可一起用"、要不要开源、要不要给源码' : 'Combination verdicts, copyleft rating, source-disclosure duty'}</td>
+                <td>
+                  {zh
+                    ? '"能不能和别的许可一起用"、要不要开源、要不要给源码'
+                    : 'Combination verdicts, copyleft rating, source-disclosure duty'}
+                </td>
                 <td className="mono">
-                  {enrichment ? `${enrichment.coverage.compatibilityEdges.toLocaleString()} ${zh ? '条判定' : 'verdicts'}` : '13,225'} · CC-BY-4.0
+                  {enrichment
+                    ? `${enrichment.coverage.compatibilityEdges.toLocaleString()} ${zh ? '条判定' : 'verdicts'}`
+                    : '13,225'}{' '}
+                  · CC-BY-4.0
                 </td>
               </tr>
               <tr className="border-b border-ink-900/[0.06]">
                 <td>
-                  <a className="underline decoration-dotted" href="https://github.com/github/choosealicense.com" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://github.com/github/choosealicense.com"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     ChooseALicense
                   </a>
                 </td>
@@ -650,29 +741,49 @@ function Docs({ lang }: { lang: Lang }) {
                     ? '上游逐条标注的条款结论（专利、商标、要不要写明改动）'
                     : 'Upstream-labelled clause verdicts (patents, trademarks, change notices)'}
                 </td>
-                <td className="mono">
-                  47 {zh ? '个主流许可' : 'popular licenses'} · CC-BY-3.0
-                </td>
+                <td className="mono">47 {zh ? '个主流许可' : 'popular licenses'} · CC-BY-3.0</td>
               </tr>
               <tr className="border-b border-ink-900/[0.06]">
                 <td>
-                  <a className="underline decoration-dotted" href="https://opensource.org/api/licenses" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://opensource.org/api/licenses"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     OSI API
                   </a>
                 </td>
-                <td>{zh ? 'keywords（superseded / non-reusable 等）、批准日期' : 'keywords (superseded / non-reusable …), approval dates'}</td>
+                <td>
+                  {zh
+                    ? 'keywords（superseded / non-reusable 等）、批准日期'
+                    : 'keywords (superseded / non-reusable …), approval dates'}
+                </td>
                 <td className="mono">
-                  {enrichment ? `${enrichment.coverage.osiMatched}/740` : '123/740'} · {zh ? '覆盖率有限，OSI 状态以 SPDX 为准' : 'partial; OSI status comes from SPDX'}
+                  {enrichment ? `${enrichment.coverage.osiMatched}/740` : '123/740'} ·{' '}
+                  {zh ? '覆盖率有限，OSI 状态以 SPDX 为准' : 'partial; OSI status comes from SPDX'}
                 </td>
               </tr>
               <tr>
                 <td>
-                  <a className="underline decoration-dotted" href="https://gitcode.com/translation/license-translation" target="_blank" rel="noreferrer noopener">
+                  <a
+                    className="underline decoration-dotted"
+                    href="https://gitcode.com/translation/license-translation"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
                     {zh ? '开放原子《源译识》' : 'OpenAtom translations'}
                   </a>
                 </td>
-                <td>{zh ? '10 个许可证的中英对照审定稿链接' : 'Links to 10 reviewed Chinese-English final texts'}</td>
-                <td className="mono">{enrichment ? enrichment.coverage.chineseTranslations : 15} · {zh ? '译文 CC0' : 'translations CC0'}</td>
+                <td>
+                  {zh
+                    ? '10 个许可证的中英对照审定稿链接'
+                    : 'Links to 10 reviewed Chinese-English final texts'}
+                </td>
+                <td className="mono">
+                  {enrichment ? enrichment.coverage.chineseTranslations : 15} ·{' '}
+                  {zh ? '译文 CC0' : 'translations CC0'}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -685,7 +796,9 @@ function Docs({ lang }: { lang: Lang }) {
       </section>
 
       <section className="rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-semibold">{zh ? '查过但拿不到的数据' : 'Data we looked for but could not get'}</h2>
+        <h2 className="text-xl font-semibold">
+          {zh ? '查过但拿不到的数据' : 'Data we looked for but could not get'}
+        </h2>
         <ul className="mt-3 space-y-2 text-sm text-ink-600">
           {[
             zh
@@ -721,19 +834,36 @@ function Docs({ lang }: { lang: Lang }) {
         <ul className="mt-3 space-y-2 text-ink-600">
           {[
             ['choosealicense.com', 'https://choosealicense.com/'],
-            ['Forgejo issue #11151 — licence selection discussion', 'https://codeberg.org/forgejo/forgejo/issues/11151'],
-            ['Codeberg Community #1214 — licence picker discussion', 'https://codeberg.org/Codeberg/Community/issues/1214'],
+            [
+              'Forgejo issue #11151 — licence selection discussion',
+              'https://codeberg.org/forgejo/forgejo/issues/11151',
+            ],
+            [
+              'Codeberg Community #1214 — licence picker discussion',
+              'https://codeberg.org/Codeberg/Community/issues/1214',
+            ],
             ['Codeberg Documentation — Licensing', 'https://docs.codeberg.org/getting-started/licensing/'],
             ['SPDX License List 3.29.0', 'https://spdx.org/licenses/'],
             ['SPDX Online Tools — License Check', 'https://tools.spdx.org/app/check_license/'],
-            ['Interoperable Europe — Licensing Assistant', 'https://interoperable-europe.ec.europa.eu/collection/eupl/solution/licensing-assistant/welcome'],
+            [
+              'Interoperable Europe — Licensing Assistant',
+              'https://interoperable-europe.ec.europa.eu/collection/eupl/solution/licensing-assistant/welcome',
+            ],
             ['Creative Commons Chooser', 'https://creativecommons.org/chooser/'],
-            ['GitHub Docs — Licensing a repository', 'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository'],
+            [
+              'GitHub Docs — Licensing a repository',
+              'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository',
+            ],
             ['REUSE Specification 3.3', 'https://reuse.software/spec/'],
             ['Gitee Open API — /v5/licenses', 'https://gitee.com/api/v5/licenses'],
           ].map(([label, href]) => (
             <li key={href}>
-              <a className="underline decoration-dotted hover:text-ink-900" href={href} target="_blank" rel="noreferrer noopener">
+              <a
+                className="underline decoration-dotted hover:text-ink-900"
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
                 {label}
               </a>
             </li>
@@ -761,7 +891,9 @@ function Docs({ lang }: { lang: Lang }) {
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
             <dt className="w-28 shrink-0 text-ink-400">{zh ? '许可证' : 'License'}</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <span className="rounded border border-ink-900/20 px-2 py-1 font-medium">{PROJECT.license}</span>
+              <span className="rounded border border-ink-900/20 px-2 py-1 font-medium">
+                {PROJECT.license}
+              </span>
               <a
                 className="underline decoration-dotted hover:text-ink-900"
                 href={PROJECT.licenseUrl}
@@ -771,7 +903,9 @@ function Docs({ lang }: { lang: Lang }) {
                 {zh ? '查看 LICENSE 全文' : 'Read the full LICENSE'}
               </a>
               <span className="text-ink-400">
-                {zh ? '— 本站的 LICENSE 就是用这个工具自己生成的' : '— the LICENSE for this very site was generated by this tool'}
+                {zh
+                  ? '— 本站的 LICENSE 就是用这个工具自己生成的'
+                  : '— the LICENSE for this very site was generated by this tool'}
               </span>
             </dd>
           </div>

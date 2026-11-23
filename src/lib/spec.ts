@@ -1,19 +1,19 @@
 import { hasCopyrightPlaceholder } from './fill.ts';
 import { LICENSE_BY_ID } from './licenses.ts';
 import {
-  deriveFacts,
-  isNonOpenCategory,
-  lookupTerms,
-  SCANCODE_FAMILY,
   type CatalogLicense,
   type ChineseTextSource,
   type ChooseALicenseTerms,
   type DerivedFacts,
+  deriveFacts,
   type EnrichmentRecord,
+  isNonOpenCategory,
   type LicenseText,
+  lookupTerms,
+  SCANCODE_FAMILY,
   type SpdxSnapshot,
 } from './spdx.ts';
-import type { Family, FillKind, HeaderStyle, LicenseEntry, LicenseFacts } from './types.ts';
+import type { Family, FillKind, LicenseEntry, LicenseFacts } from './types.ts';
 
 /**
  * 统一许可证规格（LicenseSpec）。
@@ -177,7 +177,11 @@ export function fromCatalog(
   const hasOfficialHeader = Boolean(text?.standardLicenseHeader);
 
   // GNU 惯例：GPL 家族用 COPYING，LGPL 另存 COPYING.LESSER，其余用 LICENSE
-  const fileName = /^AGPL-|^GPL-/.test(item.id) ? 'COPYING' : /^LGPL-/.test(item.id) ? 'COPYING.LESSER' : 'LICENSE';
+  const fileName = /^AGPL-|^GPL-/.test(item.id)
+    ? 'COPYING'
+    : /^LGPL-/.test(item.id)
+      ? 'COPYING.LESSER'
+      : 'LICENSE';
 
   return {
     id: item.id,

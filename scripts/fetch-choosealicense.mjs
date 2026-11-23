@@ -19,7 +19,7 @@
  *   node scripts/fetch-choosealicense.mjs
  *   node scripts/fetch-choosealicense.mjs --refresh
  */
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -198,7 +198,10 @@ console.log('3/3 写出…');
 
 // 自检：拿几个已知答案的许可证验一下解析结果，避免词表合并出错
 const EXPECTED = [
-  ['Apache-2.0', { patentGrant: 'explicit', trademarkClause: true, stateChanges: true, networkTrigger: false }],
+  [
+    'Apache-2.0',
+    { patentGrant: 'explicit', trademarkClause: true, stateChanges: true, networkTrigger: false },
+  ],
   ['MIT', { patentGrant: 'silent', trademarkClause: false, stateChanges: false, networkTrigger: false }],
   ['GPL-3.0', { patentGrant: 'explicit', stateChanges: true, networkTrigger: false }],
   ['AGPL-3.0', { patentGrant: 'explicit', networkTrigger: true }],

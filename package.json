@@ -1,7 +1,8 @@
 {
   "name": "license-forge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
+  "packageManager": "pnpm@12.21.0",
   "type": "module",
   "description": "开源许可证选择与完整产物生成器 — 一次生成 LICENSE、NOTICE、源文件头、README 段与包管理器字段",
   "license": "GPL-3.0-or-later",
@@ -28,7 +29,9 @@
     "mulan"
   ],
   "scripts": {
-    "data": "node scripts/fetch-spdx.mjs && node scripts/fetch-scancode-extra.mjs && node scripts/fetch-enrichment.mjs && node scripts/fetch-choosealicense.mjs",
+    "data": "node scripts/fetch-spdx.mjs && node scripts/fetch-scancode-extra.mjs && node scripts/fetch-enrichment.mjs && node scripts/fetch-choosealicense.mjs && node scripts/write-manifest.mjs",
+    "data:manifest": "node scripts/write-manifest.mjs",
+    "data:check": "node scripts/write-manifest.mjs --check",
     "data:spdx": "node scripts/fetch-spdx.mjs",
     "data:scancode": "node scripts/fetch-scancode-extra.mjs",
     "data:enrich": "node scripts/fetch-enrichment.mjs",
@@ -41,7 +44,10 @@
     "package": "node scripts/package.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/generate.test.mjs tests/enrichment.test.mjs tests/scancode.test.mjs tests/terms.test.mjs tests/compare.test.mjs tests/subject.test.mjs tests/sort.test.mjs tests/flow.test.mjs"
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "node --test",
+    "test:ui": "vitest run"
   },
   "dependencies": {
     "jszip": "3.10.2",
@@ -50,13 +56,18 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/node": "26.6.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "jsdom": "31.0.1",
     "postcss": "8.5.29",
-    "spdx-license-list": "6.12.0",
     "tailwindcss": "4.3.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
   }
 }

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # 版本由 package.json 的 packageManager 字段决定，避免本地与 CI 不一致
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 代码规范
+        run: pnpm lint
+
+      - name: 类型检查
+        run: pnpm typecheck
+
+      # 数据快照随仓库分发，清单与文件哈希必须对得上
+      - name: 数据溯源清单
+        run: pnpm data:check
+
+      - name: 测试
+        run: pnpm test
+
+      # 组件层交互（jsdom + Testing Library）
+      - name: 组件测试
+        run: pnpm test:ui
+
+      - name: 构建（静态导出）
+        run: pnpm build
+
+      - name: 审计官方文件头
+        run: pnpm audit:headers
+
+      - name: 审计版权占位符
+        run: pnpm audit:placeholders

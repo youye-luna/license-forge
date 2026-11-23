@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight } from './Icons';
 import { FAMILY_LABEL } from '../lib/licenses.ts';
-import { QUESTIONS, recommend, summarizeAnswers, type Answers } from '../lib/wizard.ts';
-import { t } from '../lib/ui.ts';
 import type { Lang, LicenseEntry } from '../lib/types.ts';
+import { t } from '../lib/ui.ts';
+import { type Answers, QUESTIONS, recommend, summarizeAnswers } from '../lib/wizard.ts';
+import { ArrowRight } from './Icons';
 
 interface Props {
   lang: Lang;
@@ -43,7 +43,9 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
       {/* 流程起点说明：这里就是网站打开后的第一屏，先把"接下来会发生什么"讲清楚 */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-900/10 bg-white p-4">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">{lang === 'zh' ? '从问卷开始' : 'Start with the questionnaire'}</h2>
+          <h2 className="text-sm font-semibold">
+            {lang === 'zh' ? '从问卷开始' : 'Start with the questionnaire'}
+          </h2>
           <p className="mt-1 text-xs text-ink-600">
             {lang === 'zh'
               ? '答完这几题会给你一组候选与各自的代价，然后进入「选择与对比」挑定一个，最后生成整套文件。'
@@ -109,7 +111,9 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
               >
                 <span className="block font-medium">{opt.label[lang]}</span>
                 {opt.note ? (
-                  <span className={['mt-1 block text-xs', active ? 'text-white/75' : 'text-ink-400'].join(' ')}>
+                  <span
+                    className={['mt-1 block text-xs', active ? 'text-white/75' : 'text-ink-400'].join(' ')}
+                  >
                     {opt.note[lang].map((line) => (
                       <span key={line} className="block">
                         {line}
@@ -152,7 +156,9 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
             type="button"
             onClick={() => onFinish(false)}
             disabled={!allAnswered}
-            title={allAnswered ? undefined : lang === 'zh' ? '先答完必答项' : 'Answer the required questions first'}
+            title={
+              allAnswered ? undefined : lang === 'zh' ? '先答完必答项' : 'Answer the required questions first'
+            }
             className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
             {lang === 'zh' ? '去选择与对比挑定' : 'Go pick one'}
@@ -188,7 +194,9 @@ export default function Wizard({ lang, onPick, pickedId, onFinish }: Props) {
             <summary className="cursor-pointer font-medium">
               {lang === 'zh' ? '复查我的回答' : 'Review my answers'}
             </summary>
-            <pre className="mono mt-3 whitespace-pre-wrap text-xs text-ink-600">{summarizeAnswers(answers, lang)}</pre>
+            <pre className="mono mt-3 whitespace-pre-wrap text-xs text-ink-600">
+              {summarizeAnswers(answers, lang)}
+            </pre>
           </details>
         </section>
       ) : null}
@@ -233,8 +241,8 @@ function RecCard({
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-ok">{tr.reasons}</h4>
           <ul className="mt-2 space-y-2 text-sm">
-            {reasons.map((r, i) => (
-              <li key={i} className="flex gap-2">
+            {reasons.map((r) => (
+              <li key={r.en} className="flex gap-2">
                 <span aria-hidden className="text-ok">
                   +
                 </span>
@@ -246,8 +254,8 @@ function RecCard({
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-advisory">{tr.cautions}</h4>
           <ul className="mt-2 space-y-2 text-sm">
-            {cautions.map((c, i) => (
-              <li key={i} className="flex gap-2">
+            {cautions.map((c) => (
+              <li key={c.en} className="flex gap-2">
                 <span aria-hidden className="text-advisory">
                   −
                 </span>

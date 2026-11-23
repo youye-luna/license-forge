@@ -1,5 +1,11 @@
-import { deriveFacts, familyFromEntry, type ChooseALicenseTerms, type Enrichment, type UnifiedEntry } from './spdx.ts';
-import { subjectsOf, type Subject } from './subject.ts';
+import {
+  type ChooseALicenseTerms,
+  deriveFacts,
+  type Enrichment,
+  familyFromEntry,
+  type UnifiedEntry,
+} from './spdx.ts';
+import { type Subject, subjectsOf } from './subject.ts';
 
 /**
  * 列表排序。
@@ -71,8 +77,15 @@ function rankOf(entry: UnifiedEntry, sortKey: SortKey, ctx: SortContext): number
   const extra = ctx.enrichment?.licenses[key];
 
   if (sortKey === 'family') return FAMILY_RANK[familyFromEntry(entry, extra) ?? 'unknown'] ?? 8;
-  if (sortKey === 'subject') return SUBJECT_RANK[subjectsOf(key, familyFromEntry(entry, extra)).subjects[0]] ?? 9;
-  const facts = deriveFacts(key, ctx.licenseTexts[entry.id] ?? '', entry.osiApproved, familyFromEntry(entry, extra), ctx.terms);
+  if (sortKey === 'subject')
+    return SUBJECT_RANK[subjectsOf(key, familyFromEntry(entry, extra)).subjects[0]] ?? 9;
+  const facts = deriveFacts(
+    key,
+    ctx.licenseTexts[entry.id] ?? '',
+    entry.osiApproved,
+    familyFromEntry(entry, extra),
+    ctx.terms,
+  );
   return PATENT_RANK[facts.patentGrant] ?? 3;
 }
 

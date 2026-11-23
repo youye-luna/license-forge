@@ -16,12 +16,13 @@
  *  4. `web.config` 必须**只用 IIS 默认就有的配置节** —— 一个带不存在属性的写法
  *     就能让整站 500。仓库里有测试守住。
  */
+
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const project = join(here, '..');
@@ -65,7 +66,7 @@ const files = (await walk(outDir)).map((p) => ({ path: p, entry: toEntry(p) }));
 // release/ 里的文件放在 zip 根目录。
 // 这里**不放任何启动脚本**（启动网站.cmd / server.mjs 已按要求移除）：
 // 本地与 IIS 都用文档中给出的命令自行启动。
-for (const name of ['DEPLOY.md', 'web.config']) {
+for (const name of ['DEPLOY.md', 'NOTICE-DATA.md', 'web.config']) {
   const p = join(releaseDir, name);
   if (!existsSync(p)) {
     console.error(`✗ release/${name} 不存在`);

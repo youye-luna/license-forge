@@ -51,7 +51,10 @@ const P = (
 /** 宽松型集合的默认设定；注意 fill 并非一律 copyright-line，见文件顶部说明 */
 const permissiveDefaults = { fill: 'copyright-line' as FillKind, headerStyle: 'spdx-tag' as HeaderStyle };
 /** 正文没有版权占位符的宽松型许可 */
-const permissiveNoCopyrightLine = { fill: 'metadata-only' as FillKind, headerStyle: 'spdx-tag' as HeaderStyle };
+const permissiveNoCopyrightLine = {
+  fill: 'metadata-only' as FillKind,
+  headerStyle: 'spdx-tag' as HeaderStyle,
+};
 
 export const LICENSES: LicenseEntry[] = [
   {
@@ -115,7 +118,10 @@ export const LICENSES: LicenseEntry[] = [
       zh: '它仍是许可证而非"放弃版权"，与 Unlicense / CC0 的法律机制不同。',
       en: 'It is still a license, not a dedication to the public domain — unlike Unlicense or CC0.',
     },
-    bestFor: { zh: '配置样例、文档内代码片段、希望被任意复制的模板。', en: 'Config samples, doc snippets and templates meant to be copied freely.' },
+    bestFor: {
+      zh: '配置样例、文档内代码片段、希望被任意复制的模板。',
+      en: 'Config samples, doc snippets and templates meant to be copied freely.',
+    },
   },
   {
     id: '0BSD',
@@ -132,9 +138,18 @@ export const LICENSES: LicenseEntry[] = [
       zh: '没有任何附加条件，正文比 Unlicense 更短，且被 OSI 认证。',
       en: 'No conditions at all, shorter than the Unlicense, and OSI-approved.',
     },
-    tradeoffs: { zh: '与 MIT-0 一样放弃署名；生态认知度低于 MIT。', en: 'No attribution, and far less recognised than MIT.' },
-    misuses: { zh: '有人以为"0 条款"等于没有许可——它仍是许可，只是条件为零。', en: 'People read "zero clause" as "no license". It is still a license, just with no conditions.' },
-    bestFor: { zh: '希望彻底无摩擦的极小工具与示例。', en: 'Tiny utilities and examples where you want zero friction.' },
+    tradeoffs: {
+      zh: '与 MIT-0 一样放弃署名；生态认知度低于 MIT。',
+      en: 'No attribution, and far less recognised than MIT.',
+    },
+    misuses: {
+      zh: '有人以为"0 条款"等于没有许可——它仍是许可，只是条件为零。',
+      en: 'People read "zero clause" as "no license". It is still a license, just with no conditions.',
+    },
+    bestFor: {
+      zh: '希望彻底无摩擦的极小工具与示例。',
+      en: 'Tiny utilities and examples where you want zero friction.',
+    },
   },
   {
     id: 'ISC',
@@ -146,11 +161,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent'),
     needsVersionChoice: false,
-    tagline: { zh: 'MIT 的功能等价物，措辞更简洁（OpenBSD 偏好）。', en: 'Functionally equivalent to MIT, worded more concisely.' },
-    gains: { zh: '与 MIT 同样的自由度，文本更短，省去了 MIT 中关于 sublicense 的措辞争议。', en: 'The same freedoms as MIT in a shorter text, avoiding MIT’s sublicense wording.' },
-    tradeoffs: { zh: '同样不涉及专利；社区默认期望是 MIT，用 ISC 会让部分自动识别工具多绕一步。', en: 'Also silent on patents, and less expected than MIT by tooling and contributors.' },
-    misuses: { zh: '误以为 ISC 与 MIT 有实质法律差别——多数场景下二者可互换。', en: 'Assuming a substantive legal difference from MIT; in most cases they are interchangeable.' },
-    bestFor: { zh: '偏 BSD 系的项目、希望文本更短的库。', en: 'BSD-leaning projects and libraries that prefer terser text.' },
+    tagline: {
+      zh: 'MIT 的功能等价物，措辞更简洁（OpenBSD 偏好）。',
+      en: 'Functionally equivalent to MIT, worded more concisely.',
+    },
+    gains: {
+      zh: '与 MIT 同样的自由度，文本更短，省去了 MIT 中关于 sublicense 的措辞争议。',
+      en: 'The same freedoms as MIT in a shorter text, avoiding MIT’s sublicense wording.',
+    },
+    tradeoffs: {
+      zh: '同样不涉及专利；社区默认期望是 MIT，用 ISC 会让部分自动识别工具多绕一步。',
+      en: 'Also silent on patents, and less expected than MIT by tooling and contributors.',
+    },
+    misuses: {
+      zh: '误以为 ISC 与 MIT 有实质法律差别——多数场景下二者可互换。',
+      en: 'Assuming a substantive legal difference from MIT; in most cases they are interchangeable.',
+    },
+    bestFor: {
+      zh: '偏 BSD 系的项目、希望文本更短的库。',
+      en: 'BSD-leaning projects and libraries that prefer terser text.',
+    },
   },
   {
     id: 'BSD-2-Clause',
@@ -162,10 +192,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent'),
     needsVersionChoice: false,
-    tagline: { zh: 'MIT 的 BSD 版本，保留声明即可。', en: 'The BSD flavour of a minimal permissive license.' },
-    gains: { zh: '条件极少，历史包袱清白的 BSD 家族血统，在学术与系统软件中常见。', en: 'Very few conditions, with the familiar BSD lineage used across academic and systems software.' },
-    tradeoffs: { zh: '不涉及专利；BSD 家族变体过多，容易被误配到错误版本。', en: 'Silent on patents, and the BSD family has so many variants that mislabelling is common.' },
-    misuses: { zh: '把 BSD-2 与 BSD-3 混用：只想要"署名"就选 BSD-2，还想禁止背书就选 BSD-3。', en: 'Confusing BSD-2 with BSD-3: pick BSD-2 for plain attribution, BSD-3 to also block endorsement claims.' },
+    tagline: {
+      zh: 'MIT 的 BSD 版本，保留声明即可。',
+      en: 'The BSD flavour of a minimal permissive license.',
+    },
+    gains: {
+      zh: '条件极少，历史包袱清白的 BSD 家族血统，在学术与系统软件中常见。',
+      en: 'Very few conditions, with the familiar BSD lineage used across academic and systems software.',
+    },
+    tradeoffs: {
+      zh: '不涉及专利；BSD 家族变体过多，容易被误配到错误版本。',
+      en: 'Silent on patents, and the BSD family has so many variants that mislabelling is common.',
+    },
+    misuses: {
+      zh: '把 BSD-2 与 BSD-3 混用：只想要"署名"就选 BSD-2，还想禁止背书就选 BSD-3。',
+      en: 'Confusing BSD-2 with BSD-3: pick BSD-2 for plain attribution, BSD-3 to also block endorsement claims.',
+    },
     bestFor: { zh: '希望与 MIT 类似但沿用 BSD 惯例的项目。', en: 'Projects with BSD conventions.' },
   },
   {
@@ -178,11 +220,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent', { endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
-    tagline: { zh: 'BSD-2 + 禁止用你的名字为衍生品背书或促销。', en: 'BSD-2 plus a ban on using your name to endorse or promote derivatives.' },
-    gains: { zh: '在宽松许可里额外保护了你的声誉：别人不能暗示你的项目为其产品背书。', en: 'Extra reputation protection: nobody may imply your project endorses their product.' },
-    tradeoffs: { zh: '仍不涉及专利；多一条附加条款意味着与个别许可的兼容性判断更复杂。', en: 'Still silent on patents, and the extra clause complicates compatibility with some licenses.' },
-    misuses: { zh: '以为 BSD-3 授予了专利权——它没有，那需要 Apache-2.0 或 BSD-3-Clause-Clear 的明确表态。', en: 'Assuming BSD-3 grants patents. It does not; that requires Apache-2.0 or BSD-3-Clause-Clear.' },
-    bestFor: { zh: '有品牌或商标需要保护的开源项目。', en: 'Projects with a name or brand worth protecting.' },
+    tagline: {
+      zh: 'BSD-2 + 禁止用你的名字为衍生品背书或促销。',
+      en: 'BSD-2 plus a ban on using your name to endorse or promote derivatives.',
+    },
+    gains: {
+      zh: '在宽松许可里额外保护了你的声誉：别人不能暗示你的项目为其产品背书。',
+      en: 'Extra reputation protection: nobody may imply your project endorses their product.',
+    },
+    tradeoffs: {
+      zh: '仍不涉及专利；多一条附加条款意味着与个别许可的兼容性判断更复杂。',
+      en: 'Still silent on patents, and the extra clause complicates compatibility with some licenses.',
+    },
+    misuses: {
+      zh: '以为 BSD-3 授予了专利权——它没有，那需要 Apache-2.0 或 BSD-3-Clause-Clear 的明确表态。',
+      en: 'Assuming BSD-3 grants patents. It does not; that requires Apache-2.0 or BSD-3-Clause-Clear.',
+    },
+    bestFor: {
+      zh: '有品牌或商标需要保护的开源项目。',
+      en: 'Projects with a name or brand worth protecting.',
+    },
   },
   {
     id: 'BSD-3-Clause-Clear',
@@ -194,11 +251,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('none', { osiApproved: false, endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
-    tagline: { zh: 'BSD-3 并**明确声明不授予任何专利许可**。', en: 'BSD-3 that explicitly grants no patent rights.' },
-    gains: { zh: '把"没有专利授权"从默认的模糊状态变成白纸黑字，争议最小；Codeberg 官方指南把它列为"想保留专利诉讼权利"时的推荐选择。', en: 'Turns an ambiguous silence into an explicit statement. Codeberg’s official guide recommends it when you want to keep your patent options open.' },
-    tradeoffs: { zh: '企业法务通常更愿意接受 Apache-2.0 那类明确**授予**专利的许可；采用度低，可能劝退部分贡献者。', en: 'Corporate legal teams prefer licenses that grant patents; low adoption can deter contributors.' },
-    misuses: { zh: '以为它和 BSD-3-Clause 是同义词。二者在专利问题上的态度完全相反。', en: 'Treating it as a synonym for BSD-3-Clause. They take opposite positions on patents.' },
-    bestFor: { zh: '你想保留专利主张、又希望代码被广泛使用的场景。', en: 'When you want broad reuse but reserve patent claims.' },
+    tagline: {
+      zh: 'BSD-3 并**明确声明不授予任何专利许可**。',
+      en: 'BSD-3 that explicitly grants no patent rights.',
+    },
+    gains: {
+      zh: '把"没有专利授权"从默认的模糊状态变成白纸黑字，争议最小；Codeberg 官方指南把它列为"想保留专利诉讼权利"时的推荐选择。',
+      en: 'Turns an ambiguous silence into an explicit statement. Codeberg’s official guide recommends it when you want to keep your patent options open.',
+    },
+    tradeoffs: {
+      zh: '企业法务通常更愿意接受 Apache-2.0 那类明确**授予**专利的许可；采用度低，可能劝退部分贡献者。',
+      en: 'Corporate legal teams prefer licenses that grant patents; low adoption can deter contributors.',
+    },
+    misuses: {
+      zh: '以为它和 BSD-3-Clause 是同义词。二者在专利问题上的态度完全相反。',
+      en: 'Treating it as a synonym for BSD-3-Clause. They take opposite positions on patents.',
+    },
+    bestFor: {
+      zh: '你想保留专利主张、又希望代码被广泛使用的场景。',
+      en: 'When you want broad reuse but reserve patent claims.',
+    },
   },
   {
     id: 'Apache-2.0',
@@ -211,7 +283,10 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['notice'],
     facts: P('explicit', { stateChanges: true, trademarkClause: true }),
     needsVersionChoice: false,
-    tagline: { zh: '宽松 + 明确专利授权，企业最熟悉的许可。', en: 'Permissive with an explicit patent grant — the corporate default.' },
+    tagline: {
+      zh: '宽松 + 明确专利授权，企业最熟悉的许可。',
+      en: 'Permissive with an explicit patent grant — the corporate default.',
+    },
     gains: {
       zh: '贡献者明确授予专利许可（含专利诉讼报复终止条款）；企业法务普遍已审查过，员工参与阻力最小；内置商标与免责边界。',
       en: 'Contributors grant an explicit patent license with retaliation termination. Corporate legal has already vetted it, so employee participation is easiest to approve.',
@@ -224,8 +299,14 @@ export const LICENSES: LicenseEntry[] = [
       zh: '最典型的事故是"只放了 LICENSE、没建 NOTICE"——这正是本站把它做成可选产物、并默认勾选的原因。另一个误解是以为 Apache-2.0 与 GPL-2.0-only 兼容：**不兼容**。',
       en: 'The classic failure is shipping LICENSE without NOTICE. Another: assuming Apache-2.0 is compatible with GPL-2.0-only — it is not.',
     },
-    bestFor: { zh: '企业项目、需要专利保护的库、被大公司使用的组件。', en: 'Corporate projects, patent-sensitive libraries, components consumed by large companies.' },
-    avoidFor: { zh: '想与 GPL-2.0-only 代码合并的项目。', en: 'Projects that must combine with GPL-2.0-only code.' },
+    bestFor: {
+      zh: '企业项目、需要专利保护的库、被大公司使用的组件。',
+      en: 'Corporate projects, patent-sensitive libraries, components consumed by large companies.',
+    },
+    avoidFor: {
+      zh: '想与 GPL-2.0-only 代码合并的项目。',
+      en: 'Projects that must combine with GPL-2.0-only code.',
+    },
   },
   {
     id: 'BSL-1.0',
@@ -238,11 +319,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent', { includeCopyright: 'source-only' }),
     needsVersionChoice: false,
-    tagline: { zh: '只要求**源码**分发时保留声明，二进制分发免声明。', en: 'Notice required for source distributions only, not binaries.' },
-    gains: { zh: '对二进制分发者最友好——不要求在机器可读产物中附带声明，很适合头文件库。', en: 'Friendliest to binary distributors: no notice needed in compiled artefacts. Good for header-only libraries.' },
-    tradeoffs: { zh: '不涉及专利；生态主要集中在 C++ 圈，其他社区认知度低。', en: 'Silent on patents, and mostly recognised within the C++ world.' },
-    misuses: { zh: '误以为"不用带声明"适用于源码分发——源码分发仍必须保留声明。', en: 'Thinking the binary exemption applies to source: source distribution still requires the notice.' },
-    bestFor: { zh: 'C++ 头文件库、需要嵌入闭源二进制的组件。', en: 'C++ header-only libraries and components embedded into closed binaries.' },
+    tagline: {
+      zh: '只要求**源码**分发时保留声明，二进制分发免声明。',
+      en: 'Notice required for source distributions only, not binaries.',
+    },
+    gains: {
+      zh: '对二进制分发者最友好——不要求在机器可读产物中附带声明，很适合头文件库。',
+      en: 'Friendliest to binary distributors: no notice needed in compiled artefacts. Good for header-only libraries.',
+    },
+    tradeoffs: {
+      zh: '不涉及专利；生态主要集中在 C++ 圈，其他社区认知度低。',
+      en: 'Silent on patents, and mostly recognised within the C++ world.',
+    },
+    misuses: {
+      zh: '误以为"不用带声明"适用于源码分发——源码分发仍必须保留声明。',
+      en: 'Thinking the binary exemption applies to source: source distribution still requires the notice.',
+    },
+    bestFor: {
+      zh: 'C++ 头文件库、需要嵌入闭源二进制的组件。',
+      en: 'C++ header-only libraries and components embedded into closed binaries.',
+    },
   },
   {
     id: 'Zlib',
@@ -254,10 +350,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent', { stateChanges: true, includeCopyright: 'source-only' }),
     needsVersionChoice: false,
-    tagline: { zh: '极简宽松许可，且**明确禁止**声称由原作者编写。', en: 'A minimal permissive license that forbids misrepresenting the origin.' },
-    gains: { zh: '条件最少的一类；同时明文禁止他人把修改版说成原版，对声誉保护比 MIT 明确。', en: 'Among the least demanding, while explicitly banning the claim that altered versions are the original.' },
-    tradeoffs: { zh: '要求标注修改（state changes），这一点常被忽略；不涉及专利。', en: 'It does require marking modifications, which is often overlooked. Silent on patents.' },
-    misuses: { zh: '把它当作与 MIT 完全相同——"不得谎称原版"和"标注改动"是 MIT 没有的条款。', en: 'Treating it as MIT-equivalent: the origin clause and change-marking duty are extra.' },
+    tagline: {
+      zh: '极简宽松许可，且**明确禁止**声称由原作者编写。',
+      en: 'A minimal permissive license that forbids misrepresenting the origin.',
+    },
+    gains: {
+      zh: '条件最少的一类；同时明文禁止他人把修改版说成原版，对声誉保护比 MIT 明确。',
+      en: 'Among the least demanding, while explicitly banning the claim that altered versions are the original.',
+    },
+    tradeoffs: {
+      zh: '要求标注修改（state changes），这一点常被忽略；不涉及专利。',
+      en: 'It does require marking modifications, which is often overlooked. Silent on patents.',
+    },
+    misuses: {
+      zh: '把它当作与 MIT 完全相同——"不得谎称原版"和"标注改动"是 MIT 没有的条款。',
+      en: 'Treating it as MIT-equivalent: the origin clause and change-marking duty are extra.',
+    },
     bestFor: { zh: '压缩、编解码等基础库。', en: 'Compression and codec libraries.' },
   },
   {
@@ -271,10 +379,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('silent', { sameLicenseWholeWork: true, endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
-    tagline: { zh: '字体专用：可自由使用，但字体本身改名后仍须同许可。', en: 'For fonts: free to use, but derivative fonts must keep the license and be renamed.' },
-    gains: { zh: '字体可以被嵌入文档、软件中自由使用与再分发，解决了字体授权最常见的痛点。', en: 'Fonts can be embedded in documents and software and redistributed freely, solving the usual font-licensing headache.' },
-    tradeoffs: { zh: '**不是软件许可**：不能拿它给代码授权。修改后的字体必须换名（Reserved Font Name），且仍以 OFL 发布。', en: 'It is not a software license. Modified fonts must be renamed (Reserved Font Name) and stay under the OFL.' },
-    misuses: { zh: '最常见的错误是把 OFL 用于代码仓库，或忽略 Reserved Font Name 的改名义务。', en: 'Applying it to a code repository, or ignoring the Reserved Font Name obligation.' },
+    tagline: {
+      zh: '字体专用：可自由使用，但字体本身改名后仍须同许可。',
+      en: 'For fonts: free to use, but derivative fonts must keep the license and be renamed.',
+    },
+    gains: {
+      zh: '字体可以被嵌入文档、软件中自由使用与再分发，解决了字体授权最常见的痛点。',
+      en: 'Fonts can be embedded in documents and software and redistributed freely, solving the usual font-licensing headache.',
+    },
+    tradeoffs: {
+      zh: '**不是软件许可**：不能拿它给代码授权。修改后的字体必须换名（Reserved Font Name），且仍以 OFL 发布。',
+      en: 'It is not a software license. Modified fonts must be renamed (Reserved Font Name) and stay under the OFL.',
+    },
+    misuses: {
+      zh: '最常见的错误是把 OFL 用于代码仓库，或忽略 Reserved Font Name 的改名义务。',
+      en: 'Applying it to a code repository, or ignoring the Reserved Font Name obligation.',
+    },
     bestFor: { zh: '字体与字形设计项目。', en: 'Font and typeface projects.' },
   },
   {
@@ -288,14 +408,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicensePerFile: true, trademarkClause: true }),
     needsVersionChoice: false,
-    tagline: { zh: '**文件级**著佐权：改过的 MPL 文件要开源，新增文件可以闭源。', en: 'File-level copyleft: modified MPL files stay open, new files may stay closed.' },
-    gains: { zh: '在"保持开源"和"能被企业采用"之间取中间路线：可以链接进闭源产品，只要求你回馈被改动的那些文件；含明确专利授权。', en: 'A middle path: linkable into proprietary products, requiring only that modified MPL files be shared back. Includes an explicit patent grant.' },
-    tradeoffs: { zh: '企业法务的审查成本高于 MIT/Apache；文件边界必须清楚，把 MPL 代码粘贴进闭源文件会造成合规风险。', en: 'Higher legal review cost than MIT/Apache, and file boundaries must be respected — pasting MPL code into a closed file creates real risk.' },
+    tagline: {
+      zh: '**文件级**著佐权：改过的 MPL 文件要开源，新增文件可以闭源。',
+      en: 'File-level copyleft: modified MPL files stay open, new files may stay closed.',
+    },
+    gains: {
+      zh: '在"保持开源"和"能被企业采用"之间取中间路线：可以链接进闭源产品，只要求你回馈被改动的那些文件；含明确专利授权。',
+      en: 'A middle path: linkable into proprietary products, requiring only that modified MPL files be shared back. Includes an explicit patent grant.',
+    },
+    tradeoffs: {
+      zh: '企业法务的审查成本高于 MIT/Apache；文件边界必须清楚，把 MPL 代码粘贴进闭源文件会造成合规风险。',
+      en: 'Higher legal review cost than MIT/Apache, and file boundaries must be respected — pasting MPL code into a closed file creates real risk.',
+    },
     misuses: {
       zh: '中文资料里流传很广的一个错误结论是"MPL 与 MIT/Apache 项目不兼容"。事实上 MPL-2.0 是文件级著佐权，MPL 文件与 MIT 文件可以共存在同一个项目里。',
       en: 'A widespread claim in Chinese comparisons is that MPL is incompatible with MIT/Apache projects. MPL-2.0 is file-level copyleft: MPL files and MIT files can coexist in one project.',
     },
-    bestFor: { zh: '希望核心文件持续开源、但允许被企业集成到更大产品的库。', en: 'Libraries that want core files to stay open while remaining embeddable in larger products.' },
+    bestFor: {
+      zh: '希望核心文件持续开源、但允许被企业集成到更大产品的库。',
+      en: 'Libraries that want core files to stay open while remaining embeddable in larger products.',
+    },
   },
   {
     id: 'EPL-2.0',
@@ -308,11 +440,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicenseWholeWork: true }),
     needsVersionChoice: false,
-    tagline: { zh: '商业友好的弱著佐权，含专利报复条款（Java 生态常见）。', en: 'Business-friendly weak copyleft with patent retaliation, common in the Java world.' },
-    gains: { zh: '允许把 EPL 代码作为更大作品的一部分以其他条件分发；含明确专利授权与专利诉讼终止。', en: 'Allows EPL code to be distributed as part of a larger work under other terms, with a patent grant and retaliation clause.' },
-    tradeoffs: { zh: '与 GPL 家族**不兼容**，这是长期的实际约束；中文资料覆盖极少。', en: 'Incompatible with the GPL family, a long-standing practical constraint.' },
-    misuses: { zh: '以为可以用 EPL 代码与 GPL 代码合并——EPL 与 GPL 的兼容性问题是真实的法律障碍。', en: 'Assuming EPL code can simply be combined with GPL code; the incompatibility is a genuine legal obstacle.' },
-    bestFor: { zh: 'Java / Eclipse 生态、企业插件体系。', en: 'Java and Eclipse ecosystem projects and plugin platforms.' },
+    tagline: {
+      zh: '商业友好的弱著佐权，含专利报复条款（Java 生态常见）。',
+      en: 'Business-friendly weak copyleft with patent retaliation, common in the Java world.',
+    },
+    gains: {
+      zh: '允许把 EPL 代码作为更大作品的一部分以其他条件分发；含明确专利授权与专利诉讼终止。',
+      en: 'Allows EPL code to be distributed as part of a larger work under other terms, with a patent grant and retaliation clause.',
+    },
+    tradeoffs: {
+      zh: '与 GPL 家族**不兼容**，这是长期的实际约束；中文资料覆盖极少。',
+      en: 'Incompatible with the GPL family, a long-standing practical constraint.',
+    },
+    misuses: {
+      zh: '以为可以用 EPL 代码与 GPL 代码合并——EPL 与 GPL 的兼容性问题是真实的法律障碍。',
+      en: 'Assuming EPL code can simply be combined with GPL code; the incompatibility is a genuine legal obstacle.',
+    },
+    bestFor: {
+      zh: 'Java / Eclipse 生态、企业插件体系。',
+      en: 'Java and Eclipse ecosystem projects and plugin platforms.',
+    },
   },
   {
     id: 'CDDL-1.0',
@@ -325,11 +472,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicensePerFile: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: '文件级著佐权（Sun 系），与 GPL 不兼容。', en: 'File-level copyleft from the Sun lineage; incompatible with the GPL.' },
-    gains: { zh: '允许闭源的大作品包含 CDDL 文件，含专利授权。', en: 'Lets a proprietary larger work include CDDL files, with a patent grant.' },
-    tradeoffs: { zh: '与 GPL 不兼容，这直接导致过 OpenSolaris / ZFS 与 Linux 内核的著名纠纷；社区采用度持续下降。', en: 'Incompatible with the GPL — the root of the OpenSolaris/ZFS saga — and adoption keeps declining.' },
-    misuses: { zh: '把它当成 MPL 的等价物使用；二者虽同为文件级，但兼容性与专利条款细节不同。', en: 'Treating it as an MPL equivalent; both are file-level, but compatibility and patent details differ.' },
-    bestFor: { zh: '维护既有 CDDL 代码库（多半是历史原因）。', en: 'Maintaining existing CDDL codebases, usually for historical reasons.' },
+    tagline: {
+      zh: '文件级著佐权（Sun 系），与 GPL 不兼容。',
+      en: 'File-level copyleft from the Sun lineage; incompatible with the GPL.',
+    },
+    gains: {
+      zh: '允许闭源的大作品包含 CDDL 文件，含专利授权。',
+      en: 'Lets a proprietary larger work include CDDL files, with a patent grant.',
+    },
+    tradeoffs: {
+      zh: '与 GPL 不兼容，这直接导致过 OpenSolaris / ZFS 与 Linux 内核的著名纠纷；社区采用度持续下降。',
+      en: 'Incompatible with the GPL — the root of the OpenSolaris/ZFS saga — and adoption keeps declining.',
+    },
+    misuses: {
+      zh: '把它当成 MPL 的等价物使用；二者虽同为文件级，但兼容性与专利条款细节不同。',
+      en: 'Treating it as an MPL equivalent; both are file-level, but compatibility and patent details differ.',
+    },
+    bestFor: {
+      zh: '维护既有 CDDL 代码库（多半是历史原因）。',
+      en: 'Maintaining existing CDDL codebases, usually for historical reasons.',
+    },
   },
   {
     id: 'LGPL-2.1-only',
@@ -342,11 +504,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('silent', { sameLicensePerFile: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: '库专用弱著佐权（仅 2.1 版），允许闭源程序动态链接。', en: 'Weak copyleft for libraries (2.1 only): proprietary programs may link to it.' },
-    gains: { zh: '闭源程序可以通过动态链接使用你的库，是"想被广泛使用又想收回库改动"的经典折中。', en: 'Proprietary programs may use your library via dynamic linking — the classic compromise for libraries.' },
-    tradeoffs: { zh: '静态链接会触发更强的开源义务，企业常因此回避；`-only` 意味着你放弃了让用户选择更新版本的自由。', en: 'Static linking triggers stronger obligations, which deters some companies; `-only` gives up the option of later versions.' },
-    misuses: { zh: '误以为 LGPL 允许把库代码直接复制进闭源程序——那是静态链接的边界情形，必须提供替换库的手段。', en: 'Assuming LGPL lets you paste library code into a proprietary program; the user must still be able to relink a modified library.' },
-    bestFor: { zh: '希望被专有软件采用的库，且需要锁定 2.1 版兼容性。', en: 'Libraries adopted by proprietary software that need 2.1 compatibility.' },
+    tagline: {
+      zh: '库专用弱著佐权（仅 2.1 版），允许闭源程序动态链接。',
+      en: 'Weak copyleft for libraries (2.1 only): proprietary programs may link to it.',
+    },
+    gains: {
+      zh: '闭源程序可以通过动态链接使用你的库，是"想被广泛使用又想收回库改动"的经典折中。',
+      en: 'Proprietary programs may use your library via dynamic linking — the classic compromise for libraries.',
+    },
+    tradeoffs: {
+      zh: '静态链接会触发更强的开源义务，企业常因此回避；`-only` 意味着你放弃了让用户选择更新版本的自由。',
+      en: 'Static linking triggers stronger obligations, which deters some companies; `-only` gives up the option of later versions.',
+    },
+    misuses: {
+      zh: '误以为 LGPL 允许把库代码直接复制进闭源程序——那是静态链接的边界情形，必须提供替换库的手段。',
+      en: 'Assuming LGPL lets you paste library code into a proprietary program; the user must still be able to relink a modified library.',
+    },
+    bestFor: {
+      zh: '希望被专有软件采用的库，且需要锁定 2.1 版兼容性。',
+      en: 'Libraries adopted by proprietary software that need 2.1 compatibility.',
+    },
   },
   {
     id: 'LGPL-2.1-or-later',
@@ -360,11 +537,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('silent', { sameLicensePerFile: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: '同上，但允许用户改用 FSF 发布的更新版本。', en: 'As above, but users may follow any later FSF version.' },
-    gains: { zh: '面对未来法律环境变化时更灵活，不会像 `-only` 那样被锁死。', en: 'More resilient to future legal changes than the `-only` form.' },
-    tradeoffs: { zh: '把部分决定权交给了 FSF 未来的版本；部分企业法务偏好确定性的 `-only`。', en: 'Delegates part of the decision to future FSF versions; some legal teams prefer the certainty of `-only`.' },
-    misuses: { zh: '以为 `-or-later` 和 `-only` 只是写法差异——它实质改变了你能授予下游的权利范围。', en: 'Treating `-or-later` as a cosmetic difference: it changes what downstream users may do.' },
-    bestFor: { zh: '希望长期可用、不在意具体版本的库。', en: 'Libraries that value longevity over version certainty.' },
+    tagline: {
+      zh: '同上，但允许用户改用 FSF 发布的更新版本。',
+      en: 'As above, but users may follow any later FSF version.',
+    },
+    gains: {
+      zh: '面对未来法律环境变化时更灵活，不会像 `-only` 那样被锁死。',
+      en: 'More resilient to future legal changes than the `-only` form.',
+    },
+    tradeoffs: {
+      zh: '把部分决定权交给了 FSF 未来的版本；部分企业法务偏好确定性的 `-only`。',
+      en: 'Delegates part of the decision to future FSF versions; some legal teams prefer the certainty of `-only`.',
+    },
+    misuses: {
+      zh: '以为 `-or-later` 和 `-only` 只是写法差异——它实质改变了你能授予下游的权利范围。',
+      en: 'Treating `-or-later` as a cosmetic difference: it changes what downstream users may do.',
+    },
+    bestFor: {
+      zh: '希望长期可用、不在意具体版本的库。',
+      en: 'Libraries that value longevity over version certainty.',
+    },
   },
   {
     id: 'LGPL-3.0-only',
@@ -377,10 +569,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicensePerFile: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: 'LGPL v3 版，含专利条款与安装信息要求（仅 3.0）。', en: 'LGPL v3, adding patent terms and installation-information rules (3.0 only).' },
-    gains: { zh: '在库场景下保留 LGPL 的可用性，同时补上了 v2.1 缺失的专利授权。', en: 'Keeps the library-friendly model while adding the patent grant v2.1 lacked.' },
-    tradeoffs: { zh: '引入了"安装信息"（Anti-Tivoization）义务，对嵌入式设备制造商是实质负担。', en: 'Introduces installation-information duties that are a real burden for embedded device makers.' },
-    misuses: { zh: '以为 LGPLv3 与 LGPLv2.1 可以随意混用——v3 与 v2.1-only 之间存在兼容性问题。', en: 'Mixing LGPLv3 with LGPLv2.1-only code; there are compatibility problems.' },
+    tagline: {
+      zh: 'LGPL v3 版，含专利条款与安装信息要求（仅 3.0）。',
+      en: 'LGPL v3, adding patent terms and installation-information rules (3.0 only).',
+    },
+    gains: {
+      zh: '在库场景下保留 LGPL 的可用性，同时补上了 v2.1 缺失的专利授权。',
+      en: 'Keeps the library-friendly model while adding the patent grant v2.1 lacked.',
+    },
+    tradeoffs: {
+      zh: '引入了"安装信息"（Anti-Tivoization）义务，对嵌入式设备制造商是实质负担。',
+      en: 'Introduces installation-information duties that are a real burden for embedded device makers.',
+    },
+    misuses: {
+      zh: '以为 LGPLv3 与 LGPLv2.1 可以随意混用——v3 与 v2.1-only 之间存在兼容性问题。',
+      en: 'Mixing LGPLv3 with LGPLv2.1-only code; there are compatibility problems.',
+    },
     bestFor: { zh: '需要专利条款的库项目。', en: 'Library projects that need patent terms.' },
   },
   {
@@ -412,14 +616,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('silent', { sameLicenseWholeWork: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: '经典强著佐权（Linux 内核所用），且**锁定 2.0 版**。', en: 'The classic strong copyleft used by the Linux kernel, locked to v2.0.' },
-    gains: { zh: '衍生作品必须继续开源，任何人都无法把你的代码变成闭源产品；生态中有大量可互操作的 GPLv2-only 代码。', en: 'Derivatives must stay open; nobody can turn your code into a closed product. A huge pool of interoperable GPLv2-only code exists.' },
-    tradeoffs: { zh: '不含专利条款、不含反 Tivoization 条款、与 Apache-2.0 **不兼容**；`-only` 还意味着无法受益于未来的 GPLv3 生态。很多团队选它其实只是因为"内核是这么做的"，而没有意识到这一限制。', en: 'No patent clause, no anti-Tivoization clause, and incompatible with Apache-2.0. The `-only` choice also forfeits the v3 ecosystem — often picked by inertia because the kernel did.' },
+    tagline: {
+      zh: '经典强著佐权（Linux 内核所用），且**锁定 2.0 版**。',
+      en: 'The classic strong copyleft used by the Linux kernel, locked to v2.0.',
+    },
+    gains: {
+      zh: '衍生作品必须继续开源，任何人都无法把你的代码变成闭源产品；生态中有大量可互操作的 GPLv2-only 代码。',
+      en: 'Derivatives must stay open; nobody can turn your code into a closed product. A huge pool of interoperable GPLv2-only code exists.',
+    },
+    tradeoffs: {
+      zh: '不含专利条款、不含反 Tivoization 条款、与 Apache-2.0 **不兼容**；`-only` 还意味着无法受益于未来的 GPLv3 生态。很多团队选它其实只是因为"内核是这么做的"，而没有意识到这一限制。',
+      en: 'No patent clause, no anti-Tivoization clause, and incompatible with Apache-2.0. The `-only` choice also forfeits the v3 ecosystem — often picked by inertia because the kernel did.',
+    },
     misuses: {
       zh: '中文社区流传最广的一张选择图（阮一峰 2011 年那张）只画到 "GPL"，完全没有区分 `-only` 与 `-or-later`，这直接导致大量项目在无意识中锁死了自己的版本选择。',
       en: 'The most-cited decision chart in the Chinese community stops at "GPL" without the only/or-later distinction, which is how projects lock themselves in unintentionally.',
     },
-    bestFor: { zh: '需要与 GPLv2-only 生态互操作的项目、内核相关代码。', en: 'Projects interoperating with GPLv2-only code, kernel-adjacent work.' },
+    bestFor: {
+      zh: '需要与 GPLv2-only 生态互操作的项目、内核相关代码。',
+      en: 'Projects interoperating with GPLv2-only code, kernel-adjacent work.',
+    },
     avoidFor: { zh: '要链接 Apache-2.0 代码的项目。', en: 'Anything that must link Apache-2.0 code.' },
   },
   {
@@ -434,10 +650,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('silent', { sameLicenseWholeWork: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: 'GPLv2 且可选择 GPLv3——**这是新项目更该选的那一个**。', en: 'GPLv2 with the option of v3 — usually the right default for new projects.' },
-    gains: { zh: '保留了未来采用 GPLv3 的可能，也解决了与 Apache-2.0 的部分互操作问题（借助 v3 的兼容条款）。', en: 'Keeps the door open to v3, which also resolves some Apache-2.0 interoperability through v3’s compatibility clause.' },
-    tradeoffs: { zh: '「或更新版本」意味着你同意 FSF 未来写的条款，部分组织出于可控性拒绝这一点。', en: '"Or later" means accepting terms the FSF writes in future, which some organisations refuse on principle.' },
-    misuses: { zh: '以为它等同于 GPLv3；它是"v2 或 v3 由使用者选"，与直接选 GPL-3.0-or-later 的法律效果不同。', en: 'Treating it as equivalent to GPLv3: it lets the user choose v2 or v3, which is not the same as licensing under v3 directly.' },
+    tagline: {
+      zh: 'GPLv2 且可选择 GPLv3——**这是新项目更该选的那一个**。',
+      en: 'GPLv2 with the option of v3 — usually the right default for new projects.',
+    },
+    gains: {
+      zh: '保留了未来采用 GPLv3 的可能，也解决了与 Apache-2.0 的部分互操作问题（借助 v3 的兼容条款）。',
+      en: 'Keeps the door open to v3, which also resolves some Apache-2.0 interoperability through v3’s compatibility clause.',
+    },
+    tradeoffs: {
+      zh: '「或更新版本」意味着你同意 FSF 未来写的条款，部分组织出于可控性拒绝这一点。',
+      en: '"Or later" means accepting terms the FSF writes in future, which some organisations refuse on principle.',
+    },
+    misuses: {
+      zh: '以为它等同于 GPLv3；它是"v2 或 v3 由使用者选"，与直接选 GPL-3.0-or-later 的法律效果不同。',
+      en: 'Treating it as equivalent to GPLv3: it lets the user choose v2 or v3, which is not the same as licensing under v3 directly.',
+    },
     bestFor: { zh: '绝大多数想用 GPL 的新项目。', en: 'Most new projects that want the GPL.' },
   },
   {
@@ -451,14 +679,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true, networkTrigger: false }),
     needsVersionChoice: false,
-    tagline: { zh: '强著佐权 + 专利条款 + 反 Tivoization，**锁定 3.0 版**。', en: 'Strong copyleft with patents and anti-Tivoization, locked to v3.0.' },
-    gains: { zh: '比 v2 多了明确的专利授权、专利诉讼终止、反 Tivoization（设备不得阻止用户刷入修改版）与更强的兼容性设计。', en: 'Adds an explicit patent grant with retaliation, anti-Tivoization, and better compatibility design.' },
-    tradeoffs: { zh: '强制开源义务广，企业采用需法务介入；`-only` 放弃未来版本；与 GPLv2-only、EPL、CDDL 均不兼容。', en: 'Broad obligations requiring legal review; `-only` forfeits later versions; incompatible with GPLv2-only, EPL and CDDL.' },
+    tagline: {
+      zh: '强著佐权 + 专利条款 + 反 Tivoization，**锁定 3.0 版**。',
+      en: 'Strong copyleft with patents and anti-Tivoization, locked to v3.0.',
+    },
+    gains: {
+      zh: '比 v2 多了明确的专利授权、专利诉讼终止、反 Tivoization（设备不得阻止用户刷入修改版）与更强的兼容性设计。',
+      en: 'Adds an explicit patent grant with retaliation, anti-Tivoization, and better compatibility design.',
+    },
+    tradeoffs: {
+      zh: '强制开源义务广，企业采用需法务介入；`-only` 放弃未来版本；与 GPLv2-only、EPL、CDDL 均不兼容。',
+      en: 'Broad obligations requiring legal review; `-only` forfeits later versions; incompatible with GPLv2-only, EPL and CDDL.',
+    },
     misuses: {
       zh: '两个高频误解：① 以为 GPL 禁止商业使用——**不禁止**，它只要求你把衍生源码一并提供；② 以为放在网上的服务也必须开源——**那是 AGPL 的特性**，GPLv3 不要求。中文问卷类工具里把 GPL-3.0 标为"适用于网络服务"就是这类错误。',
       en: 'Two frequent errors: that the GPL forbids commercial use (it does not), and that serving software over a network triggers the GPL (that is the AGPL). Chinese quiz-style tools have mislabelled GPL-3.0 as network-triggered.',
     },
-    bestFor: { zh: '希望代码与衍生作品永久开源的桌面/嵌入式软件。', en: 'Desktop and embedded software that should stay open forever.' },
+    bestFor: {
+      zh: '希望代码与衍生作品永久开源的桌面/嵌入式软件。',
+      en: 'Desktop and embedded software that should stay open forever.',
+    },
   },
   {
     id: 'GPL-3.0-or-later',
@@ -472,10 +712,22 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true }),
     needsVersionChoice: false,
-    tagline: { zh: 'GPLv3 且允许后续版本——FSF 与多数社区推荐的写法。', en: 'GPLv3 with "or later" — what the FSF and most communities recommend.' },
-    gains: { zh: '避免许可证版本过时带来的整片生态碎片化，是官方推荐做法。', en: 'Avoids the ecosystem fragmentation that comes with frozen versions. This is the FSF’s recommendation.' },
-    tradeoffs: { zh: '需要接受未来条款；对"必须完全可控"的组织不适用。', en: 'Accepts future terms; unsuitable for organisations that require full control.' },
-    misuses: { zh: '示例声明段里的 "either version 3 of the License, or (at your option) any later version" 必须**逐字保留**，自行改写会导致 SPDX 识别失败。', en: 'The boilerplate wording must be kept verbatim; paraphrasing it breaks SPDX detection.' },
+    tagline: {
+      zh: 'GPLv3 且允许后续版本——FSF 与多数社区推荐的写法。',
+      en: 'GPLv3 with "or later" — what the FSF and most communities recommend.',
+    },
+    gains: {
+      zh: '避免许可证版本过时带来的整片生态碎片化，是官方推荐做法。',
+      en: 'Avoids the ecosystem fragmentation that comes with frozen versions. This is the FSF’s recommendation.',
+    },
+    tradeoffs: {
+      zh: '需要接受未来条款；对"必须完全可控"的组织不适用。',
+      en: 'Accepts future terms; unsuitable for organisations that require full control.',
+    },
+    misuses: {
+      zh: '示例声明段里的 "either version 3 of the License, or (at your option) any later version" 必须**逐字保留**，自行改写会导致 SPDX 识别失败。',
+      en: 'The boilerplate wording must be kept verbatim; paraphrasing it breaks SPDX detection.',
+    },
     bestFor: { zh: '新项目的默认 GPL 选项。', en: 'The default GPL choice for new projects.' },
   },
   {
@@ -489,11 +741,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true, networkTrigger: true }),
     needsVersionChoice: false,
-    tagline: { zh: '**通过网络提供服务即触发**开源义务的强著佐权。', en: 'Strong copyleft that triggers on network use.' },
-    gains: { zh: '堵住了 GPL 的"SaaS 漏洞"：别人把你的代码跑成在线服务也必须回馈源码，是保护服务型项目的唯一主流选择（Codeberg 官方指南的首选推荐）。', en: 'Closes the SaaS loophole: running your code as a service still requires sharing source. The only mainstream option for protecting service-based projects.' },
-    tradeoffs: { zh: '商业采用阻力最大，很多公司**明令禁止**引入 AGPL 依赖；作为库使用会污染调用方；与 GPLv2-only 不兼容。', en: 'The hardest sell commercially: many companies ban AGPL dependencies outright. As a library it reaches into callers, and it is incompatible with GPLv2-only.' },
-    misuses: { zh: '误以为 AGPL 只影响"修改后提供服务"——只要对外提供服务，即使未修改也需提供对应源码。', en: 'Assuming only modified versions trigger it: providing the service at all is enough.' },
-    bestFor: { zh: '自托管的 Web 应用、SaaS、希望防止被云厂商白拿的项目。', en: 'Self-hosted web apps and SaaS where you want to prevent free-riding by cloud vendors.' },
+    tagline: {
+      zh: '**通过网络提供服务即触发**开源义务的强著佐权。',
+      en: 'Strong copyleft that triggers on network use.',
+    },
+    gains: {
+      zh: '堵住了 GPL 的"SaaS 漏洞"：别人把你的代码跑成在线服务也必须回馈源码，是保护服务型项目的唯一主流选择（Codeberg 官方指南的首选推荐）。',
+      en: 'Closes the SaaS loophole: running your code as a service still requires sharing source. The only mainstream option for protecting service-based projects.',
+    },
+    tradeoffs: {
+      zh: '商业采用阻力最大，很多公司**明令禁止**引入 AGPL 依赖；作为库使用会污染调用方；与 GPLv2-only 不兼容。',
+      en: 'The hardest sell commercially: many companies ban AGPL dependencies outright. As a library it reaches into callers, and it is incompatible with GPLv2-only.',
+    },
+    misuses: {
+      zh: '误以为 AGPL 只影响"修改后提供服务"——只要对外提供服务，即使未修改也需提供对应源码。',
+      en: 'Assuming only modified versions trigger it: providing the service at all is enough.',
+    },
+    bestFor: {
+      zh: '自托管的 Web 应用、SaaS、希望防止被云厂商白拿的项目。',
+      en: 'Self-hosted web apps and SaaS where you want to prevent free-riding by cloud vendors.',
+    },
     avoidFor: { zh: '希望被企业广泛集成的库。', en: 'Libraries meant for broad corporate integration.' },
   },
   {
@@ -508,10 +775,19 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['source-form-notice'],
     facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true, networkTrigger: true }),
     needsVersionChoice: false,
-    tagline: { zh: 'AGPLv3 且允许后续版本，兼与 GPLv3 互通。', en: 'AGPLv3 with "or later", interoperable with GPLv3.' },
-    gains: { zh: 'AGPL 与 GPLv3 通过各自的第 13 条互相兼容，`-or-later` 让这种互通关系可长期延续。', en: 'AGPL and GPLv3 interoperate through their respective section 13, and "or later" keeps that alive.' },
+    tagline: {
+      zh: 'AGPLv3 且允许后续版本，兼与 GPLv3 互通。',
+      en: 'AGPLv3 with "or later", interoperable with GPLv3.',
+    },
+    gains: {
+      zh: 'AGPL 与 GPLv3 通过各自的第 13 条互相兼容，`-or-later` 让这种互通关系可长期延续。',
+      en: 'AGPL and GPLv3 interoperate through their respective section 13, and "or later" keeps that alive.',
+    },
     tradeoffs: { zh: '同上，企业采用阻力大。', en: 'Same corporate friction as the `-only` form.' },
-    misuses: { zh: '以为 AGPL 与 GPLv3 不能合并——两者通过第 13 条是可以合并的。', en: 'Believing AGPL and GPLv3 cannot be combined; section 13 exists precisely for that.' },
+    misuses: {
+      zh: '以为 AGPL 与 GPLv3 不能合并——两者通过第 13 条是可以合并的。',
+      en: 'Believing AGPL and GPLv3 cannot be combined; section 13 exists precisely for that.',
+    },
     bestFor: { zh: '服务型项目的长期默认选项。', en: 'The long-term default for service-based projects.' },
   },
   {
@@ -525,12 +801,30 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('none', { osiApproved: true, includeCopyright: 'not-required' }),
     needsVersionChoice: false,
-    tagline: { zh: '放弃著作权的声明式"许可证"。', en: 'A statement dedicating the work to the public domain.' },
-    gains: { zh: '意图最彻底：不保留任何权利，使用者零负担。', en: 'Maximally permissive: no rights reserved, no obligations.' },
-    tradeoffs: { zh: '**它不是许可证而是弃权声明**，在著作权不可放弃的法域（多数大陆法系国家包括中国）法律效果存在不确定性；企业法务常因其"不像合同"而拒绝采用。', en: 'It is a dedication, not a license. In jurisdictions where moral rights cannot be waived (most civil-law countries, including China) its effect is uncertain, and corporate legal often rejects it as "not a contract".' },
-    misuses: { zh: '以为 Unlicense 能保证"完全无风险"——恰恰相反，它的法律确定性低于 MIT/CC0。', en: 'Assuming it is the safest option: its legal certainty is lower than MIT or CC0.' },
-    bestFor: { zh: '个人小工具、明确不在意任何权利归属的代码片段。', en: 'Personal utilities and snippets where you genuinely do not care about rights.' },
-    avoidFor: { zh: '需要被企业采用的项目、有专利或商标需要考虑的项目。', en: 'Anything meant for corporate adoption, or with patents and trademarks in play.' },
+    tagline: {
+      zh: '放弃著作权的声明式"许可证"。',
+      en: 'A statement dedicating the work to the public domain.',
+    },
+    gains: {
+      zh: '意图最彻底：不保留任何权利，使用者零负担。',
+      en: 'Maximally permissive: no rights reserved, no obligations.',
+    },
+    tradeoffs: {
+      zh: '**它不是许可证而是弃权声明**，在著作权不可放弃的法域（多数大陆法系国家包括中国）法律效果存在不确定性；企业法务常因其"不像合同"而拒绝采用。',
+      en: 'It is a dedication, not a license. In jurisdictions where moral rights cannot be waived (most civil-law countries, including China) its effect is uncertain, and corporate legal often rejects it as "not a contract".',
+    },
+    misuses: {
+      zh: '以为 Unlicense 能保证"完全无风险"——恰恰相反，它的法律确定性低于 MIT/CC0。',
+      en: 'Assuming it is the safest option: its legal certainty is lower than MIT or CC0.',
+    },
+    bestFor: {
+      zh: '个人小工具、明确不在意任何权利归属的代码片段。',
+      en: 'Personal utilities and snippets where you genuinely do not care about rights.',
+    },
+    avoidFor: {
+      zh: '需要被企业采用的项目、有专利或商标需要考虑的项目。',
+      en: 'Anything meant for corporate adoption, or with patents and trademarks in play.',
+    },
   },
   {
     id: 'CC0-1.0',
@@ -543,11 +837,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('none', { osiApproved: false, includeCopyright: 'not-required', trademarkClause: true }),
     needsVersionChoice: false,
-    tagline: { zh: 'CC 的公共领域奉献工具，附有法律上的"后备许可"。', en: 'Creative Commons’ public-domain dedication with a legal fallback license.' },
-    gains: { zh: '比 Unlicense 更严谨：在不允许完全放弃权利的法域自动转为一条极宽松的许可，因此法律确定性更高；可同时用于代码、数据和内容。', en: 'More careful than the Unlicense: where rights cannot be waived it falls back to a maximally permissive license, so it is more predictable. Usable for code, data and content alike.' },
-    tradeoffs: { zh: '**未被 OSI 认证**（它不是软件许可）；不含专利授权，也不含商标许可；不带署名义务意味着无法要求归属。', en: 'Not OSI-approved (it is not a software license), grants no patents or trademarks, and imposes no attribution.' },
-    misuses: { zh: '把它当成"OSI 认证的开源许可"使用；或反过来，以为 CC BY 等许可适合代码——**Creative Commons 明确建议不要对软件使用 CC 许可**（CC0 是唯一例外）。', en: 'Treating it as an OSI-approved open-source license, or reaching for CC BY for code — Creative Commons explicitly advises against CC licenses for software, CC0 excepted.' },
-    bestFor: { zh: '数据集、规范文本、非软件资产；希望零摩擦的代码。', en: 'Datasets, specifications and non-software assets; code where zero friction matters.' },
+    tagline: {
+      zh: 'CC 的公共领域奉献工具，附有法律上的"后备许可"。',
+      en: 'Creative Commons’ public-domain dedication with a legal fallback license.',
+    },
+    gains: {
+      zh: '比 Unlicense 更严谨：在不允许完全放弃权利的法域自动转为一条极宽松的许可，因此法律确定性更高；可同时用于代码、数据和内容。',
+      en: 'More careful than the Unlicense: where rights cannot be waived it falls back to a maximally permissive license, so it is more predictable. Usable for code, data and content alike.',
+    },
+    tradeoffs: {
+      zh: '**未被 OSI 认证**（它不是软件许可）；不含专利授权，也不含商标许可；不带署名义务意味着无法要求归属。',
+      en: 'Not OSI-approved (it is not a software license), grants no patents or trademarks, and imposes no attribution.',
+    },
+    misuses: {
+      zh: '把它当成"OSI 认证的开源许可"使用；或反过来，以为 CC BY 等许可适合代码——**Creative Commons 明确建议不要对软件使用 CC 许可**（CC0 是唯一例外）。',
+      en: 'Treating it as an OSI-approved open-source license, or reaching for CC BY for code — Creative Commons explicitly advises against CC licenses for software, CC0 excepted.',
+    },
+    bestFor: {
+      zh: '数据集、规范文本、非软件资产；希望零摩擦的代码。',
+      en: 'Datasets, specifications and non-software assets; code where zero friction matters.',
+    },
   },
   {
     id: 'CC-BY-4.0',
@@ -558,12 +867,30 @@ export const LICENSES: LicenseEntry[] = [
     headerStyle: 'spdx-tag',
     requiresNotice: false,
     recommendedNotices: [],
-    facts: P('none', { osiApproved: false, trademarkClause: true, stateChanges: true, endorse: 'prohibited', promote: 'prohibited' }),
+    facts: P('none', {
+      osiApproved: false,
+      trademarkClause: true,
+      stateChanges: true,
+      endorse: 'prohibited',
+      promote: 'prohibited',
+    }),
     needsVersionChoice: false,
-    tagline: { zh: '内容/数据用：署名即可自由使用。', en: 'For content and data: free use with attribution.' },
-    gains: { zh: '适用于文档、图片、数据集等非代码资产，署名要求清晰，国际通行。', en: 'Designed for documentation, images and datasets, with a clear attribution requirement.' },
-    tradeoffs: { zh: '**不应授予**给代码（CC 官方立场）；不含专利与商标授权；署名义务对使用者是实际成本。', en: 'Should not be applied to code (Creative Commons’ own position). No patent or trademark grant, and attribution is a real cost for users.' },
-    misuses: { zh: '拿 CC BY 给软件仓库授权，是中文项目里相当常见的一类错误。', en: 'Licensing a software repository under CC BY, a common mistake.' },
+    tagline: {
+      zh: '内容/数据用：署名即可自由使用。',
+      en: 'For content and data: free use with attribution.',
+    },
+    gains: {
+      zh: '适用于文档、图片、数据集等非代码资产，署名要求清晰，国际通行。',
+      en: 'Designed for documentation, images and datasets, with a clear attribution requirement.',
+    },
+    tradeoffs: {
+      zh: '**不应授予**给代码（CC 官方立场）；不含专利与商标授权；署名义务对使用者是实际成本。',
+      en: 'Should not be applied to code (Creative Commons’ own position). No patent or trademark grant, and attribution is a real cost for users.',
+    },
+    misuses: {
+      zh: '拿 CC BY 给软件仓库授权，是中文项目里相当常见的一类错误。',
+      en: 'Licensing a software repository under CC BY, a common mistake.',
+    },
     bestFor: { zh: '文档、教程、图片、数据集。', en: 'Docs, tutorials, images and datasets.' },
   },
   {
@@ -575,13 +902,32 @@ export const LICENSES: LicenseEntry[] = [
     headerStyle: 'spdx-tag',
     requiresNotice: false,
     recommendedNotices: [],
-    facts: P('none', { osiApproved: false, trademarkClause: true, stateChanges: true, sameLicenseWholeWork: true, endorse: 'prohibited', promote: 'prohibited' }),
+    facts: P('none', {
+      osiApproved: false,
+      trademarkClause: true,
+      stateChanges: true,
+      sameLicenseWholeWork: true,
+      endorse: 'prohibited',
+      promote: 'prohibited',
+    }),
     needsVersionChoice: false,
     tagline: { zh: '内容用：署名 + 相同方式共享。', en: 'For content: attribution plus share-alike.' },
-    gains: { zh: '文档层面的"著佐权"：改编作品必须沿用同一许可，适合希望内容持续开放的社区。', en: 'Copyleft for content: adaptations must stay under the same license.' },
-    tradeoffs: { zh: '同样不应授予给代码；维基百科等采用它，导致与 CC BY 内容混合时出现兼容性限制。', en: 'Also not for code, and mixing with CC BY content raises compatibility limits — as Wikipedia editors know well.' },
-    misuses: { zh: '把 CC BY-SA 内容直接并入代码仓库（例如复制维基百科段落进文档并声称整个文档为 MIT）。', en: 'Folding CC BY-SA content into a code repository and relicensing the whole document as MIT.' },
-    bestFor: { zh: '社区文档、开放教材、知识库。', en: 'Community documentation, open textbooks and knowledge bases.' },
+    gains: {
+      zh: '文档层面的"著佐权"：改编作品必须沿用同一许可，适合希望内容持续开放的社区。',
+      en: 'Copyleft for content: adaptations must stay under the same license.',
+    },
+    tradeoffs: {
+      zh: '同样不应授予给代码；维基百科等采用它，导致与 CC BY 内容混合时出现兼容性限制。',
+      en: 'Also not for code, and mixing with CC BY content raises compatibility limits — as Wikipedia editors know well.',
+    },
+    misuses: {
+      zh: '把 CC BY-SA 内容直接并入代码仓库（例如复制维基百科段落进文档并声称整个文档为 MIT）。',
+      en: 'Folding CC BY-SA content into a code repository and relicensing the whole document as MIT.',
+    },
+    bestFor: {
+      zh: '社区文档、开放教材、知识库。',
+      en: 'Community documentation, open textbooks and knowledge bases.',
+    },
   },
   {
     id: 'WTFPL',
@@ -596,9 +942,18 @@ export const LICENSES: LicenseEntry[] = [
     needsVersionChoice: false,
     tagline: { zh: '玩笑式许可，法律上不被推荐。', en: 'A joke license, not recommended legally.' },
     gains: { zh: '意图直白，几乎没有阅读成本。', en: 'Unambiguous in intent.' },
-    tradeoffs: { zh: '**未被 OSI 认证**，措辞不构成严谨的法律文本，很多组织直接禁止使用；在严肃项目里会削弱信任。', en: 'Not OSI-approved, not drafted as a legal instrument, and banned outright by many organisations.' },
-    misuses: { zh: '当它和 MIT 一样可用于商业项目——技术上"随便用"的意图明确，但企业合规流程往往不认。', en: 'Treating it as MIT-equivalent: the intent is clear, but compliance workflows usually reject it.' },
-    bestFor: { zh: '个人玩具项目、明确不打算被企业采用的代码。', en: 'Personal toy projects you never intend for corporate use.' },
+    tradeoffs: {
+      zh: '**未被 OSI 认证**，措辞不构成严谨的法律文本，很多组织直接禁止使用；在严肃项目里会削弱信任。',
+      en: 'Not OSI-approved, not drafted as a legal instrument, and banned outright by many organisations.',
+    },
+    misuses: {
+      zh: '当它和 MIT 一样可用于商业项目——技术上"随便用"的意图明确，但企业合规流程往往不认。',
+      en: 'Treating it as MIT-equivalent: the intent is clear, but compliance workflows usually reject it.',
+    },
+    bestFor: {
+      zh: '个人玩具项目、明确不打算被企业采用的代码。',
+      en: 'Personal toy projects you never intend for corporate use.',
+    },
   },
   {
     id: 'MulanPSL-2.0',
@@ -611,14 +966,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: [],
     facts: P('explicit', { trademarkClause: true }),
     needsVersionChoice: false,
-    tagline: { zh: '中国主导的宽松许可，含专利授权，中英双语官方文本。', en: 'A Chinese-led permissive license with a patent grant and official bilingual text.' },
-    gains: { zh: '由开放原子开源基金会主导、有官方中文版本，对国内团队与法务的沟通成本最低；含明确专利授权与专利报复条款；Gitee 等国内平台原生支持。', en: 'Backed by the OpenAtom Foundation with an official Chinese text, an explicit patent grant and native support on domestic platforms such as Gitee.' },
-    tradeoffs: { zh: '国际认知度仍低，海外贡献者与企业法务可能要求额外审查；自动识别与依赖清单扫描的覆盖不如 MIT/Apache 完整。', en: 'Still little known internationally; overseas contributors and legal teams may require extra review, and automatic detection and dependency scanning cover it less well than MIT or Apache.' },
+    tagline: {
+      zh: '中国主导的宽松许可，含专利授权，中英双语官方文本。',
+      en: 'A Chinese-led permissive license with a patent grant and official bilingual text.',
+    },
+    gains: {
+      zh: '由开放原子开源基金会主导、有官方中文版本，对国内团队与法务的沟通成本最低；含明确专利授权与专利报复条款；Gitee 等国内平台原生支持。',
+      en: 'Backed by the OpenAtom Foundation with an official Chinese text, an explicit patent grant and native support on domestic platforms such as Gitee.',
+    },
+    tradeoffs: {
+      zh: '国际认知度仍低，海外贡献者与企业法务可能要求额外审查；自动识别与依赖清单扫描的覆盖不如 MIT/Apache 完整。',
+      en: 'Still little known internationally; overseas contributors and legal teams may require extra review, and automatic detection and dependency scanning cover it less well than MIT or Apache.',
+    },
     misuses: {
       zh: '中文资料里常见的说法是"木兰与 GPLv3 和 Apache 2.0 完美兼容"——**其兼容性结论应以许可证原文与官方 FAQ 为准**，不要依赖二手对比表。另一个现实问题是：几乎所有中文生成工具都没有收录木兰。',
       en: 'Chinese comparisons often claim MulanPSL is "perfectly compatible" with GPLv3 and Apache-2.0. Verify against the license text and official FAQ rather than second-hand tables. Note also that almost no Chinese generator actually offers it.',
     },
-    bestFor: { zh: '面向国内生态的项目、希望用中文文本降低沟通成本的开源项目。', en: 'Projects aimed at the Chinese ecosystem that benefit from an official Chinese text.' },
+    bestFor: {
+      zh: '面向国内生态的项目、希望用中文文本降低沟通成本的开源项目。',
+      en: 'Projects aimed at the Chinese ecosystem that benefit from an official Chinese text.',
+    },
   },
   {
     id: 'CERN-OHL-S-2.0',
@@ -629,13 +996,33 @@ export const LICENSES: LicenseEntry[] = [
     headerStyle: 'spdx-tag',
     requiresNotice: false,
     recommendedNotices: ['hardware-notice'],
-    facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true, endorse: 'prohibited', promote: 'prohibited' }),
+    facts: P('explicit', {
+      sameLicenseWholeWork: true,
+      stateChanges: true,
+      endorse: 'prohibited',
+      promote: 'prohibited',
+    }),
     needsVersionChoice: false,
-    tagline: { zh: '硬件专用强互惠许可（Codeberg 对硬件项目的首选推荐）。', en: 'Strongly reciprocal hardware license, Codeberg’s top pick for hardware.' },
-    gains: { zh: '为**不受著作权保护的硬件对象**（电路图、实物设计）设计，能真正约束衍生硬件保持开放。', en: 'Drafted for hardware objects, which copyright alone does not protect, so it can genuinely keep derivative hardware open.' },
-    tradeoffs: { zh: '与其他主流许可（尤其 GPL 家族）**不兼容**；不适用于纯软件仓库。', en: 'Incompatible with other mainstream licenses, notably the GPL family. Not for pure software repositories.' },
-    misuses: { zh: '把硬件许可用在软件项目上，或以为它能与 GPL 混用。', en: 'Using a hardware license on a software project, or assuming GPL mixing works.' },
-    bestFor: { zh: '含 CAD 文件、电路设计、实物设计的开源硬件项目。', en: 'Open hardware projects with CAD, schematic or physical designs.' },
+    tagline: {
+      zh: '硬件专用强互惠许可（Codeberg 对硬件项目的首选推荐）。',
+      en: 'Strongly reciprocal hardware license, Codeberg’s top pick for hardware.',
+    },
+    gains: {
+      zh: '为**不受著作权保护的硬件对象**（电路图、实物设计）设计，能真正约束衍生硬件保持开放。',
+      en: 'Drafted for hardware objects, which copyright alone does not protect, so it can genuinely keep derivative hardware open.',
+    },
+    tradeoffs: {
+      zh: '与其他主流许可（尤其 GPL 家族）**不兼容**；不适用于纯软件仓库。',
+      en: 'Incompatible with other mainstream licenses, notably the GPL family. Not for pure software repositories.',
+    },
+    misuses: {
+      zh: '把硬件许可用在软件项目上，或以为它能与 GPL 混用。',
+      en: 'Using a hardware license on a software project, or assuming GPL mixing works.',
+    },
+    bestFor: {
+      zh: '含 CAD 文件、电路设计、实物设计的开源硬件项目。',
+      en: 'Open hardware projects with CAD, schematic or physical designs.',
+    },
   },
   {
     id: 'CERN-OHL-P-2.0',
@@ -648,11 +1035,26 @@ export const LICENSES: LicenseEntry[] = [
     recommendedNotices: ['hardware-notice'],
     facts: P('explicit', { stateChanges: true, endorse: 'prohibited', promote: 'prohibited' }),
     needsVersionChoice: false,
-    tagline: { zh: '硬件专用宽松许可（同一套 CERN-OHL 的宽松档）。', en: 'The permissive variant of the same CERN-OHL family.' },
-    gains: { zh: '与 CERN-OHL-S 同源但去掉互惠要求，企业最容易接受；仍是为**不受著作权保护的硬件设计**而写，并含明确的专利授权。', en: 'Same family as CERN-OHL-S but without the reciprocity duty, so it clears corporate review most easily. Still drafted for hardware designs, which copyright alone does not cover, and it includes an explicit patent grant.' },
-    tradeoffs: { zh: '衍生设计可以闭源，你无法要求对方回馈改进；互惠性低于同系列另外两档。', en: 'Derivatives may stay closed and you cannot require improvements back — less reciprocal than the other two variants.' },
-    misuses: { zh: '当成"硬件版 MIT"用在纯软件仓库上——那应当直接用 MIT 或 Apache-2.0。', en: 'Treating it as a hardware-flavoured MIT and using it on a pure software repository, where MIT or Apache-2.0 is the right tool.' },
-    bestFor: { zh: '希望设计被最广泛采用、不要求回馈的开源硬件项目。', en: 'Open hardware projects that want the widest adoption and do not require anything back.' },
+    tagline: {
+      zh: '硬件专用宽松许可（同一套 CERN-OHL 的宽松档）。',
+      en: 'The permissive variant of the same CERN-OHL family.',
+    },
+    gains: {
+      zh: '与 CERN-OHL-S 同源但去掉互惠要求，企业最容易接受；仍是为**不受著作权保护的硬件设计**而写，并含明确的专利授权。',
+      en: 'Same family as CERN-OHL-S but without the reciprocity duty, so it clears corporate review most easily. Still drafted for hardware designs, which copyright alone does not cover, and it includes an explicit patent grant.',
+    },
+    tradeoffs: {
+      zh: '衍生设计可以闭源，你无法要求对方回馈改进；互惠性低于同系列另外两档。',
+      en: 'Derivatives may stay closed and you cannot require improvements back — less reciprocal than the other two variants.',
+    },
+    misuses: {
+      zh: '当成"硬件版 MIT"用在纯软件仓库上——那应当直接用 MIT 或 Apache-2.0。',
+      en: 'Treating it as a hardware-flavoured MIT and using it on a pure software repository, where MIT or Apache-2.0 is the right tool.',
+    },
+    bestFor: {
+      zh: '希望设计被最广泛采用、不要求回馈的开源硬件项目。',
+      en: 'Open hardware projects that want the widest adoption and do not require anything back.',
+    },
   },
   {
     id: 'CERN-OHL-W-2.0',
@@ -663,13 +1065,33 @@ export const LICENSES: LicenseEntry[] = [
     headerStyle: 'spdx-tag',
     requiresNotice: false,
     recommendedNotices: ['hardware-notice'],
-    facts: P('explicit', { stateChanges: true, sameLicensePerFile: true, endorse: 'prohibited', promote: 'prohibited' }),
+    facts: P('explicit', {
+      stateChanges: true,
+      sameLicensePerFile: true,
+      endorse: 'prohibited',
+      promote: 'prohibited',
+    }),
     needsVersionChoice: false,
-    tagline: { zh: '硬件专用弱互惠许可：只有被改过的那部分设计要回馈。', en: 'Weakly reciprocal hardware license: only the parts you changed must be given back.' },
-    gains: { zh: '折中档：被修改的设计文件要保持开放，你自己的设计与更大的组合不受影响；含明确专利授权。', en: 'The middle path: modified design files stay open while your own designs and larger combinations are unaffected. Includes an explicit patent grant.' },
-    tradeoffs: { zh: '互惠范围按文件或模块划分，判断比强互惠版更依赖逐条读条款；生态认知度低于 CERN-OHL-S。', en: 'Its reciprocal scope is per file or module, so judging it takes more clause-by-clause reading than the strong variant, and it is less widely recognised than CERN-OHL-S.' },
-    misuses: { zh: '以为"弱互惠"就等于可以闭源——被改过的设计文件仍要回馈。', en: 'Assuming "weak" means closed is fine — modified design files still have to come back.' },
-    bestFor: { zh: '愿意回馈改进、但希望自己的其他设计保持独立或闭源的开源硬件项目。', en: 'Open hardware projects that will give improvements back but want their other designs to stay independent or closed.' },
+    tagline: {
+      zh: '硬件专用弱互惠许可：只有被改过的那部分设计要回馈。',
+      en: 'Weakly reciprocal hardware license: only the parts you changed must be given back.',
+    },
+    gains: {
+      zh: '折中档：被修改的设计文件要保持开放，你自己的设计与更大的组合不受影响；含明确专利授权。',
+      en: 'The middle path: modified design files stay open while your own designs and larger combinations are unaffected. Includes an explicit patent grant.',
+    },
+    tradeoffs: {
+      zh: '互惠范围按文件或模块划分，判断比强互惠版更依赖逐条读条款；生态认知度低于 CERN-OHL-S。',
+      en: 'Its reciprocal scope is per file or module, so judging it takes more clause-by-clause reading than the strong variant, and it is less widely recognised than CERN-OHL-S.',
+    },
+    misuses: {
+      zh: '以为"弱互惠"就等于可以闭源——被改过的设计文件仍要回馈。',
+      en: 'Assuming "weak" means closed is fine — modified design files still have to come back.',
+    },
+    bestFor: {
+      zh: '愿意回馈改进、但希望自己的其他设计保持独立或闭源的开源硬件项目。',
+      en: 'Open hardware projects that will give improvements back but want their other designs to stay independent or closed.',
+    },
   },
   {
     id: 'EUPL-1.2',
@@ -680,20 +1102,38 @@ export const LICENSES: LicenseEntry[] = [
     headerStyle: 'spdx-tag',
     requiresNotice: false,
     recommendedNotices: ['source-form-notice'],
-    facts: P('explicit', { sameLicenseWholeWork: true, stateChanges: true, networkTrigger: true, trademarkClause: true }),
+    facts: P('explicit', {
+      sameLicenseWholeWork: true,
+      stateChanges: true,
+      networkTrigger: true,
+      trademarkClause: true,
+    }),
     needsVersionChoice: false,
-    tagline: { zh: '欧盟官方许可，含 23 种语言正式文本与兼容性附录。', en: 'The EU’s own license, with 23 official language versions and a compatibility appendix.' },
-    gains: { zh: '罕见地具备法律确定性：明示适用法域、提供多语言同等效力文本，并**显式列出**可与哪些许可互操作；含网络服务条款与专利条款。', en: 'Rare legal clarity: it states the applicable law, provides equally authentic language versions and explicitly lists compatible licenses. Includes network-use and patent terms.' },
-    tradeoffs: { zh: '适用法域与管辖法院指向欧盟成员国，非欧盟项目采用会引入额外变量；生态主要集中在公共部门。', en: 'Points jurisdiction at an EU member state, which adds variables for non-EU projects; adoption is concentrated in the public sector.' },
-    misuses: { zh: '中文语境下几乎无人提及，常被误以为只是"欧洲版 GPL"。', en: 'Barely covered in Chinese, where it is often mistaken for a European GPL.' },
-    bestFor: { zh: '公共部门项目、需要明确法域与多语言效力的项目。', en: 'Public-sector projects needing explicit jurisdiction and multilingual effect.' },
+    tagline: {
+      zh: '欧盟官方许可，含 23 种语言正式文本与兼容性附录。',
+      en: 'The EU’s own license, with 23 official language versions and a compatibility appendix.',
+    },
+    gains: {
+      zh: '罕见地具备法律确定性：明示适用法域、提供多语言同等效力文本，并**显式列出**可与哪些许可互操作；含网络服务条款与专利条款。',
+      en: 'Rare legal clarity: it states the applicable law, provides equally authentic language versions and explicitly lists compatible licenses. Includes network-use and patent terms.',
+    },
+    tradeoffs: {
+      zh: '适用法域与管辖法院指向欧盟成员国，非欧盟项目采用会引入额外变量；生态主要集中在公共部门。',
+      en: 'Points jurisdiction at an EU member state, which adds variables for non-EU projects; adoption is concentrated in the public sector.',
+    },
+    misuses: {
+      zh: '中文语境下几乎无人提及，常被误以为只是"欧洲版 GPL"。',
+      en: 'Barely covered in Chinese, where it is often mistaken for a European GPL.',
+    },
+    bestFor: {
+      zh: '公共部门项目、需要明确法域与多语言效力的项目。',
+      en: 'Public-sector projects needing explicit jurisdiction and multilingual effect.',
+    },
   },
 ];
 
 /** SPDX 标识符 → 条目 */
-export const LICENSE_BY_ID: Record<string, LicenseEntry> = Object.fromEntries(
-  LICENSES.map((l) => [l.id, l]),
-);
+export const LICENSE_BY_ID: Record<string, LicenseEntry> = Object.fromEntries(LICENSES.map((l) => [l.id, l]));
 
 /** 家族显示名（双语） */
 export const FAMILY_LABEL: Record<Family, { zh: string; en: string }> = {

@@ -1,4 +1,4 @@
-import { LICENSES, LICENSE_BY_ID } from './licenses.ts';
+import { LICENSE_BY_ID, LICENSES } from './licenses.ts';
 import type { Lang } from './types.ts';
 
 export const UI = {
@@ -58,11 +58,14 @@ export const PROJECT = {
    * 因此加了测试守着：`发行版版本号必须与 package.json 同步`。
    *
    * 约定（见 README「版本号与发行」）：**只在有大改动时才递增版本号**。
-   * 小的修复与增补直接覆盖同一个 v0.1.1 发行版，不逐次抬号；
-   * 等改动大到"用户需要判断该不该升级"时（数据源换了、产物结构变了、
-   * 生成结果不再向后兼容），才递增并在发行说明里写清差异。
+   * 小的修复与增补直接覆盖同一个发行版，不逐次抬号；等改动大到
+   * "用户需要判断该不该升级"时（数据源换了、产物结构变了、生成结果不再向后兼容），
+   * 才递增并在发行说明里写清差异。
+   *
+   * v0.1.2 属于后者：新增 `REUSE.toml`、批量声明头命令与口语别名归一，
+   * 生成产物的集合与检索行为都变了。
    */
-  releasesLabel: 'v0.1.1',
+  releasesLabel: 'v0.1.2',
   issues: 'https://github.com/youye-luna/license-forge/issues',
   /**
    * 项目自身的许可证标识符。
@@ -81,14 +84,15 @@ export const PROJECT = {
 } as const;
 
 /** 生态 → 包管理器清单文件 */
-export const ECOSYSTEM_MANIFESTS: Record<string, { label: { zh: string; en: string }; manifests: string[] }> = {
-  node: { label: { zh: 'Node / JS / TS', en: 'Node / JS / TS' }, manifests: ['package.json'] },
-  rust: { label: { zh: 'Rust', en: 'Rust' }, manifests: ['Cargo.toml'] },
-  python: { label: { zh: 'Python', en: 'Python' }, manifests: ['pyproject.toml', 'setup.cfg'] },
-  java: { label: { zh: 'Java / Maven', en: 'Java / Maven' }, manifests: ['pom.xml'] },
-  ruby: { label: { zh: 'Ruby', en: 'Ruby' }, manifests: ['Gemfile'] },
-  other: { label: { zh: '其他', en: 'Other' }, manifests: [] },
-};
+export const ECOSYSTEM_MANIFESTS: Record<string, { label: { zh: string; en: string }; manifests: string[] }> =
+  {
+    node: { label: { zh: 'Node / JS / TS', en: 'Node / JS / TS' }, manifests: ['package.json'] },
+    rust: { label: { zh: 'Rust', en: 'Rust' }, manifests: ['Cargo.toml'] },
+    python: { label: { zh: 'Python', en: 'Python' }, manifests: ['pyproject.toml', 'setup.cfg'] },
+    java: { label: { zh: 'Java / Maven', en: 'Java / Maven' }, manifests: ['pom.xml'] },
+    ruby: { label: { zh: 'Ruby', en: 'Ruby' }, manifests: ['Gemfile'] },
+    other: { label: { zh: '其他', en: 'Other' }, manifests: [] },
+  };
 
 /** 界面上的通用文案 */
 export const T = {
@@ -109,7 +113,8 @@ export const T = {
     description: '一句话描述',
     descriptionHint: '可选。会填入 GPL 家族示例段的首行，例如 "myapp - a tiny CLI for X"。',
     holderName: '版权人',
-    holderNameHint: '个人真实姓名或公司法定名称。写公司名时请注意：职务作品的著作权归属要看你的劳动合同与公司政策。',
+    holderNameHint:
+      '个人真实姓名或公司法定名称。写公司名时请注意：职务作品的著作权归属要看你的劳动合同与公司政策。',
     holderFrom: '起始年',
     holderTo: '结束年（留空表示至今）',
     addHolder: '添加版权人',
@@ -118,7 +123,8 @@ export const T = {
     styleWord: 'Copyright (C) 2026 名称',
     styleParen: '(C) 2026 名称',
     styleSymbol: '© 2026 名称',
-    styleHint: '三种写法在不同司法辖区的效力理解略有差异，但都会产生有效的版权声明。选一种并在全仓库保持一致最重要。',
+    styleHint:
+      '三种写法在不同司法辖区的效力理解略有差异，但都会产生有效的版权声明。选一种并在全仓库保持一致最重要。',
     contactEmail: '联系邮箱',
     contactEmailHint: '可选。会写进 README 与 NOTICE，方便下游就许可问题联系你。',
     repoUrl: '仓库地址',
@@ -130,8 +136,13 @@ export const T = {
     optReadme: '生成 README 许可段落',
     optReuse: '生成 REUSE 风格布局（LICENSES/ 目录，文件名不带扩展名）',
     mandatoryLock: '该许可证强制要求，无法关闭',
-    thirdParty: '第三方组件归属（每行一个）',
-    thirdPartyHint: '若项目包含他人代码，逐行写出「组件名 — 版权人 — 许可证」，NOTICE 里会列成归属清单。',
+    thirdParty: '第三方组件归属',
+    thirdPartyHint: '填组件名、版权人与许可证，NOTICE 里会列成归属清单；默认两行，不够点「添加一行」。',
+    thirdPartyName: '组件名',
+    thirdPartyCopyright: '版权人',
+    thirdPartyLicense: '许可证',
+    thirdPartyAdd: '添加一行',
+    thirdPartyRemove: '移除',
     generate: '生成产物',
     downloadAll: '下载全部（ZIP）',
     copy: '复制',
@@ -171,9 +182,11 @@ export const T = {
     projectName: 'Project name',
     projectNameHint: 'Used in the GPL-family notice section, and in NOTICE and the README.',
     description: 'One-line description',
-    descriptionHint: 'Optional. Fills the first line of the GPL-family example section, e.g. "myapp - a tiny CLI for X".',
+    descriptionHint:
+      'Optional. Fills the first line of the GPL-family example section, e.g. "myapp - a tiny CLI for X".',
     holderName: 'Copyright holder',
-    holderNameHint: 'A real name or the company’s legal name. If you write a company name, check your employment contract and company policy first.',
+    holderNameHint:
+      'A real name or the company’s legal name. If you write a company name, check your employment contract and company policy first.',
     holderFrom: 'From',
     holderTo: 'To (blank = present)',
     addHolder: 'Add holder',
@@ -182,9 +195,11 @@ export const T = {
     styleWord: 'Copyright (C) 2026 Name',
     styleParen: '(C) 2026 Name',
     styleSymbol: '© 2026 Name',
-    styleHint: 'The three forms are understood slightly differently across jurisdictions but all produce a valid notice. Consistency across the repository matters most.',
+    styleHint:
+      'The three forms are understood slightly differently across jurisdictions but all produce a valid notice. Consistency across the repository matters most.',
     contactEmail: 'Contact email',
-    contactEmailHint: 'Optional. Goes into the README and NOTICE so downstream users can reach you about licensing.',
+    contactEmailHint:
+      'Optional. Goes into the README and NOTICE so downstream users can reach you about licensing.',
     repoUrl: 'Repository URL',
     language: 'Primary language (sets the comment syntax)',
     ecosystem: 'Ecosystem (sets the manifest field)',
@@ -194,8 +209,14 @@ export const T = {
     optReadme: 'Generate a README license section',
     optReuse: 'Generate the REUSE layout (LICENSES/)',
     mandatoryLock: 'Required by this license; cannot be turned off',
-    thirdParty: 'Third-party attribution (one per line)',
-    thirdPartyHint: 'If you bundle other people’s code, list "component — holder — license" per line; NOTICE will include them.',
+    thirdParty: 'Third-party attribution',
+    thirdPartyHint:
+      'Component name, copyright holder and license — they become the NOTICE attribution list. Two rows by default; add more as needed.',
+    thirdPartyName: 'Component',
+    thirdPartyCopyright: 'Copyright holder',
+    thirdPartyLicense: 'License',
+    thirdPartyAdd: 'Add row',
+    thirdPartyRemove: 'Remove',
     generate: 'Generate',
     downloadAll: 'Download all (ZIP)',
     copy: 'Copy',
@@ -226,4 +247,4 @@ export function t(lang: Lang) {
   return T[lang];
 }
 
-export { LICENSES, LICENSE_BY_ID };
+export { LICENSE_BY_ID, LICENSES };

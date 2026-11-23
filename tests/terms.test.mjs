@@ -1,19 +1,24 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-
+import test from 'node:test';
+import { generate } from '../src/lib/generate.ts';
 import { deriveFacts, lookupTerms } from '../src/lib/spdx.ts';
 import { resolveSpec } from '../src/lib/spec.ts';
-import { generate } from '../src/lib/generate.ts';
 
 const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
 const SPDX = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
 const TEXTS = (await import('../public/data/license-texts.json', { with: { type: 'json' } })).default;
-const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
+const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } }))
+  .default;
 
 function options(overrides = {}) {
   return {
     lang: 'zh',
-    copyright: { holders: [{ name: 'Acme Inc.', from: '2024' }], projectName: 'widget', symbolStyle: 'word', joiner: 'newline' },
+    copyright: {
+      holders: [{ name: 'Acme Inc.', from: '2024' }],
+      projectName: 'widget',
+      symbolStyle: 'word',
+      joiner: 'newline',
+    },
     languageId: 'c',
     manifests: ['package.json'],
     includeNotice: false,
@@ -50,8 +55,13 @@ test('覆盖 47 个许可证，且每个都带 derived 字段', () => {
   assert.equal(Object.keys(TERMS.licenses).length, 47);
   for (const [id, entry] of Object.entries(TERMS.licenses)) {
     assert.ok(entry.derived, `${id} 缺 derived`);
-    assert.ok(['explicit', 'none', 'silent'].includes(entry.derived.patentGrant), `${id} 的 patentGrant 取值异常`);
-    assert.ok(Array.isArray(entry.permissions) && Array.isArray(entry.conditions) && Array.isArray(entry.limitations));
+    assert.ok(
+      ['explicit', 'none', 'silent'].includes(entry.derived.patentGrant),
+      `${id} 的 patentGrant 取值异常`,
+    );
+    assert.ok(
+      Array.isArray(entry.permissions) && Array.isArray(entry.conditions) && Array.isArray(entry.limitations),
+    );
   }
 });
 
@@ -68,7 +78,12 @@ test('patent-use 的同名反义必须按段区分（关键陷阱）', () => {
 
 test('已知答案抽样：条款字段与公认结论一致', () => {
   const expect = {
-    'Apache-2.0': { patentGrant: 'explicit', trademarkClause: true, stateChanges: true, networkTrigger: false },
+    'Apache-2.0': {
+      patentGrant: 'explicit',
+      trademarkClause: true,
+      stateChanges: true,
+      networkTrigger: false,
+    },
     MIT: { patentGrant: 'silent', trademarkClause: false, stateChanges: false, networkTrigger: false },
     'GPL-3.0': { patentGrant: 'explicit', stateChanges: true, networkTrigger: false },
     'AGPL-3.0': { patentGrant: 'explicit', networkTrigger: true },
@@ -120,7 +135,13 @@ test('lookupTerms 对覆盖范围外的许可证返回 null，而不是乱猜', 
  * ------------------------------------------------------------------ */
 
 test('有 ChooseALicense 标注时，条款字段来源标为 choosealicense', () => {
-  const facts = deriveFacts('Apache-2.0', TEXTS.licenses['Apache-2.0'].licenseText, true, 'permissive', TERMS);
+  const facts = deriveFacts(
+    'Apache-2.0',
+    TEXTS.licenses['Apache-2.0'].licenseText,
+    true,
+    'permissive',
+    TERMS,
+  );
   assert.equal(facts.termsSource, 'choosealicense');
   assert.equal(facts.patentGrant, 'explicit');
   assert.equal(facts.stateChanges, true);
@@ -137,7 +158,13 @@ test('没有标注时退回正文推断，并标为 text', () => {
 test('上游标注能纠正正则的误判', () => {
   // MPL-2.0 的正文里有 "no patent license is granted" 的局部排除，
   // 正则曾把它判成"明确不授权"；上游标注明确写了 patent-use → explicit
-  const withTerms = deriveFacts('MPL-2.0', TEXTS.licenses['MPL-2.0'].licenseText, true, 'weak-copyleft', TERMS);
+  const withTerms = deriveFacts(
+    'MPL-2.0',
+    TEXTS.licenses['MPL-2.0'].licenseText,
+    true,
+    'weak-copyleft',
+    TERMS,
+  );
   assert.equal(withTerms.patentGrant, 'explicit', 'MPL 的专利授权应取上游标注');
   assert.equal(withTerms.termsSource, 'choosealicense');
   // 不带标注时正则仍会给出推断结果（可能是错的，但会被标注为推断）
@@ -187,6 +214,11 @@ test('条款数据缺失时生成仍然成功（第三方数据不是硬依赖�
   const spec = resolveSpec('Apache-2.0', SPDX, TEXTS, undefined, undefined, null);
   assert.ok(spec);
   assert.equal(spec.termsSource, 'text', '没有标注时应如实标为推断');
-  const result = generate({ spec, options: options(), licenseText: TEXTS.licenses['Apache-2.0'], languages: [] });
+  const result = generate({
+    spec,
+    options: options(),
+    licenseText: TEXTS.licenses['Apache-2.0'],
+    languages: [],
+  });
   assert.ok(result.files.some((f) => f.path === 'LICENSE'));
 });

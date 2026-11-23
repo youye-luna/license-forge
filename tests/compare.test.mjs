@@ -1,5 +1,5 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import test from 'node:test';
 
 import { factsOf, generatedIntro } from '../src/lib/compare.ts';
 import { loadUnifiedCatalog } from '../src/lib/spdx.ts';
@@ -7,7 +7,8 @@ import { loadUnifiedCatalog } from '../src/lib/spdx.ts';
 const SPDX = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
 const SCANCODE = (await import('../public/data/scancode-index.json', { with: { type: 'json' } })).default;
 const TEXTS = (await import('../public/data/license-texts.json', { with: { type: 'json' } })).default;
-const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
+const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } }))
+  .default;
 const TERMS = (await import('../public/data/terms.json', { with: { type: 'json' } })).default;
 
 const UNIFIED = loadUnifiedCatalog(SPDX, SCANCODE);
@@ -84,11 +85,35 @@ test('NOTICE 义务只对明确要求它的许可证为真', () => {
 
 test('「最常用」短名单里的每个条目都能解析出可渲染的事实', () => {
   const FEATURED_IDS = [
-    'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'EPL-2.0',
-    'LGPL-2.1-only', 'LGPL-2.1-or-later', 'LGPL-3.0-only', 'LGPL-3.0-or-later',
-    'GPL-2.0-only', 'GPL-2.0-or-later', 'GPL-3.0-only', 'GPL-3.0-or-later',
-    'AGPL-3.0-only', 'AGPL-3.0-or-later', 'Unlicense', 'CC0-1.0', 'CC-BY-4.0', 'CC-BY-SA-4.0',
-    'MulanPSL-2.0', 'BSL-1.0', 'Zlib', 'OFL-1.1', 'EUPL-1.2', 'CERN-OHL-S-2.0', 'MIT-0', '0BSD',
+    'MIT',
+    'Apache-2.0',
+    'BSD-2-Clause',
+    'BSD-3-Clause',
+    'ISC',
+    'MPL-2.0',
+    'EPL-2.0',
+    'LGPL-2.1-only',
+    'LGPL-2.1-or-later',
+    'LGPL-3.0-only',
+    'LGPL-3.0-or-later',
+    'GPL-2.0-only',
+    'GPL-2.0-or-later',
+    'GPL-3.0-only',
+    'GPL-3.0-or-later',
+    'AGPL-3.0-only',
+    'AGPL-3.0-or-later',
+    'Unlicense',
+    'CC0-1.0',
+    'CC-BY-4.0',
+    'CC-BY-SA-4.0',
+    'MulanPSL-2.0',
+    'BSL-1.0',
+    'Zlib',
+    'OFL-1.1',
+    'EUPL-1.2',
+    'CERN-OHL-S-2.0',
+    'MIT-0',
+    '0BSD',
   ];
   const rows = FEATURED_IDS.map((id) => UNIFIED.find((e) => e.id === id)).filter(Boolean);
   assert.equal(rows.length, FEATURED_IDS.length, '短名单里的条目应当都能在合并目录里找到');
@@ -97,7 +122,14 @@ test('「最常用」短名单里的每个条目都能解析出可渲染的事�
     assert.ok(f.family, `${e.id} 缺家族`);
     assert.ok(f.facts.patentGrant, `${e.id} 缺专利判定`);
     // 条款框要用到的每个字段都得有确定值，否则卡片上会出现空白
-    for (const k of ['stateChanges', 'networkTrigger', 'sameLicenseWholeWork', 'sameLicensePerFile', 'osiApproved', 'requiresNotice']) {
+    for (const k of [
+      'stateChanges',
+      'networkTrigger',
+      'sameLicenseWholeWork',
+      'sameLicensePerFile',
+      'osiApproved',
+      'requiresNotice',
+    ]) {
       assert.equal(typeof f.facts[k], 'boolean', `${e.id} 的 ${k} 应当是布尔值`);
     }
     assert.ok(f.termsSource === 'choosealicense' || f.termsSource === 'text', `${e.id} 的条款来源不明`);
@@ -135,7 +167,11 @@ test('生成的简介第一句必须回答"这是什么类型的许可"', () => 
 
 test('简介对非开源许可证给出明确警告，而不是套用家族模板', () => {
   const nonOpenId = Object.keys(ENRICHMENT.licenses).find(
-    (k) => ENRICHMENT.licenses[k].category && ['Proprietary Free', 'Commercial', 'Non-Commercial', 'Source-available', 'Unstated License'].includes(ENRICHMENT.licenses[k].category),
+    (k) =>
+      ENRICHMENT.licenses[k].category &&
+      ['Proprietary Free', 'Commercial', 'Non-Commercial', 'Source-available', 'Unstated License'].includes(
+        ENRICHMENT.licenses[k].category,
+      ),
   );
   assert.ok(nonOpenId);
   const { facts, intro } = introFor(nonOpenId);

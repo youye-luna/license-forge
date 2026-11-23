@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-23T03:30:08.806Z",
+  "files": {
+    "license-enrichment.json": {
+      "bytes": 321277,
+      "sha256": "5f7f689c786c02b81f86c84343226fa43db58e8793083d49adf15769579c4170",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC-BY-4.0",
+      "upstream": [
+        "https://scancode-licensedb.aboutcode.org/",
+        "https://www.osadl.org/Checklists",
+        "https://opensource.org/api/licenses",
+        "https://gitcode.com/translation/license-translation"
+      ],
+      "note": "ScanCode 分类/归属方、OSADL 兼容性、OSI 标签、开放原子中文译稿链接的融合结果"
+    },
+    "license-index.json": {
+      "bytes": 225827,
+      "sha256": "1a1b257e96c36f71e616215ca7b8e6d86b9d7d29cc113cc6b7d6d4b8ecc9da81",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC0",
+      "upstream": [
+        "https://spdx.org/licenses/",
+        "https://raw.githubusercontent.com/spdx/license-list-data/main/json"
+      ],
+      "note": "SPDX License List 元数据（标识符、名称、OSI/FSF 状态、官方文件头是否存在）",
+      "counts": {
+        "licenses": 740,
+        "exceptions": 86,
+        "version": "3.29.0"
+      }
+    },
+    "license-texts.json": {
+      "bytes": 5387608,
+      "sha256": "6a9aab11819adecb5e7261ea4b622e20e911549e91da79eb15b1dd392529f9a6",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC0",
+      "upstream": [
+        "https://spdx.org/licenses/"
+      ],
+      "note": "SPDX 许可证与例外正文，逐字保存"
+    },
+    "scancode-index.json": {
+      "bytes": 639040,
+      "sha256": "80ab70b4b1defae9ea017b8cfe651c92c11db4284e13c7c8d2fd8e6d50560b69",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC-BY-4.0",
+      "upstream": [
+        "https://scancode-licensedb.aboutcode.org/"
+      ],
+      "note": "SPDX 未收录的许可证元数据",
+      "counts": {
+        "entries": 2021
+      }
+    },
+    "scancode-texts.json": {
+      "bytes": 13385059,
+      "sha256": "b5831e97b2878fd61c44161c09846855ba60f87a5c1f25e79b12350988bae2ac",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC-BY-4.0",
+      "upstream": [
+        "https://scancode-licensedb.aboutcode.org/"
+      ],
+      "note": "ScanCode 独有许可证正文，逐字保存"
+    },
+    "terms.json": {
+      "bytes": 33852,
+      "sha256": "e9b177141894dc5b107ccfb90942075d93c4ee8e060992cf0192d3f29b7a14fe",
+      "fetchedAt": "2026-11-23T03:30:08.806Z",
+      "license": "CC-BY-3.0",
+      "upstream": [
+        "https://github.com/github/choosealicense.com"
+      ],
+      "note": "ChooseALicense 的条款标签（专利、商标、改动标注等）"
+    }
+  }
+}

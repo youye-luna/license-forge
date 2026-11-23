@@ -27,7 +27,7 @@
  *   node scripts/fetch-scancode-extra.mjs --refresh
  *   node scripts/fetch-scancode-extra.mjs --concurrency=12
  */
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -110,7 +110,7 @@ function isInSpdx(entry) {
 const extras = index.filter((e) => !isInSpdx(e));
 console.log(`    LicenseDB ${index.length} 条；其中非 SPDX 部分 ${extras.length} 条`);
 
-console.log('2/3 抓取这些条目的正文与名称（并发 ' + CONCURRENCY + '）…');
+console.log(`2/3 抓取这些条目的正文与名称（并发 ${CONCURRENCY}）…`);
 
 /**
  * 索引里**只有 key 与 category，没有名称**，因此每条都必须拉一次详情 JSON。
@@ -122,7 +122,10 @@ const texts = await pool(
   async (entry) => {
     // 详情 JSON：给出 short_name / name / owner / homepage，同时兜底提供 text
     let detail = null;
-    const jsonRaw = await fetchText(`${BASE}/${entry.license_key}.json`, join('scancode-json', `${entry.license_key}.json`));
+    const jsonRaw = await fetchText(
+      `${BASE}/${entry.license_key}.json`,
+      join('scancode-json', `${entry.license_key}.json`),
+    );
     if (jsonRaw) {
       try {
         detail = JSON.parse(jsonRaw);
@@ -191,7 +194,9 @@ for (const e of scancodeIndex.entries) byCat[e.category] = (byCat[e.category] ??
 const totalChars = Object.values(scancodeTexts).reduce((n, t) => n + t.length, 0);
 
 console.log('');
-console.log(`非 SPDX 许可证：${scancodeIndex.entries.length} 条，取到正文 ${Object.keys(scancodeTexts).length} 条${missing ? `（${missing} 条取不到）` : ''}`);
+console.log(
+  `非 SPDX 许可证：${scancodeIndex.entries.length} 条，取到正文 ${Object.keys(scancodeTexts).length} 条${missing ? `（${missing} 条取不到）` : ''}`,
+);
 console.log(`正文总量：${(totalChars / 1024).toFixed(0)} KB`);
 console.log('分类分布：');
 for (const [c, n] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) {

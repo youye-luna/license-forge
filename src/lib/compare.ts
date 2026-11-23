@@ -1,10 +1,10 @@
 import { LICENSE_BY_ID } from './licenses.ts';
 import {
+  type ChooseALicenseTerms,
   deriveFacts,
+  type EnrichmentRecord,
   familyFromEntry,
   isNonOpenCategory,
-  type ChooseALicenseTerms,
-  type EnrichmentRecord,
   type UnifiedEntry,
 } from './spdx.ts';
 import type { Lang } from './types.ts';
@@ -139,22 +139,32 @@ export function generatedIntro(r: CompareFacts, lang: Lang): string {
         en: 'A content/data license for docs, images and datasets — Creative Commons itself advises against using it for software.',
       },
     };
-    parts.push((familyOpeners[r.family] ?? {
-      zh: '这份条款的类别尚不明确，采用前请通读正文。',
-      en: 'The nature of these terms is unclear; read the full text before adopting them.',
-    })[lang]);
+    parts.push(
+      (familyOpeners[r.family] ?? {
+        zh: '这份条款的类别尚不明确，采用前请通读正文。',
+        en: 'The nature of these terms is unclear; read the full text before adopting them.',
+      })[lang],
+    );
   }
 
   /* ---- 2. 专利（企业法务最先看的一条） ---- */
   if (r.facts.patentGrant === 'explicit') {
     parts.push(zh ? '它明确授予专利许可。' : 'It grants patent rights explicitly.');
   } else if (r.facts.patentGrant === 'none') {
-    parts.push(zh ? '它明确不授予专利许可——想保留专利主张时选这一类。' : 'It explicitly grants no patent rights — relevant when you want to reserve patent claims.');
+    parts.push(
+      zh
+        ? '它明确不授予专利许可——想保留专利主张时选这一类。'
+        : 'It explicitly grants no patent rights — relevant when you want to reserve patent claims.',
+    );
   }
 
   /* ---- 3. 网络触发（只有少数许可有，值得单独说） ---- */
   if (r.facts.networkTrigger) {
-    parts.push(zh ? '通过网络提供服务也会触发开源义务。' : 'Providing it as a network service also triggers the open-source obligations.');
+    parts.push(
+      zh
+        ? '通过网络提供服务也会触发开源义务。'
+        : 'Providing it as a network service also triggers the open-source obligations.',
+    );
   }
 
   /* ---- 4. 归属方（谁家的许可证，用户经常想知道） ---- */
@@ -179,9 +189,12 @@ export function generatedIntro(r: CompareFacts, lang: Lang): string {
 
   /* ---- 6. 废弃提示（历史项目需要，但新项目该知道） ---- */
   if (r.deprecated) {
-    parts.push(zh ? '注意：SPDX 已将其标记为废弃标识符，新项目建议改用现行写法。' : 'Note: SPDX marks this identifier as deprecated; new projects should use a current form.');
+    parts.push(
+      zh
+        ? '注意：SPDX 已将其标记为废弃标识符，新项目建议改用现行写法。'
+        : 'Note: SPDX marks this identifier as deprecated; new projects should use a current form.',
+    );
   }
 
   return parts.join('');
 }
-

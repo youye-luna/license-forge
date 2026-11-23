@@ -64,8 +64,7 @@ export function formatYears(holder: Holder): string {
  * 而不是被符号逻辑吞掉——这一点在实现里很容易写错。
  */
 export function formatHolderLine(holder: Holder, style: CopyrightInput['symbolStyle'] = 'word'): string {
-  const symbol =
-    style === 'c-paren' ? '(C)' : style === 'copyright-symbol' ? '\u00A9' : 'Copyright (C)';
+  const symbol = style === 'c-paren' ? '(C)' : style === 'copyright-symbol' ? '\u00A9' : 'Copyright (C)';
   const explicit = holder.right?.trim();
   const head = explicit ? explicit : symbol;
   return `${head} ${formatYears(holder)} ${holder.name.trim()}`.replace(/\s+/g, ' ').trim();
@@ -128,7 +127,7 @@ function findApplySectionIndex(text: string): number {
  * 这一点很重要：GPLv3 正文中 "Copyright (C) 2007 Free Software Foundation" 的 2007 必须保持原样，
  * 而示例段里的 <year> 才是给用户填的。竞品里常见的粗暴全文替换正是踩了这个坑。
  */
-function fillApplySection(text: string, input: CopyrightInput): string {
+function _fillApplySection(text: string, input: CopyrightInput): string {
   const idx = findApplySectionIndex(text);
   if (idx < 0) return text;
 
@@ -137,10 +136,16 @@ function fillApplySection(text: string, input: CopyrightInput): string {
   const name = programName(input);
   const years = input.holders.length ? formatYears(input.holders[0]) : String(currentYear());
   const author = input.holders.length
-    ? input.holders.map((h) => h.name.trim()).filter(Boolean).join(', ')
+    ? input.holders
+        .map((h) => h.name.trim())
+        .filter(Boolean)
+        .join(', ')
     : 'the copyright holders';
 
-  tail = tail.replaceAll('<one line to give the program\'s name and a brief idea of what it does.>', oneLine(input));
+  tail = tail.replaceAll(
+    "<one line to give the program's name and a brief idea of what it does.>",
+    oneLine(input),
+  );
   tail = tail.replaceAll('<program>', name);
   tail = tail.replaceAll('<year>', years);
   tail = tail.replaceAll('<name of author>', author);
@@ -205,7 +210,7 @@ export interface FillResult {
  * 审计脚本（scripts/audit-placeholders.mjs）显示 27 个"裸大写"命中里绝大多数属于误报。
  * 因此这里把搜索范围严格限定在含 "Copyright" 的那一两行，以及正文开头的一小段。
  */
-function copyrightRegion(text: string): string {
+function _copyrightRegion(text: string): string {
   const lines = text.slice(0, 900).split('\n');
   const out: string[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -335,7 +340,7 @@ function options_ownerName(input: CopyrightInput): string {
  *     只填一处会在用户仓库里留下一个方括号占位符；两处都要填，且背书条款里只能填
  *     **主体名称**，填整行版权声明会产出读不通的句子。
  */
-export function fillLicenseText(id: string, rawText: string, input: CopyrightInput): FillResult {
+export function fillLicenseText(_id: string, rawText: string, input: CopyrightInput): FillResult {
   const appliedFixes: string[] = [];
   let text = rawText;
 
@@ -377,7 +382,7 @@ export function fillLicenseText(id: string, rawText: string, input: CopyrightInp
   // 残留占位符自检——宁可让用户看到警告，也不要静默输出带 <year> 的文件
   const leftoverPlaceholders = findPlaceholders(text);
 
-  return { text: text.trimEnd() + '\n', appliedFixes, leftoverPlaceholders };
+  return { text: `${text.trimEnd()}\n`, appliedFixes, leftoverPlaceholders };
 }
 
 /* ------------------------------------------------------------------ *
@@ -497,8 +502,20 @@ export const LANGUAGES: LanguageProfile[] = [
   // 这组全是 `/* */` 块注释。把 JS / TS / CSS 排在最前：它们是绝大多数项目的语言
   // （本仓库自身就是 TS + JS + CSS），用户在下拉里找自己项目的语言时应当第一眼看到。
   // CSS 之前漏掉了——它只有块注释、不支持 `//` 行注释，而这组恰好渲染成块注释，所以放这里。
-  { id: 'c', label: 'JS / TS / CSS / SCSS / LESS / C / C++ / C# / Java / Go / Rust / Swift / Kotlin', style: 'slash', ext: 'c', manifests: ['package.json', 'Cargo.toml', 'pom.xml'] },
-  { id: 'python', label: 'Python / Ruby / Shell / YAML / TOML', style: 'hash', ext: 'py', manifests: ['pyproject.toml', 'setup.cfg', 'Gemfile'] },
+  {
+    id: 'c',
+    label: 'JS / TS / CSS / SCSS / LESS / C / C++ / C# / Java / Go / Rust / Swift / Kotlin',
+    style: 'slash',
+    ext: 'c',
+    manifests: ['package.json', 'Cargo.toml', 'pom.xml'],
+  },
+  {
+    id: 'python',
+    label: 'Python / Ruby / Shell / YAML / TOML',
+    style: 'hash',
+    ext: 'py',
+    manifests: ['pyproject.toml', 'setup.cfg', 'Gemfile'],
+  },
   { id: 'sql', label: 'SQL', style: 'dash', ext: 'sql', manifests: [] },
   { id: 'lisp', label: 'Lisp / Clojure / ASM', style: 'semicolon', ext: 'lisp', manifests: [] },
   { id: 'tex', label: 'LaTeX / MATLAB / Erlang', style: 'percent', ext: 'tex', manifests: [] },
@@ -528,7 +545,6 @@ export function renderComment(body: string, style: CommentStyle): string {
       return ['<!--', ...lines.map((l) => (l ? `  ${l}` : '')), '-->'].join('\n');
     case 'xml':
       return ['<!--', ...lines.map((l) => (l ? `  ${l}` : '')), '-->'].join('\n');
-    case 'quote':
     default:
       return body;
   }
@@ -591,7 +607,10 @@ export function fillTemplatePlaceholders(template: string, input: CopyrightInput
   //    只是恰好这些值里没有 `$`，但用函数可以彻底避免这类隐式行为。
   const subs: [RegExp, string][] = [
     // 版权主体（覆盖方括号、尖括号、裸词三种写法）
-    [/\[name of copyright owner\]|\[name of copyright holder\]|\[copyright holders?\]|\[name of author\]|\[owner organization\]|\[owner\]|\[fullname\]/gi, author],
+    [
+      /\[name of copyright owner\]|\[name of copyright holder\]|\[copyright holders?\]|\[name of author\]|\[owner organization\]|\[owner\]|\[fullname\]/gi,
+      author,
+    ],
     [/<name of author>/gi, author],
     [/<copyright holders?>/gi, author],
     [/\[author\]|\[name\]|\[holder\]/gi, author],
@@ -623,6 +642,7 @@ export function fillTemplatePlaceholders(template: string, input: CopyrightInput
   out = out.replace(/_{3,}/g, () => author);
 
   // 3) 还原 URL
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: 占位符就是靠控制字符与正文隔离的，还原时必须按原样匹配
   out = out.replace(/\u0000URL(\d+)\u0000/g, (_m, i) => urls[Number(i)] ?? '');
 
   return out;
@@ -682,14 +702,17 @@ export function fileHeader(
 
   if (options?.officialHeader?.trim()) {
     const filled = fillTemplatePlaceholders(options.officialHeader, input);
-    return { text: renderComment(withTag(filled.trimEnd()), style) + '\n', leftovers: templateLeftovers(filled) };
+    return {
+      text: `${renderComment(withTag(filled.trimEnd()), style)}\n`,
+      leftovers: templateLeftovers(filled),
+    };
   }
   if (id.startsWith('GPL') || id.startsWith('LGPL') || id.startsWith('AGPL')) {
     const body = gnuBoilerplate(id, input, 'en');
-    return { text: renderComment(withTag(body), style) + '\n', leftovers: findPlaceholders(body) };
+    return { text: `${renderComment(withTag(body), style)}\n`, leftovers: findPlaceholders(body) };
   }
   const body = spdxHeader(tag, input);
-  return { text: renderComment(body, style) + '\n', leftovers: [] };
+  return { text: `${renderComment(body, style)}\n`, leftovers: [] };
 }
 
 /** 许可证声明的语言说明：文件内容恒为英文官方措辞，界面语言只影响解释文案 */

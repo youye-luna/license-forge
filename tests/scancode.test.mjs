@@ -1,6 +1,6 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-
+import test from 'node:test';
+import { generate } from '../src/lib/generate.ts';
 import {
   getUnifiedCatalog,
   isNonOpenCategory,
@@ -10,12 +10,13 @@ import {
   searchUnified,
 } from '../src/lib/spdx.ts';
 import { fromScancodeEntry } from '../src/lib/spec.ts';
-import { generate } from '../src/lib/generate.ts';
 
 const SPDX = (await import('../public/data/license-index.json', { with: { type: 'json' } })).default;
 const SCANCODE = (await import('../public/data/scancode-index.json', { with: { type: 'json' } })).default;
-const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } })).default;
-const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } })).default;
+const SCANCODE_TEXTS = (await import('../public/data/scancode-texts.json', { with: { type: 'json' } }))
+  .default;
+const ENRICHMENT = (await import('../public/data/license-enrichment.json', { with: { type: 'json' } }))
+  .default;
 
 function options(overrides = {}) {
   return {
@@ -66,8 +67,17 @@ test('正文不是 404 HTML 页面（该站错误页很长，容易被误当正�
 
 test('分类值都在已知集合内', () => {
   const known = new Set([
-    'CLA', 'Commercial', 'Non-Commercial', 'Copyleft', 'Copyleft Limited', 'Free Restricted',
-    'Patent License', 'Permissive', 'Proprietary Free', 'Public Domain', 'Source-available',
+    'CLA',
+    'Commercial',
+    'Non-Commercial',
+    'Copyleft',
+    'Copyleft Limited',
+    'Free Restricted',
+    'Patent License',
+    'Permissive',
+    'Proprietary Free',
+    'Public Domain',
+    'Source-available',
     'Unstated License',
   ]);
   const bad = SCANCODE.entries.filter((e) => !known.has(e.category)).map((e) => `${e.key}:${e.category}`);
@@ -165,11 +175,19 @@ test('非 SPDX 条目可以生成正文，且必须提示"不能写进清单字�
   assert.equal(spec.fill, 'metadata-only', '非 SPDX 正文没有规范的字段，必须逐字保留');
   assert.match(spec.id, /^LicenseRef-scancode-/);
 
-  const result = generate({ spec, options: options(), licenseText: { name: spec.name, url: spec.sourceUrl, licenseText: raw }, languages: [] });
-  assert.ok(result.files.some((f) => f.path === 'LICENSE'), '应产出正文文件');
+  const result = generate({
+    spec,
+    options: options(),
+    licenseText: { name: spec.name, url: spec.sourceUrl, licenseText: raw },
+    languages: [],
+  });
+  assert.ok(
+    result.files.some((f) => f.path === 'LICENSE'),
+    '应产出正文文件',
+  );
   // 正文必须逐字保留
   const license = result.files.find((f) => f.path === 'LICENSE');
-  assert.equal(license.content, raw.trimEnd() + '\n');
+  assert.equal(license.content, `${raw.trimEnd()}\n`);
   // 必须给出"名字不在官方名录里"的警告——而且要说人话，不能只丢一个 LicenseRef 给用户
   assert.ok(
     result.notices.some((n) => n.level === 'warn' && n.zh.includes('不是官方名录里的名字')),
@@ -188,7 +206,12 @@ test('非开源分类的 ScanCode 条目触发错误级提示', () => {
   const raw = SCANCODE_TEXTS[entry.key];
   const spec = fromScancodeEntry(entry, raw, ENRICHMENT.licenses[entry.key]);
   assert.equal(spec.nonOpen, true);
-  const result = generate({ spec, options: options(), licenseText: { name: spec.name, url: spec.sourceUrl, licenseText: raw }, languages: [] });
+  const result = generate({
+    spec,
+    options: options(),
+    licenseText: { name: spec.name, url: spec.sourceUrl, licenseText: raw },
+    languages: [],
+  });
   assert.ok(result.notices.some((n) => n.level === 'error' && n.zh.includes('不是一个开源许可证')));
 });
 
@@ -216,9 +239,6 @@ test('合并目录可被整体获取，规模接近 SPDX + ScanCode 非例外条
 
   const direct = loadUnifiedCatalog(SPDX, SCANCODE);
   const scLicenses = SCANCODE.entries.filter((e) => !e.isException).length;
-  assert.ok(
-    direct.length <= SPDX.licenses.length + scLicenses,
-    '合并目录不应当超过两者之和',
-  );
+  assert.ok(direct.length <= SPDX.licenses.length + scLicenses, '合并目录不应当超过两者之和');
   assert.ok(direct.length > 2400, `合并目录应有 2400+ 条，实际 ${direct.length}`);
 });

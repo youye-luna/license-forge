@@ -1,24 +1,29 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-
+import { resolveLicenseAlias } from '../src/lib/aliases.ts';
 import {
   FAMILY_RANK,
+  keyOf,
+  needsLicenseText,
   PATENT_RANK,
   SORTS,
   SUBJECT_RANK,
-  keyOf,
-  needsLicenseText,
   sortLicenses,
 } from '../src/lib/ordering.ts';
-import { loadUnifiedCatalog, familyFromEntry, lookupTerms } from '../src/lib/spdx.ts';
+import { familyFromEntry, loadUnifiedCatalog, lookupTerms, searchUnified } from '../src/lib/spdx.ts';
 import { subjectsOf } from '../src/lib/subject.ts';
+import { pickerSource } from './picker-source.mjs';
 
 const SPDX = JSON.parse(readFileSync(new URL('../public/data/license-index.json', import.meta.url), 'utf8'));
-const SCANCODE = JSON.parse(readFileSync(new URL('../public/data/scancode-index.json', import.meta.url), 'utf8'));
-const ENRICHMENT = JSON.parse(readFileSync(new URL('../public/data/license-enrichment.json', import.meta.url), 'utf8'));
+const SCANCODE = JSON.parse(
+  readFileSync(new URL('../public/data/scancode-index.json', import.meta.url), 'utf8'),
+);
+const ENRICHMENT = JSON.parse(
+  readFileSync(new URL('../public/data/license-enrichment.json', import.meta.url), 'utf8'),
+);
 const TERMS = JSON.parse(readFileSync(new URL('../public/data/terms.json', import.meta.url), 'utf8'));
 const UNIFIED = loadUnifiedCatalog(SPDX, SCANCODE);
 
@@ -88,7 +93,10 @@ test('按适用对象：非代码的排在前面，代码垫底', () => {
   assert.equal(subjectOf(out[out.length - 1]), 'code', '最后一项应当是源代码许可');
   // 硬件与字体要真的排在最前面
   assert.ok(['hardware', 'font'].includes(subjectOf(out[0])));
-  assert.ok(out.slice(0, 30).every((e) => subjectOf(e) !== 'code'), '前 30 项不应出现代码类');
+  assert.ok(
+    out.slice(0, 30).every((e) => subjectOf(e) !== 'code'),
+    '前 30 项不应出现代码类',
+  );
 });
 
 test('按专利授权：明确授予的排最前，未加载正文的退化为"未提及"', () => {
@@ -112,7 +120,10 @@ test('按专利授权：明确授予的排最前，未加载正文的退化为"�
   const grantOf = (e) => lookupTerms(TERMS, keyOf(e))?.derived.patentGrant ?? 'silent';
   const ranks = out.map((e) => PATENT_RANK[grantOf(e)]);
   for (let i = 1; i < ranks.length; i++) {
-    assert.ok(ranks[i - 1] <= ranks[i], `专利次序不对：第 ${i} 项（${keyOf(out[i - 1])} → ${keyOf(out[i])}）`);
+    assert.ok(
+      ranks[i - 1] <= ranks[i],
+      `专利次序不对：第 ${i} 项（${keyOf(out[i - 1])} → ${keyOf(out[i])}）`,
+    );
   }
 });
 
@@ -128,7 +139,11 @@ test('排序不改动输入数组（纯函数）', () => {
   const input = UNIFIED.slice(0, 50);
   const snapshot = input.map((e) => e.id);
   sortLicenses(input, 'family', ctx);
-  assert.deepEqual(input.map((e) => e.id), snapshot, '不应原地修改传入的数组');
+  assert.deepEqual(
+    input.map((e) => e.id),
+    snapshot,
+    '不应原地修改传入的数组',
+  );
 });
 
 /* ------------------------------------------------------------------ *
@@ -136,7 +151,7 @@ test('排序不改动输入数组（纯函数）', () => {
  * ------------------------------------------------------------------ */
 
 test('列表使用 sortLicenses，且排序控件在列表所在的那一栏', () => {
-  const src = readFileSync(new URL('../src/components/ProPicker.tsx', import.meta.url), 'utf8');
+  const src = pickerSource();
   assert.ok(src.includes("from '../lib/ordering.ts'"), '应当从 lib/ordering.ts 引入排序');
   assert.match(src, /sortLicenses\(results, sortKey,/, '列表应当用 sortLicenses 排序');
   assert.ok(src.includes('sortedResults.map('), '渲染的应当是排序后的结果');
@@ -193,4 +208,25 @@ test('客户端组件首行必须是 use client，且文件不能带 BOM', () =>
     }
   }
   assert.ok(checked >= 3, `应当检查到至少 3 个客户端组件，实际 ${checked}`);
+});
+
+/* ------------------------------------------------------------------ *
+ * 口语写法归一（spdx-correct 思路）
+ * ------------------------------------------------------------------ */
+
+test('口语写法先归一到 SPDX 标识符，并排在检索结果最前', () => {
+  const first = (q) => searchUnified(UNIFIED, q)[0]?.id;
+  assert.equal(first('GPLv3'), 'GPL-3.0-only');
+  assert.equal(first('gplv3+'), 'GPL-3.0-or-later');
+  assert.equal(first('Apache 2.0'), 'Apache-2.0');
+  assert.equal(first('MPL2'), 'MPL-2.0');
+  assert.equal(first('BSD-3'), 'BSD-3-Clause');
+  assert.equal(first('cc by 4.0'), 'CC-BY-4.0');
+});
+
+test('会指向多个版本的裸词刻意不做归一', () => {
+  assert.equal(resolveLicenseAlias('GPL'), null);
+  assert.equal(resolveLicenseAlias('LGPL'), null);
+  assert.equal(resolveLicenseAlias('BSD'), null);
+  assert.equal(resolveLicenseAlias('Apache'), null);
 });
